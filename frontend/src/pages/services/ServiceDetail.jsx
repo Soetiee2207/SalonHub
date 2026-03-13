@@ -1,8 +1,27 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiClock, FiTag, FiImage, FiArrowLeft } from 'react-icons/fi';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { FiClock, FiTag, FiChevronRight } from 'react-icons/fi';
 import { serviceService } from '../../services/serviceService';
 import { formatPrice } from '../../utils/formatPrice';
+
+const CATEGORY_IMAGES = {
+  'cat': 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&q=80',
+  'style': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80',
+  'color': 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=400&q=80',
+  'care': 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&q=80',
+};
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80';
+
+function getServiceImage(service) {
+  if (service.image) return service.image;
+  const catName = (service.category?.name || '').toLowerCase();
+  if (catName.includes('cắt') || catName.includes('cat')) return CATEGORY_IMAGES.cat;
+  if (catName.includes('uốn') || catName.includes('tạo kiểu') || catName.includes('style')) return CATEGORY_IMAGES.style;
+  if (catName.includes('nhuộm') || catName.includes('màu') || catName.includes('color')) return CATEGORY_IMAGES.color;
+  if (catName.includes('chăm sóc') || catName.includes('dưỡng') || catName.includes('care')) return CATEGORY_IMAGES.care;
+  return FALLBACK_IMAGE;
+}
 
 export default function ServiceDetail() {
   const { id } = useParams();
@@ -19,7 +38,6 @@ export default function ServiceDetail() {
         const data = res.data || res;
         setService(data);
 
-        // Fetch related services in same category
         const allRes = await serviceService.getAll();
         const all = allRes.data || allRes;
         const categoryId = data.categoryId || data.category?.id;
@@ -38,16 +56,21 @@ export default function ServiceDetail() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="flex flex-col justify-center items-center min-h-[60vh] gap-4">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary)]"></div>
+        <p style={{ fontFamily: 'var(--font-body)' }} className="text-sm text-[var(--primary-light)]">
+          Đang tải thông tin dịch vụ...
+        </p>
       </div>
     );
   }
 
   if (!service) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center text-gray-500">
-        Không tìm thấy dịch vụ.
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-400 text-lg">
+          Không tìm thấy dịch vụ.
+        </p>
       </div>
     );
   }
@@ -56,59 +79,90 @@ export default function ServiceDetail() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-light)]">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        {/* Back Button */}
-        <button
-          onClick={() => navigate('/services')}
-          className="flex items-center gap-2 text-[var(--primary)] hover:underline mb-6 text-sm font-medium"
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav
+          style={{ fontFamily: 'var(--font-body)' }}
+          className="flex items-center gap-2 text-sm text-gray-400 mb-8"
         >
-          <FiArrowLeft />
-          Quay lại danh sách dịch vụ
-        </button>
+          <Link to="/" className="hover:text-[var(--primary)] transition-colors">
+            Trang chủ
+          </Link>
+          <FiChevronRight className="text-xs" />
+          <Link to="/services" className="hover:text-[var(--primary)] transition-colors">
+            Dịch vụ
+          </Link>
+          <FiChevronRight className="text-xs" />
+          <span className="text-[var(--primary)] font-medium">{service.name}</span>
+        </nav>
 
-        {/* Service Detail */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            {/* Image */}
-            {service.image ? (
+        {/* Two Column Layout */}
+        <div className="bg-white rounded-2xl overflow-hidden border border-[var(--bg-warm)]">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            {/* Large Image */}
+            <div className="h-80 md:h-[500px]">
               <img
-                src={service.image}
+                src={getServiceImage(service)}
                 alt={service.name}
-                className="w-full h-72 md:h-full object-cover"
+                className="w-full h-full object-cover"
               />
-            ) : (
-              <div className="w-full h-72 md:h-full bg-gray-100 flex items-center justify-center min-h-[300px]">
-                <FiImage className="text-6xl text-gray-300" />
-              </div>
-            )}
+            </div>
 
             {/* Info */}
-            <div className="p-8 flex flex-col justify-between">
+            <div className="p-8 md:p-10 flex flex-col justify-between">
               <div>
                 {categoryName && (
-                  <span className="inline-flex items-center gap-1 text-sm text-[var(--primary-light)] bg-[var(--bg-light)] px-3 py-1 rounded-full mb-3">
+                  <span
+                    style={{ fontFamily: 'var(--font-body)' }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent-gold)] bg-[var(--bg-warm)] px-4 py-1.5 rounded-full mb-4 uppercase tracking-wide"
+                  >
                     <FiTag className="text-xs" />
                     {categoryName}
                   </span>
                 )}
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">
+
+                <h1
+                  style={{ fontFamily: 'var(--font-display)' }}
+                  className="text-3xl md:text-4xl font-bold text-gray-800 mb-5"
+                >
                   {service.name}
                 </h1>
-                <p className="text-gray-600 mb-6 leading-relaxed">
+
+                <p
+                  style={{ fontFamily: 'var(--font-body)' }}
+                  className="text-gray-500 leading-relaxed mb-8"
+                >
                   {service.description || 'Chưa có mô tả cho dịch vụ này.'}
                 </p>
 
-                <div className="flex items-center gap-6 mb-6">
+                <div className="flex items-center gap-8 mb-8">
                   <div>
-                    <span className="text-sm text-gray-400">Giá</span>
-                    <p className="text-2xl font-bold text-[var(--primary)]">
+                    <span
+                      style={{ fontFamily: 'var(--font-body)' }}
+                      className="text-xs text-gray-400 uppercase tracking-wider"
+                    >
+                      Giá dịch vụ
+                    </span>
+                    <p
+                      style={{ fontFamily: 'var(--font-display)' }}
+                      className="text-3xl font-bold text-[var(--primary)] mt-1"
+                    >
                       {formatPrice(service.price)}
                     </p>
                   </div>
+                  <div className="h-12 w-px bg-[var(--bg-warm)]" />
                   <div>
-                    <span className="text-sm text-gray-400">Thời gian</span>
-                    <p className="flex items-center gap-1 text-lg font-medium text-gray-700">
-                      <FiClock />
+                    <span
+                      style={{ fontFamily: 'var(--font-body)' }}
+                      className="text-xs text-gray-400 uppercase tracking-wider"
+                    >
+                      Thời gian
+                    </span>
+                    <p
+                      style={{ fontFamily: 'var(--font-body)' }}
+                      className="flex items-center gap-2 text-xl font-medium text-gray-700 mt-1"
+                    >
+                      <FiClock className="text-[var(--accent-gold)]" />
                       {service.duration} phút
                     </p>
                   </div>
@@ -117,7 +171,8 @@ export default function ServiceDetail() {
 
               <button
                 onClick={() => navigate(`/book-appointment?serviceId=${service.id}`)}
-                className="w-full py-3 bg-[var(--primary)] text-white font-semibold rounded-lg hover:bg-[var(--primary-light)] transition-colors text-lg"
+                style={{ fontFamily: 'var(--font-body)' }}
+                className="w-full py-4 bg-[var(--primary)] text-white font-semibold rounded-xl hover:bg-[var(--primary-light)] transition-colors text-lg tracking-wide"
               >
                 Đặt lịch dịch vụ này
               </button>
@@ -127,8 +182,11 @@ export default function ServiceDetail() {
 
         {/* Related Services */}
         {relatedServices.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">
+          <div className="mt-16">
+            <h2
+              style={{ fontFamily: 'var(--font-display)' }}
+              className="text-2xl font-bold text-gray-800 mb-8 text-center"
+            >
               Dịch vụ liên quan
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -136,22 +194,33 @@ export default function ServiceDetail() {
                 <div
                   key={s.id}
                   onClick={() => navigate(`/services/${s.id}`)}
-                  className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                  className="group bg-white rounded-2xl overflow-hidden cursor-pointer border border-[var(--bg-warm)] hover:-translate-y-1 transition-all duration-300"
                 >
-                  {s.image ? (
-                    <img src={s.image} alt={s.name} className="w-full h-40 object-cover" />
-                  ) : (
-                    <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
-                      <FiImage className="text-3xl text-gray-300" />
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <h3 className="font-semibold text-gray-800 text-sm line-clamp-1">{s.name}</h3>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[var(--primary)] font-bold text-sm">
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={getServiceImage(s)}
+                      alt={s.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3
+                      style={{ fontFamily: 'var(--font-display)' }}
+                      className="font-semibold text-gray-800 text-base line-clamp-1 mb-2"
+                    >
+                      {s.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <span
+                        style={{ fontFamily: 'var(--font-body)' }}
+                        className="text-[var(--primary)] font-bold text-sm"
+                      >
                         {formatPrice(s.price)}
                       </span>
-                      <span className="flex items-center text-gray-400 text-xs gap-1">
+                      <span
+                        style={{ fontFamily: 'var(--font-body)' }}
+                        className="flex items-center text-gray-400 text-xs gap-1"
+                      >
                         <FiClock />
                         {s.duration} phút
                       </span>

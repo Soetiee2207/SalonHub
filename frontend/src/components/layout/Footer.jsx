@@ -27,6 +27,9 @@ export default function Footer() {
               <Link to="/book-appointment" className="text-sm text-[var(--text-gray)] hover:text-[var(--primary)] no-underline transition-colors">
                 Đặt lịch hẹn
               </Link>
+              <Link to="/contact" className="text-sm text-[var(--text-gray)] hover:text-[var(--primary)] no-underline transition-colors">
+                Liên hệ
+              </Link>
             </div>
           </div>
 

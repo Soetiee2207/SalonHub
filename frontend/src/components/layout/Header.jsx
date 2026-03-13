@@ -54,6 +54,7 @@ export default function Header() {
     { to: '/services', label: 'Dịch vụ' },
     { to: '/products', label: 'Sản phẩm' },
     { to: '/book-appointment', label: 'Đặt lịch' },
+    { to: '/contact', label: 'Liên hệ' },
   ];
 
   const isActive = (path) => location.pathname === path;

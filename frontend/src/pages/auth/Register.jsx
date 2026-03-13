@@ -9,8 +9,10 @@ export default function Register() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate(user.role === 'admin' ? '/admin' : '/');
-  }, [user]);
+    if (user) {
+      navigate(user.role === 'admin' || user.role === 'staff' ? '/admin' : '/', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [form, setForm] = useState({
     name: '',
@@ -69,7 +71,6 @@ export default function Register() {
       const { confirmPassword, ...data } = form;
       await register(data);
       toast.success('Đăng ký thành công!');
-      navigate('/');
     } catch (err) {
       toast.error(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -77,161 +78,173 @@ export default function Register() {
     }
   };
 
-  const inputClass = 'w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:border-[var(--primary)]';
-  const passwordInputClass = 'w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:border-[var(--primary)]';
+  const renderInput = ({ label, name, type = 'text', icon: Icon, placeholder, isPassword, showState, toggleShow }) => (
+    <div>
+      <label
+        className="block text-sm font-medium mb-1.5"
+        style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <span className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
+          <Icon size={18} />
+        </span>
+        <input
+          type={isPassword ? (showState ? 'text' : 'password') : type}
+          name={name}
+          value={form[name]}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`w-full pl-11 ${isPassword ? 'pr-11' : 'pr-4'} py-3 rounded-xl border text-sm outline-none`}
+          style={{
+            borderColor: 'var(--border)',
+            fontFamily: 'var(--font-body)',
+            transition: 'border-color 0.3s ease',
+          }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={toggleShow}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer"
+            style={{ color: 'var(--text-gray)' }}
+          >
+            {showState ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--bg-light)' }}>
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl p-8 border" style={{ borderColor: 'var(--border)' }}>
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--primary-dark)' }}>
-              Đăng ký tài khoản
-            </h1>
+    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--bg-light)' }}>
+      {/* Left - Image Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80"
+          alt="Salon"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0" style={{ backgroundColor: 'rgba(30, 20, 12, 0.55)' }} />
+        <div className="absolute inset-0 flex flex-col justify-end p-12">
+          <h2
+            className="text-4xl font-bold text-white mb-3"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Tham gia SalonHub
+          </h2>
+          <p className="text-lg" style={{ color: 'rgba(255,255,255,0.8)', fontFamily: 'var(--font-body)' }}>
+            Không gian tóc đẳng cấp
+          </p>
+        </div>
+      </div>
+
+      {/* Right - Register Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Mobile branding */}
+          <div className="lg:hidden text-center mb-10">
+            <h2
+              className="text-3xl font-bold mb-1"
+              style={{ fontFamily: 'var(--font-display)', color: 'var(--primary)' }}
+            >
+              SalonHub
+            </h2>
             <p className="text-sm" style={{ color: 'var(--text-gray)' }}>
-              Tạo tài khoản để trải nghiệm dịch vụ của SalonHub
+              Không gian tóc đẳng cấp
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>
-                Họ và tên
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
-                  <FiUser size={18} />
-                </span>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Nguyễn Văn A"
-                  className={inputClass}
-                  style={{ borderColor: 'var(--border)' }}
-                />
-              </div>
+          <div className="bg-white rounded-2xl p-8 sm:p-10 border" style={{ borderColor: 'var(--border)' }}>
+            <div className="mb-8">
+              <h1
+                className="text-2xl font-bold mb-2"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+              >
+                Tạo tài khoản
+              </h1>
+              <p className="text-sm" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
+                Đăng ký để trải nghiệm dịch vụ đẳng cấp
+              </p>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>
-                Email
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
-                  <FiMail size={18} />
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="email@example.com"
-                  className={inputClass}
-                  style={{ borderColor: 'var(--border)' }}
-                />
-              </div>
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {renderInput({
+                label: 'Họ và tên',
+                name: 'name',
+                icon: FiUser,
+                placeholder: 'Nguyễn Văn A',
+              })}
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>
-                Số điện thoại
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
-                  <FiPhone size={18} />
-                </span>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="0912 345 678"
-                  className={inputClass}
-                  style={{ borderColor: 'var(--border)' }}
-                />
-              </div>
-            </div>
+              {renderInput({
+                label: 'Email',
+                name: 'email',
+                type: 'email',
+                icon: FiMail,
+                placeholder: 'email@example.com',
+              })}
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>
-                Mật khẩu
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
-                  <FiLock size={18} />
-                </span>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  placeholder="Ít nhất 6 ký tự"
-                  className={passwordInputClass}
-                  style={{ borderColor: 'var(--border)' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: 'var(--text-gray)' }}
-                >
-                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
-              </div>
-            </div>
+              {renderInput({
+                label: 'Số điện thoại',
+                name: 'phone',
+                type: 'tel',
+                icon: FiPhone,
+                placeholder: '0912 345 678',
+              })}
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>
-                Xác nhận mật khẩu
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
-                  <FiLock size={18} />
-                </span>
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Nhập lại mật khẩu"
-                  className={passwordInputClass}
-                  style={{ borderColor: 'var(--border)' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                  style={{ color: 'var(--text-gray)' }}
-                >
-                  {showConfirm ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
-              </div>
-            </div>
+              {renderInput({
+                label: 'Mật khẩu',
+                name: 'password',
+                icon: FiLock,
+                placeholder: 'Ít nhất 6 ký tự',
+                isPassword: true,
+                showState: showPassword,
+                toggleShow: () => setShowPassword(!showPassword),
+              })}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 rounded-lg text-white font-semibold text-sm transition-colors disabled:opacity-60 cursor-pointer mt-2"
-              style={{ backgroundColor: 'var(--primary)' }}
+              {renderInput({
+                label: 'Xác nhận mật khẩu',
+                name: 'confirmPassword',
+                icon: FiLock,
+                placeholder: 'Nhập lại mật khẩu',
+                isPassword: true,
+                showState: showConfirm,
+                toggleShow: () => setShowConfirm(!showConfirm),
+              })}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer mt-2"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => { if (!loading) e.target.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
+              >
+                {loading ? 'Đang xử lý...' : 'Đăng ký'}
+              </button>
+            </form>
+
+            <p
+              className="text-center text-sm mt-8"
+              style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}
             >
-              {loading ? 'Đang xử lý...' : 'Đăng ký'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm mt-6" style={{ color: 'var(--text-gray)' }}>
-            Đã có tài khoản?{' '}
-            <Link to="/login" className="font-semibold hover:underline" style={{ color: 'var(--primary)' }}>
-              Đăng nhập
-            </Link>
-          </p>
+              Đã có tài khoản?{' '}
+              <Link
+                to="/login"
+                className="font-semibold hover:underline"
+                style={{ color: 'var(--primary)' }}
+              >
+                Đăng nhập
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

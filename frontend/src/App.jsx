@@ -25,6 +25,7 @@ const MyOrders = lazy(() => import('./pages/orders/MyOrders'));
 const OrderDetail = lazy(() => import('./pages/orders/OrderDetail'));
 const Notifications = lazy(() => import('./pages/notifications/Notifications'));
 const VnpayReturn = lazy(() => import('./pages/payments/VnpayReturn'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 // Admin pages
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -53,6 +54,7 @@ function App() {
               <Route path="/services/:id" element={<ServiceDetail />} />
               <Route path="/products" element={<Products />} />
               <Route path="/products/:id" element={<ProductDetail />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/vnpay-return" element={<VnpayReturn />} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

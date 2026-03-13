@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #8B5E3C;
+  --primary-light: #C4956A;
+  --primary-dark: #5D3A1A;
+  --accent: #D4A574;
+  --bg-light: #FBF7F4;
+  --bg-white: #FFFFFF;
+  --text-dark: #2D2D2D;
+  --text-gray: #6B7280;
+  --border: #E5E7EB;
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

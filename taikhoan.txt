@@ -1,0 +1,52 @@
+============================================
+  SALONHUB SYSTEM - DANH SACH TAI KHOAN
+============================================
+
+Mat khau mac dinh: 123456
+
+--- ADMIN ---
+Email: admin@salonhub.vn
+Mat khau: 123456
+Vai tro: Quan tri vien
+
+--- NHAN VIEN (STAFF) ---
+1. Tran Minh Tuan
+   Email: tuan@salonhub.vn
+   Mat khau: 123456
+   Chi nhanh: SalonHub Quan 1
+   Ky nang: Cat toc nam, Uon toc nam, Goi dau
+
+2. Le Hoang Nam
+   Email: nam@salonhub.vn
+   Mat khau: 123456
+   Chi nhanh: SalonHub Quan 1
+   Ky nang: Cat toc nam/nu, Nhuom toc, Phuc hoi Keratin
+
+3. Pham Thi Mai
+   Email: mai@salonhub.vn
+   Mat khau: 123456
+   Chi nhanh: SalonHub Quan 3
+   Ky nang: Cat toc nu, Uon toc nu, Nhuom, Duong toc, Goi massage
+
+--- KHACH HANG (CUSTOMER) ---
+1. Vo Thanh Hung
+   Email: hung@gmail.com
+   Mat khau: 123456
+
+2. Nguyen Thi Lan
+   Email: lan@gmail.com
+   Mat khau: 123456
+
+3. Dang Quoc Bao
+   Email: bao@gmail.com
+   Mat khau: 123456
+
+--- MA GIAM GIA ---
+CHAOBAN  - Giam 20%, toi da 100.000d (don tu 200.000d)
+GIAM50K  - Giam 50.000d (don tu 300.000d)
+SUMMER30 - Giam 30%, toi da 200.000d (don tu 500.000d, 01/06-31/08)
+FREESHIP - Giam 30.000d (khong yeu cau don toi thieu)
+
+--- TRUY CAP ---
+Frontend: http://localhost:3000
+Backend API: http://localhost:5000/api

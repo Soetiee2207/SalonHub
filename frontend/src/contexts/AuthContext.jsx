@@ -15,8 +15,9 @@ export function AuthProvider({ children }) {
     if (token) {
       authService.getProfile()
         .then(res => {
-          setUser(res.data);
-          localStorage.setItem('user', JSON.stringify(res.data));
+          const userData = res.data?.user || res.data || res;
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -31,17 +32,23 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const res = await authService.login(credentials);
-    localStorage.setItem('token', res.token);
-    localStorage.setItem('user', JSON.stringify(res.data));
-    setUser(res.data);
+    const payload = res.data || res;
+    const token = payload.token || res.token;
+    const userData = payload.user || payload;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
     return res;
   };
 
   const register = async (data) => {
     const res = await authService.register(data);
-    localStorage.setItem('token', res.token);
-    localStorage.setItem('user', JSON.stringify(res.data));
-    setUser(res.data);
+    const payload = res.data || res;
+    const token = payload.token || res.token;
+    const userData = payload.user || payload;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
     return res;
   };
 

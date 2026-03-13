@@ -17,15 +17,16 @@ api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      const url = error.config?.url || '';
-      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
-      if (!isAuthEndpoint) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
-        }
+      const path = window.location.pathname;
+      // On login/register pages, just pass error through - don't redirect or clear
+      if (path === '/login' || path === '/register') {
+        return Promise.reject(error.response?.data || error);
       }
+      // On other pages, clear auth and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      return Promise.reject(error.response?.data || error);
     }
     return Promise.reject(error.response?.data || error);
   }

@@ -247,6 +247,7 @@ export default function Dashboard() {
   const [overview, setOverview] = useState(null);
   const [revenue, setRevenue] = useState([]);
   const [revenuePeriod, setRevenuePeriod] = useState('month');
+
   const [topServices, setTopServices] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [appointmentStats, setAppointmentStats] = useState(null);
@@ -267,27 +268,55 @@ export default function Dashboard() {
   /* Fetch overview + static data once */
   useEffect(() => {
     dashboardService.getOverview()
-      .then(res => setOverview(res.data?.data || res.data))
+      .then(res => { const d = res.data || res; setOverview(d); })
       .catch(() => {})
       .finally(() => setPartialLoading('overview', false));
 
     dashboardService.getTopServices()
-      .then(res => setTopServices(res.data?.data || res.data || []))
+      .then(res => {
+        const d = res.data || res;
+        const arr = Array.isArray(d) ? d : [];
+        setTopServices(arr.map(item => ({
+          name: item.service?.name || item.name || '',
+          count: item.bookingCount || item.count || 0,
+        })));
+      })
       .catch(() => {})
       .finally(() => setPartialLoading('topServices', false));
 
     dashboardService.getTopProducts()
-      .then(res => setTopProducts(res.data?.data || res.data || []))
+      .then(res => {
+        const d = res.data || res;
+        const arr = Array.isArray(d) ? d : [];
+        setTopProducts(arr.map(item => ({
+          name: item.product?.name || item.name || '',
+          quantity: item.totalSold || item.quantity || 0,
+        })));
+      })
       .catch(() => {})
       .finally(() => setPartialLoading('topProducts', false));
 
     dashboardService.getAppointmentStats()
-      .then(res => setAppointmentStats(res.data?.data || res.data))
+      .then(res => {
+        const d = res.data || res;
+        // Backend returns array: [{ status, count }] - convert to object { pending: 3, confirmed: 2 }
+        if (Array.isArray(d)) {
+          const obj = {};
+          d.forEach(item => { obj[item.status] = Number(item.count) || 0; });
+          setAppointmentStats(obj);
+        } else {
+          setAppointmentStats(d);
+        }
+      })
       .catch(() => {})
       .finally(() => setPartialLoading('appointments', false));
 
     dashboardService.getNewCustomers({ period: 'month' })
-      .then(res => setNewCustomers(res.data?.data || res.data || []))
+      .then(res => {
+        const d = res.data || res;
+        const customers = Array.isArray(d) ? d : d.customers || [];
+        setNewCustomers(customers);
+      })
       .catch(() => {})
       .finally(() => setPartialLoading('customers', false));
   }, []);
@@ -296,7 +325,26 @@ export default function Dashboard() {
   const fetchRevenue = useCallback((period) => {
     setPartialLoading('revenue', true);
     dashboardService.getRevenue({ period })
-      .then(res => setRevenue(res.data?.data || res.data || []))
+      .then(res => {
+        const d = res.data || res;
+        // Backend returns { period, orders: [...], appointments: [...] }
+        // Merge into single array with combined revenue per date
+        const ordersArr = d.orders || [];
+        const appointmentsArr = d.appointments || [];
+        const mergedMap = {};
+        ordersArr.forEach(item => {
+          const key = String(item.date);
+          mergedMap[key] = (mergedMap[key] || 0) + (Number(item.revenue) || 0);
+        });
+        appointmentsArr.forEach(item => {
+          const key = String(item.date);
+          mergedMap[key] = (mergedMap[key] || 0) + (Number(item.revenue) || 0);
+        });
+        const merged = Object.entries(mergedMap)
+          .map(([label, revenue]) => ({ label, revenue }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+        setRevenue(merged);
+      })
       .catch(() => setRevenue([]))
       .finally(() => setPartialLoading('revenue', false));
   }, []);
@@ -342,25 +390,25 @@ export default function Dashboard() {
             <StatCard
               icon={FiDollarSign}
               label="Doanh thu tháng này"
-              value={formatPrice(overview?.monthlyRevenue || overview?.revenue || 0)}
+              value={formatPrice(overview?.totalRevenue || overview?.monthlyRevenue || overview?.revenue || 0)}
               color="brown"
             />
             <StatCard
               icon={FiShoppingBag}
               label="Đơn hàng tháng này"
-              value={overview?.monthlyOrders || overview?.orders || 0}
+              value={overview?.totalOrders || overview?.monthlyOrders || overview?.orders || 0}
               color="blue"
             />
             <StatCard
               icon={FiCalendar}
               label="Lịch hẹn tháng này"
-              value={overview?.monthlyAppointments || overview?.appointments || 0}
+              value={overview?.totalAppointments || overview?.monthlyAppointments || overview?.appointments || 0}
               color="green"
             />
             <StatCard
               icon={FiUsers}
               label="Khách hàng mới"
-              value={overview?.newCustomers || 0}
+              value={overview?.totalCustomers || overview?.newCustomers || 0}
               color="purple"
             />
           </>

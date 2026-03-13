@@ -88,7 +88,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Email hoặc mật khẩu không đúng',
       });
     }
 
@@ -97,7 +97,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Email hoặc mật khẩu không đúng',
       });
     }
 

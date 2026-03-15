@@ -152,7 +152,7 @@ export default function BookAppointment() {
         branchId: selectedBranch.id,
         staffId: selectedStaff.id,
         date: formatDate(selectedDate),
-        time: selectedTime,
+        startTime: selectedTime,
         note,
       });
       toast.success('Đặt lịch thành công!');
@@ -320,19 +320,19 @@ export default function BookAppointment() {
                 {s.avatar || s.image ? (
                   <img
                     src={s.avatar || s.image}
-                    alt={s.name}
+                    alt={s.fullName || s.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-lg">
-                    {s.name?.charAt(0)?.toUpperCase()}
+                    {(s.fullName || s.name || '')?.charAt(0)?.toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-800">{s.name}</h3>
+                  <h3 className="font-semibold text-gray-800">{s.fullName || s.name}</h3>
                   {s.skills && s.skills.length > 0 && (
                     <p className="text-gray-400 text-xs mt-1 line-clamp-1">
-                      {s.skills.map((sk) => sk.name || sk).join(', ')}
+                      {s.skills.map((sk) => sk.service?.name || sk.name || (typeof sk === 'string' ? sk : '')).filter(Boolean).join(', ')}
                     </p>
                   )}
                   {s.rating != null && (
@@ -395,7 +395,8 @@ export default function BookAppointment() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableSlots.map((slot) => {
-                const time = slot.time || slot;
+                const time = slot.startTime || slot.time || (typeof slot === 'string' ? slot : '');
+                const label = slot.endTime ? `${time} - ${slot.endTime}` : time;
                 const isAvailable = slot.available !== false;
                 const isSelected = selectedTime === time;
                 return (
@@ -411,7 +412,7 @@ export default function BookAppointment() {
                         : 'bg-gray-100 text-gray-300 border-2 border-gray-100 cursor-not-allowed'
                     }`}
                   >
-                    {time}
+                    {label}
                   </button>
                 );
               })}
@@ -437,7 +438,7 @@ export default function BookAppointment() {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Thợ</span>
-          <span className="font-semibold text-gray-800">{selectedStaff?.name}</span>
+          <span className="font-semibold text-gray-800">{selectedStaff?.fullName || selectedStaff?.name}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Ngày</span>

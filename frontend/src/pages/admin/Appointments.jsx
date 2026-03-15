@@ -91,7 +91,7 @@ export default function AdminAppointments() {
     if (!search) return true;
     const s = search.toLowerCase();
     return (String(a.id || '')).toLowerCase().includes(s) ||
-      (a.userId?.fullName || a.userId?.name || a.customerName || '').toLowerCase().includes(s);
+      (a.customer?.fullName || a.customer?.name || '').toLowerCase().includes(s);
   });
 
   return (
@@ -165,12 +165,10 @@ export default function AdminAppointments() {
                 return (
                   <tr key={aid} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs">{String(aid).padStart(6, '0')}</td>
-                    <td className="px-4 py-3 font-medium">{a.userId?.fullName || a.userId?.name || a.customerName || '---'}</td>
-                    <td className="px-4 py-3 text-gray-600">{a.staffId?.fullName || a.staffId?.name || '---'}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {(a.services || a.serviceIds || []).map(s => s?.name || s?.serviceId?.name || '').filter(Boolean).join(', ') || a.serviceId?.name || '---'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{a.branchId?.name || '---'}</td>
+                    <td className="px-4 py-3 font-medium">{a.customer?.fullName || a.customer?.name || '---'}</td>
+                    <td className="px-4 py-3 text-gray-600">{a.staff?.fullName || a.staff?.name || '---'}</td>
+                    <td className="px-4 py-3 text-gray-600">{a.service?.name || '---'}</td>
+                    <td className="px-4 py-3 text-gray-600">{a.branch?.name || '---'}</td>
                     <td className="px-4 py-3 text-center text-gray-600">{formatDate(a.date || a.appointmentDate)}</td>
                     <td className="px-4 py-3 text-center text-gray-600">{formatTime(a.time || a.startTime)}</td>
                     <td className="px-4 py-3 text-center">

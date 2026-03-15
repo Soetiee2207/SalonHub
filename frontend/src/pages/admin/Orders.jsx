@@ -77,7 +77,7 @@ export default function AdminOrders() {
   const filtered = orders.filter(o => {
     const searchMatch = search === '' ||
       (String(o.id || '')).toLowerCase().includes(search.toLowerCase()) ||
-      (o.userId?.fullName || o.userId?.name || o.customerName || '').toLowerCase().includes(search.toLowerCase());
+      (o.customer?.fullName || o.customer?.name || '').toLowerCase().includes(search.toLowerCase());
     return searchMatch;
   });
 
@@ -134,9 +134,9 @@ export default function AdminOrders() {
                     <tr className={`border-b hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-gray-50' : ''}`}
                       onClick={() => setExpandedId(isExpanded ? null : oid)}>
                       <td className="px-4 py-3 font-mono text-xs">{String(oid).padStart(6, '0')}</td>
-                      <td className="px-4 py-3 font-medium">{order.userId?.fullName || order.userId?.name || order.customerName || '---'}</td>
+                      <td className="px-4 py-3 font-medium">{order.customer?.fullName || order.customer?.name || '---'}</td>
                       <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--primary)' }}>{formatPrice(order.totalAmount || order.total || 0)}</td>
-                      <td className="px-4 py-3 text-center text-gray-600">{order.paymentMethod === 'cash' ? 'Tiền mặt' : order.paymentMethod === 'vnpay' ? 'VNPay' : order.paymentMethod || '---'}</td>
+                      <td className="px-4 py-3 text-center text-gray-600">{order.paymentMethod === 'cod' ? 'Tiền mặt (COD)' : order.paymentMethod === 'vnpay' ? 'VNPay' : order.paymentMethod || '---'}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${paymentStatusColors[order.paymentStatus] || 'bg-gray-100 text-gray-600'}`}>
                           {paymentStatusLabels[order.paymentStatus] || order.paymentStatus || '---'}
@@ -179,7 +179,7 @@ export default function AdminOrders() {
                               <tbody>
                                 {(order.items || order.orderItems || []).map((item, idx) => (
                                   <tr key={idx} className="border-b border-gray-100">
-                                    <td className="py-1">{item.productId?.name || item.name || '---'}</td>
+                                    <td className="py-1">{item.product?.name || item.name || '---'}</td>
                                     <td className="py-1 text-center">{item.quantity}</td>
                                     <td className="py-1 text-right">{formatPrice(item.price)}</td>
                                     <td className="py-1 text-right font-medium">{formatPrice(item.price * item.quantity)}</td>

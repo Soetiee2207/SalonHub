@@ -181,6 +181,16 @@ const createOrder = async (req, res, next) => {
   }
 };
 
+// Helper: sort object keys alphabetically and encode values
+function sortObject(obj) {
+  const sorted = {};
+  const keys = Object.keys(obj).sort();
+  for (const key of keys) {
+    sorted[key] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+');
+  }
+  return sorted;
+}
+
 // Generate VNPay payment URL
 function generateVnpayUrl(order) {
   const date = new Date();
@@ -193,7 +203,7 @@ function generateVnpayUrl(order) {
     vnp_Locale: 'vn',
     vnp_CurrCode: 'VND',
     vnp_TxnRef: order.id.toString(),
-    vnp_OrderInfo: `Payment for order #${order.id}`,
+    vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
     vnp_OrderType: 'other',
     vnp_Amount: Math.round(parseFloat(order.totalAmount) * 100),
     vnp_ReturnUrl: vnpayConfig.returnUrl,
@@ -201,20 +211,16 @@ function generateVnpayUrl(order) {
     vnp_CreateDate: createDate,
   };
 
-  // Sort params
-  const sortedParams = {};
-  const sortedKeys = Object.keys(vnpParams).sort();
-  for (const key of sortedKeys) {
-    sortedParams[key] = vnpParams[key];
-  }
+  // Sort and encode params
+  vnpParams = sortObject(vnpParams);
 
-  const signData = querystring.stringify(sortedParams, { encode: false });
+  const signData = querystring.stringify(vnpParams, { encode: false });
   const hmac = crypto.createHmac('sha512', vnpayConfig.hashSecret);
   const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
 
-  sortedParams.vnp_SecureHash = signed;
+  vnpParams.vnp_SecureHash = signed;
 
-  return `${vnpayConfig.url}?${querystring.stringify(sortedParams, { encode: false })}`;
+  return `${vnpayConfig.url}?${querystring.stringify(vnpParams, { encode: false })}`;
 }
 
 // Get my orders
@@ -336,6 +342,14 @@ const updateOrderStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
+    const validStatuses = ['pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancelled'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Trạng thái không hợp lệ. Phải là: ${validStatuses.join(', ')}`,
+      });
+    }
 
     const order = await Order.findByPk(id);
     if (!order) {

@@ -15,7 +15,7 @@ export default function Checkout() {
 
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [voucherCode, setVoucherCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherApplied, setVoucherApplied] = useState(false);
@@ -91,7 +91,7 @@ export default function Checkout() {
       const res = await orderService.create(orderData);
       const data = res.data || res;
 
-      if (paymentMethod === 'VNPay' && data.paymentUrl) {
+      if (paymentMethod === 'vnpay' && data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
         toast.success('Đặt hàng thành công!');
@@ -202,12 +202,12 @@ export default function Checkout() {
             <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Phương thức thanh toán</h2>
               <div className="space-y-3">
-                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'COD' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
+                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="COD"
-                    checked={paymentMethod === 'COD'}
+                    value="cod"
+                    checked={paymentMethod === 'cod'}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="accent-[var(--primary)]"
                   />
@@ -217,12 +217,12 @@ export default function Checkout() {
                     <p className="text-sm text-gray-500">Trả tiền mặt khi nhận hàng</p>
                   </div>
                 </label>
-                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'VNPay' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
+                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'vnpay' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="VNPay"
-                    checked={paymentMethod === 'VNPay'}
+                    value="vnpay"
+                    checked={paymentMethod === 'vnpay'}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="accent-[var(--primary)]"
                   />

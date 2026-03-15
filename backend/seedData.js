@@ -15,7 +15,8 @@ async function seed() {
       email: 'admin@salonhub.vn',
       password: hash,
       phone: '0901000001',
-      role: 'admin'
+      role: 'admin',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face'
     });
 
     const staff1 = await db.User.create({
@@ -23,7 +24,8 @@ async function seed() {
       email: 'tuan@salonhub.vn',
       password: hash,
       phone: '0901000002',
-      role: 'staff'
+      role: 'staff',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face'
     });
 
     const staff2 = await db.User.create({
@@ -31,7 +33,8 @@ async function seed() {
       email: 'nam@salonhub.vn',
       password: hash,
       phone: '0901000003',
-      role: 'staff'
+      role: 'staff',
+      avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face'
     });
 
     const staff3 = await db.User.create({
@@ -39,7 +42,8 @@ async function seed() {
       email: 'mai@salonhub.vn',
       password: hash,
       phone: '0901000004',
-      role: 'staff'
+      role: 'staff',
+      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=face'
     });
 
     const customer1 = await db.User.create({
@@ -47,7 +51,8 @@ async function seed() {
       email: 'hung@gmail.com',
       password: hash,
       phone: '0912345678',
-      role: 'customer'
+      role: 'customer',
+      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face'
     });
 
     const customer2 = await db.User.create({
@@ -55,7 +60,8 @@ async function seed() {
       email: 'lan@gmail.com',
       password: hash,
       phone: '0912345679',
-      role: 'customer'
+      role: 'customer',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=face'
     });
 
     const customer3 = await db.User.create({
@@ -63,7 +69,8 @@ async function seed() {
       email: 'bao@gmail.com',
       password: hash,
       phone: '0912345680',
-      role: 'customer'
+      role: 'customer',
+      avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&h=400&fit=crop&crop=face'
     });
 
     console.log('Users seeded.');
@@ -74,7 +81,8 @@ async function seed() {
       address: '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
       phone: '028 3821 1234',
       openTime: '08:00',
-      closeTime: '21:00'
+      closeTime: '21:00',
+      image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&h=500&fit=crop'
     });
 
     const branch2 = await db.Branch.create({
@@ -82,7 +90,8 @@ async function seed() {
       address: '45 Võ Văn Tần, Phường 6, Quận 3, TP.HCM',
       phone: '028 3930 5678',
       openTime: '08:30',
-      closeTime: '21:30'
+      closeTime: '21:30',
+      image: 'https://images.unsplash.com/photo-1559599101-f09722fb4948?w=800&h=500&fit=crop'
     });
 
     const branch3 = await db.Branch.create({
@@ -90,7 +99,8 @@ async function seed() {
       address: '789 Nguyễn Thị Thập, Phường Tân Phú, Quận 7, TP.HCM',
       phone: '028 5412 9876',
       openTime: '08:00',
-      closeTime: '22:00'
+      closeTime: '22:00',
+      image: 'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?w=800&h=500&fit=crop'
     });
 
     // Assign staff to branches
@@ -110,24 +120,24 @@ async function seed() {
     console.log('Service categories seeded.');
 
     // === SERVICES (real prices VND) ===
-    const svc1 = await db.Service.create({ name: 'Cắt tóc nam cơ bản', description: 'Cắt tóc nam theo yêu cầu, bao gồm gội và sấy tạo kiểu', price: 80000, duration: 30, categoryId: catCat.id, isActive: true });
-    const svc2 = await db.Service.create({ name: 'Cắt tóc nam cao cấp', description: 'Cắt tóc nam với stylist chuyên nghiệp, tư vấn kiểu phù hợp khuôn mặt', price: 150000, duration: 45, categoryId: catCat.id, isActive: true });
-    const svc3 = await db.Service.create({ name: 'Cắt tóc nữ ngắn', description: 'Cắt tóc nữ ngắn thời trang, bao gồm gội sấy', price: 120000, duration: 40, categoryId: catCat.id, isActive: true });
-    const svc4 = await db.Service.create({ name: 'Cắt tóc nữ dài', description: 'Cắt tỉa, tạo kiểu tóc dài, bao gồm gội sấy tạo kiểu', price: 180000, duration: 60, categoryId: catCat.id, isActive: true });
+    const svc1 = await db.Service.create({ name: 'Cắt tóc nam cơ bản', description: 'Cắt tóc nam theo yêu cầu, bao gồm gội và sấy tạo kiểu', price: 80000, duration: 30, categoryId: catCat.id, isActive: true, image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&h=600&fit=crop' });
+    const svc2 = await db.Service.create({ name: 'Cắt tóc nam cao cấp', description: 'Cắt tóc nam với stylist chuyên nghiệp, tư vấn kiểu phù hợp khuôn mặt', price: 150000, duration: 45, categoryId: catCat.id, isActive: true, image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=800&h=600&fit=crop' });
+    const svc3 = await db.Service.create({ name: 'Cắt tóc nữ ngắn', description: 'Cắt tóc nữ ngắn thời trang, bao gồm gội sấy', price: 120000, duration: 40, categoryId: catCat.id, isActive: true, image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=600&fit=crop' });
+    const svc4 = await db.Service.create({ name: 'Cắt tóc nữ dài', description: 'Cắt tỉa, tạo kiểu tóc dài, bao gồm gội sấy tạo kiểu', price: 180000, duration: 60, categoryId: catCat.id, isActive: true, image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&h=600&fit=crop' });
 
-    const svc5 = await db.Service.create({ name: 'Uốn tóc nam Hàn Quốc', description: 'Uốn tóc nam kiểu Hàn Quốc tự nhiên, giữ nếp lâu 3-6 tháng', price: 350000, duration: 90, categoryId: catUon.id, isActive: true });
-    const svc6 = await db.Service.create({ name: 'Uốn tóc nữ lọn lớn', description: 'Uốn tóc nữ sóng lọn lớn bồng bềnh, sử dụng thuốc uốn cao cấp', price: 500000, duration: 120, categoryId: catUon.id, isActive: true });
-    const svc7 = await db.Service.create({ name: 'Uốn phồng chân tóc', description: 'Uốn phồng chân tóc tạo độ bồng tự nhiên', price: 300000, duration: 60, categoryId: catUon.id, isActive: true });
+    const svc5 = await db.Service.create({ name: 'Uốn tóc nam Hàn Quốc', description: 'Uốn tóc nam kiểu Hàn Quốc tự nhiên, giữ nếp lâu 3-6 tháng', price: 350000, duration: 90, categoryId: catUon.id, isActive: true, image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&h=600&fit=crop' });
+    const svc6 = await db.Service.create({ name: 'Uốn tóc nữ lọn lớn', description: 'Uốn tóc nữ sóng lọn lớn bồng bềnh, sử dụng thuốc uốn cao cấp', price: 500000, duration: 120, categoryId: catUon.id, isActive: true, image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800&h=600&fit=crop' });
+    const svc7 = await db.Service.create({ name: 'Uốn phồng chân tóc', description: 'Uốn phồng chân tóc tạo độ bồng tự nhiên', price: 300000, duration: 60, categoryId: catUon.id, isActive: true, image: 'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=800&h=600&fit=crop' });
 
-    const svc8 = await db.Service.create({ name: 'Nhuộm tóc thời trang', description: 'Nhuộm tóc màu thời trang (nâu, vàng, đỏ, highlight...)', price: 400000, duration: 90, categoryId: catNhuom.id, isActive: true });
-    const svc9 = await db.Service.create({ name: 'Nhuộm phủ bạc', description: 'Nhuộm tóc phủ bạc với màu tự nhiên, an toàn cho da đầu', price: 250000, duration: 60, categoryId: catNhuom.id, isActive: true });
+    const svc8 = await db.Service.create({ name: 'Nhuộm tóc thời trang', description: 'Nhuộm tóc màu thời trang (nâu, vàng, đỏ, highlight...)', price: 400000, duration: 90, categoryId: catNhuom.id, isActive: true, image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&h=600&fit=crop' });
+    const svc9 = await db.Service.create({ name: 'Nhuộm phủ bạc', description: 'Nhuộm tóc phủ bạc với màu tự nhiên, an toàn cho da đầu', price: 250000, duration: 60, categoryId: catNhuom.id, isActive: true, image: 'https://images.unsplash.com/photo-1560869713-bf165a3b2c81?w=800&h=600&fit=crop' });
 
-    const svc10 = await db.Service.create({ name: 'Phục hồi tóc Keratin', description: 'Phục hồi tóc hư tổn bằng Keratin cao cấp, tóc mềm mượt tức thì', price: 600000, duration: 90, categoryId: catPhuchoi.id, isActive: true });
-    const svc11 = await db.Service.create({ name: 'Hấp dầu phục hồi', description: 'Hấp dầu dưỡng tóc sâu, phục hồi tóc khô xơ', price: 200000, duration: 45, categoryId: catPhuchoi.id, isActive: true });
-    const svc12 = await db.Service.create({ name: 'Ủ tóc Collagen', description: 'Ủ tóc Collagen giúp tóc chắc khỏe, bóng mượt từ gốc đến ngọn', price: 350000, duration: 60, categoryId: catPhuchoi.id, isActive: true });
+    const svc10 = await db.Service.create({ name: 'Phục hồi tóc Keratin', description: 'Phục hồi tóc hư tổn bằng Keratin cao cấp, tóc mềm mượt tức thì', price: 600000, duration: 90, categoryId: catPhuchoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?w=800&h=600&fit=crop' });
+    const svc11 = await db.Service.create({ name: 'Hấp dầu phục hồi', description: 'Hấp dầu dưỡng tóc sâu, phục hồi tóc khô xơ', price: 200000, duration: 45, categoryId: catPhuchoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=800&h=600&fit=crop' });
+    const svc12 = await db.Service.create({ name: 'Ủ tóc Collagen', description: 'Ủ tóc Collagen giúp tóc chắc khỏe, bóng mượt từ gốc đến ngọn', price: 350000, duration: 60, categoryId: catPhuchoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1595475884562-073c30d45670?w=800&h=600&fit=crop' });
 
-    const svc13 = await db.Service.create({ name: 'Gội đầu dưỡng sinh', description: 'Gội đầu kết hợp massage đầu cổ vai gáy thư giãn', price: 70000, duration: 30, categoryId: catGoi.id, isActive: true });
-    const svc14 = await db.Service.create({ name: 'Gội massage combo', description: 'Gội đầu + massage đầu + massage mặt + đắp mặt nạ', price: 150000, duration: 45, categoryId: catGoi.id, isActive: true });
+    const svc13 = await db.Service.create({ name: 'Gội đầu dưỡng sinh', description: 'Gội đầu kết hợp massage đầu cổ vai gáy thư giãn', price: 70000, duration: 30, categoryId: catGoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&h=600&fit=crop' });
+    const svc14 = await db.Service.create({ name: 'Gội massage combo', description: 'Gội đầu + massage đầu + massage mặt + đắp mặt nạ', price: 150000, duration: 45, categoryId: catGoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&h=600&fit=crop' });
 
     console.log('Services seeded.');
 
@@ -140,24 +150,24 @@ async function seed() {
     console.log('Product categories seeded.');
 
     // === PRODUCTS (real products, real prices VND) ===
-    await db.Product.create({ name: 'Sáp vuốt tóc Osis+ Mess Up', description: 'Sáp vuốt tóc Schwarzkopf Osis+ Mess Up tạo kiểu matte finish, giữ nếp trung bình. Phù hợp tóc ngắn và trung bình.', price: 350000, stock: 50, categoryId: pcatSap.id, isActive: true });
-    await db.Product.create({ name: 'Sáp By Vilain Gold Digger', description: 'Sáp vuốt tóc By Vilain Gold Digger giữ nếp mạnh, matte finish tự nhiên. Hương thơm nam tính.', price: 420000, stock: 35, categoryId: pcatSap.id, isActive: true });
-    await db.Product.create({ name: 'Pomade Reuzel Blue', description: 'Pomade gốc nước Reuzel Blue Strong Hold, bóng vừa, dễ gội sạch. Hương vanilla cola.', price: 380000, stock: 40, categoryId: pcatSap.id, isActive: true });
-    await db.Product.create({ name: 'Clay Baxter of California', description: 'Sáp clay Baxter of California tạo kiểu matte, giữ nếp mạnh, phù hợp tóc dày.', price: 550000, stock: 25, categoryId: pcatSap.id, isActive: true });
-    await db.Product.create({ name: 'Wax Gatsby Moving Rubber', description: 'Gatsby Moving Rubber Spiky Edge, giữ nếp cứng, tạo kiểu tóc gai dễ dàng.', price: 95000, stock: 100, categoryId: pcatSap.id, isActive: true });
+    await db.Product.create({ name: 'Sáp vuốt tóc Osis+ Mess Up', description: 'Sáp vuốt tóc Schwarzkopf Osis+ Mess Up tạo kiểu matte finish, giữ nếp trung bình. Phù hợp tóc ngắn và trung bình.', price: 350000, stock: 50, categoryId: pcatSap.id, isActive: true, image: 'https://www.planetbeauty.com/cdn/shop/files/Schwarzkopf_Professional_Osis_Mess_Up__4.jpg?v=1711485143' });
+    await db.Product.create({ name: 'Sáp By Vilain Gold Digger', description: 'Sáp vuốt tóc By Vilain Gold Digger giữ nếp mạnh, matte finish tự nhiên. Hương thơm nam tính.', price: 420000, stock: 35, categoryId: pcatSap.id, isActive: true, image: 'https://sgpomades.com/cdn/shop/files/By-Vilain-Gold-Digger-65ml-SGPomades-Discover-Joy-in-Self-Care-6677.jpg?v=1716970597' });
+    await db.Product.create({ name: 'Pomade Reuzel Blue', description: 'Pomade gốc nước Reuzel Blue Strong Hold, bóng vừa, dễ gội sạch. Hương vanilla cola.', price: 380000, stock: 40, categoryId: pcatSap.id, isActive: true, image: 'https://ishampoos.com/cdn/shop/files/reuzel-blue-pomade-strong-hold-water-soluble-113g4oz-852578006010.jpg?v=1773416233' });
+    await db.Product.create({ name: 'Clay Baxter of California', description: 'Sáp clay Baxter of California tạo kiểu matte, giữ nếp mạnh, phù hợp tóc dày.', price: 550000, stock: 25, categoryId: pcatSap.id, isActive: true, image: 'https://www.apothecarie.com/cdn/shop/products/302-45834_7314a050-ba3a-4137-b488-b4d6122905a9.jpg?v=1662486112' });
+    await db.Product.create({ name: 'Wax Gatsby Moving Rubber', description: 'Gatsby Moving Rubber Spiky Edge, giữ nếp cứng, tạo kiểu tóc gai dễ dàng.', price: 95000, stock: 100, categoryId: pcatSap.id, isActive: true, image: 'https://japanesetaste.com/cdn/shop/files/P-1-MND-WAX-SP-80-Mandom_Gatsby_Moving_Rubber_Hair_Wax_Spiky_Edge_80g_450x450.jpg?v=1743424944' });
 
-    await db.Product.create({ name: 'Dầu gội TRESemmé Keratin Smooth', description: 'Dầu gội TRESemmé Keratin Smooth giúp tóc suôn mượt, giảm xơ rối, chai 640ml.', price: 155000, stock: 60, categoryId: pcatDaugoi.id, isActive: true });
-    await db.Product.create({ name: 'Dầu gội Head & Shoulders', description: 'Dầu gội Head & Shoulders sạch gàu, mát lạnh bạc hà, chai 625ml.', price: 135000, stock: 80, categoryId: pcatDaugoi.id, isActive: true });
-    await db.Product.create({ name: 'Dầu gội Moroccanoil', description: 'Dầu gội Moroccanoil Moisture Repair cho tóc hư tổn, chiết xuất dầu Argan, chai 250ml.', price: 520000, stock: 20, categoryId: pcatDaugoi.id, isActive: true });
-    await db.Product.create({ name: 'Dầu xả Dove Phục Hồi Hư Tổn', description: 'Dầu xả Dove Intensive Repair phục hồi tóc hư tổn, chai 620ml.', price: 115000, stock: 70, categoryId: pcatDaugoi.id, isActive: true });
+    await db.Product.create({ name: 'Dầu gội TRESemmé Keratin Smooth', description: 'Dầu gội TRESemmé Keratin Smooth giúp tóc suôn mượt, giảm xơ rối, chai 640ml.', price: 155000, stock: 60, categoryId: pcatDaugoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?w=600&h=600&fit=crop' });
+    await db.Product.create({ name: 'Dầu gội Head & Shoulders', description: 'Dầu gội Head & Shoulders sạch gàu, mát lạnh bạc hà, chai 625ml.', price: 135000, stock: 80, categoryId: pcatDaugoi.id, isActive: true, image: 'https://www.herbsdaily.com/cdn/shop/files/98316_a30e85f2-30aa-4711-9a82-07385c469c23.jpg?v=1751322089' });
+    await db.Product.create({ name: 'Dầu gội Moroccanoil', description: 'Dầu gội Moroccanoil Moisture Repair cho tóc hư tổn, chiết xuất dầu Argan, chai 250ml.', price: 520000, stock: 20, categoryId: pcatDaugoi.id, isActive: true, image: 'https://www.imagebeauty.com/cdn/shop/products/image-4.jpg?v=1642114070' });
+    await db.Product.create({ name: 'Dầu xả Dove Phục Hồi Hư Tổn', description: 'Dầu xả Dove Intensive Repair phục hồi tóc hư tổn, chai 620ml.', price: 115000, stock: 70, categoryId: pcatDaugoi.id, isActive: true, image: 'https://images.unsplash.com/photo-1585232004423-244e0e6904e3?w=600&h=600&fit=crop' });
 
-    await db.Product.create({ name: 'Serum dưỡng tóc Moroccanoil Treatment', description: 'Tinh dầu dưỡng tóc Moroccanoil Original Treatment, giúp tóc bóng mượt, giảm xơ, 100ml.', price: 780000, stock: 15, categoryId: pcatDuong.id, isActive: true });
-    await db.Product.create({ name: 'Xịt dưỡng tóc Mise en Scene', description: 'Xịt dưỡng tóc Mise en Scene Perfect Serum Mist, dưỡng ẩm không gây bết, 150ml.', price: 165000, stock: 45, categoryId: pcatDuong.id, isActive: true });
-    await db.Product.create({ name: 'Tinh dầu Argan L\'Oréal', description: 'Tinh dầu dưỡng tóc L\'Oréal Extraordinary Oil chiết xuất Argan, 100ml.', price: 220000, stock: 30, categoryId: pcatDuong.id, isActive: true });
+    await db.Product.create({ name: 'Serum dưỡng tóc Moroccanoil Treatment', description: 'Tinh dầu dưỡng tóc Moroccanoil Original Treatment, giúp tóc bóng mượt, giảm xơ, 100ml.', price: 780000, stock: 15, categoryId: pcatDuong.id, isActive: true, image: 'https://livelovespa.com/cdn/shop/files/Untitleddesign-2023-08-17T161533.454.png?v=1692314178' });
+    await db.Product.create({ name: 'Xịt dưỡng tóc Mise en Scene', description: 'Xịt dưỡng tóc Mise en Scene Perfect Serum Mist, dưỡng ẩm không gây bết, 150ml.', price: 165000, stock: 45, categoryId: pcatDuong.id, isActive: true, image: 'https://www.masksheets.com/cdn/shop/files/newitem-2025-11-11T120533.889.png?v=1762881026' });
+    await db.Product.create({ name: 'Tinh dầu Argan L\'Oréal', description: 'Tinh dầu dưỡng tóc L\'Oréal Extraordinary Oil chiết xuất Argan, 100ml.', price: 220000, stock: 30, categoryId: pcatDuong.id, isActive: true, image: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=600&h=600&fit=crop' });
 
-    await db.Product.create({ name: 'Máy sấy tóc Panasonic EH-ND65', description: 'Máy sấy tóc Panasonic 2000W, 3 chế độ nhiệt, ion dưỡng tóc.', price: 650000, stock: 15, categoryId: pcatDungcu.id, isActive: true });
-    await db.Product.create({ name: 'Máy uốn tóc Philips BHB862', description: 'Máy uốn tóc Philips StyleCare, thanh uốn 25mm, lớp phủ Ceramic.', price: 490000, stock: 10, categoryId: pcatDungcu.id, isActive: true });
-    await db.Product.create({ name: 'Lược chải tóc Tangle Teezer', description: 'Lược gỡ rối Tangle Teezer Original, chải tóc không đau, phù hợp mọi loại tóc.', price: 280000, stock: 40, categoryId: pcatDungcu.id, isActive: true });
+    await db.Product.create({ name: 'Máy sấy tóc Panasonic EH-ND65', description: 'Máy sấy tóc Panasonic 2000W, 3 chế độ nhiệt, ion dưỡng tóc.', price: 650000, stock: 15, categoryId: pcatDungcu.id, isActive: true, image: 'https://www.esh2u.com/cdn/shop/files/2_d6a358d6-7fe3-4b6c-8c23-cdce405d2f09.png?v=1730880811' });
+    await db.Product.create({ name: 'Máy uốn tóc Philips BHB862', description: 'Máy uốn tóc Philips StyleCare, thanh uốn 25mm, lớp phủ Ceramic.', price: 490000, stock: 10, categoryId: pcatDungcu.id, isActive: true, image: 'https://gandhiappliances.com/cdn/shop/products/eh-na-65-k_1024x.jpg?v=1608492995' });
+    await db.Product.create({ name: 'Lược chải tóc Tangle Teezer', description: 'Lược gỡ rối Tangle Teezer Original, chải tóc không đau, phù hợp mọi loại tóc.', price: 280000, stock: 40, categoryId: pcatDungcu.id, isActive: true, image: 'https://us.tangleteezer.com/cdn/shop/files/PinkFizz_OR_PDP_1.png?v=1762110971' });
 
     console.log('Products seeded.');
 

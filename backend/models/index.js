@@ -26,6 +26,7 @@ const Payment = require('./Payment')(sequelize, DataTypes);
 const Notification = require('./Notification')(sequelize, DataTypes);
 const StaffSchedule = require('./StaffSchedule')(sequelize, DataTypes);
 const StaffSkill = require('./StaffSkill')(sequelize, DataTypes);
+const Address = require('./Address')(sequelize, DataTypes);
 
 // ===================== ASSOCIATIONS =====================
 
@@ -107,6 +108,10 @@ StaffSkill.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
 User.hasMany(StaffSkill, { foreignKey: 'userId', as: 'skills' });
 Service.hasMany(StaffSkill, { foreignKey: 'serviceId', as: 'skilledStaff' });
 
+// User <-> Address
+User.hasMany(Address, { foreignKey: 'userId', as: 'addresses' });
+Address.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 // Many-to-Many: User <-> Service through StaffSkill
 User.belongsToMany(Service, { through: StaffSkill, foreignKey: 'userId', otherKey: 'serviceId', as: 'skilledServices' });
 Service.belongsToMany(User, { through: StaffSkill, foreignKey: 'serviceId', otherKey: 'userId', as: 'skilledStaffMembers' });
@@ -133,6 +138,7 @@ const db = {
   Notification,
   StaffSchedule,
   StaffSkill,
+  Address,
 };
 
 module.exports = db;

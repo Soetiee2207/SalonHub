@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiUser, FiShoppingCart, FiBell, FiMenu, FiX, FiLogOut, FiSettings, FiCalendar, FiPackage } from 'react-icons/fi';
+import { FiUser, FiShoppingCart, FiBell, FiMenu, FiX, FiLogOut, FiSettings, FiCalendar, FiPackage, FiMapPin } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { cartService } from '../../services/cartService';
 import { notificationService } from '../../services/notificationService';
@@ -145,6 +145,14 @@ export default function Header() {
                         <FiCalendar size={16} />
                         Lịch hẹn
                       </Link>
+                      <Link
+                        to="/my-addresses"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
+                      >
+                        <FiMapPin size={16} />
+                        Địa chỉ
+                      </Link>
                       {(user.role === 'admin' || user.role === 'staff') && (
                         <Link
                           to="/admin"
@@ -230,6 +238,9 @@ export default function Header() {
                   </Link>
                   <Link to="/my-appointments" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
                     <FiCalendar size={16} /> Lịch hẹn
+                  </Link>
+                  <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
+                    <FiMapPin size={16} /> Địa chỉ
                   </Link>
                   {(user.role === 'admin' || user.role === 'staff') && (
                     <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--primary)] no-underline">

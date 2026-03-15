@@ -119,7 +119,7 @@ export default function OrderDetail() {
               <div>
                 <p className="text-gray-500">Phương thức thanh toán</p>
                 <p className="font-medium">
-                  {order.paymentMethod === 'VNPay' ? 'VNPay' : 'Thanh toán khi nhận hàng'}
+                  {order.paymentMethod === 'vnpay' ? 'VNPay' : 'Thanh toán khi nhận hàng'}
                 </p>
               </div>
             </div>

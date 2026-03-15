@@ -1,8 +1,11 @@
-import { useState, useRef } from 'react';
-import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
+import { appointmentService } from '../../services/appointmentService';
+import { orderService } from '../../services/orderService';
 
 const roleBadgeMap = {
   admin: { label: 'Quản trị viên', bg: '#8B5E3C', color: '#fff' },
@@ -15,7 +18,7 @@ export default function Profile() {
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
-    name: user?.name || '',
+    fullName: user?.fullName || '',
     phone: user?.phone || '',
   });
   const [avatarFile, setAvatarFile] = useState(null);
@@ -65,7 +68,7 @@ export default function Profile() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) {
+    if (!form.fullName.trim()) {
       toast.error('Vui lòng nhập họ và tên');
       return;
     }
@@ -73,15 +76,17 @@ export default function Profile() {
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('name', form.name.trim());
+      formData.append('fullName', form.fullName.trim());
       formData.append('phone', form.phone.trim());
       if (avatarFile) {
-        formData.append('avatar', avatarFile);
+        formData.append('image', avatarFile);
       }
 
       const res = await authService.updateProfile(formData);
       const updatedUser = res.data || res;
       updateUser(updatedUser);
+      setForm({ fullName: updatedUser.fullName || '', phone: updatedUser.phone || '' });
+      setAvatarPreview(updatedUser.avatar || null);
       toast.success('Cập nhật thông tin thành công!');
       setAvatarFile(null);
     } catch (err) {
@@ -114,7 +119,7 @@ export default function Profile() {
     setChangingPassword(true);
     try {
       await authService.changePassword({
-        currentPassword: passwordForm.currentPassword,
+        oldPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
       toast.success('Đổi mật khẩu thành công!');
@@ -126,7 +131,52 @@ export default function Profile() {
     }
   };
 
+  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const [apptRes, orderRes] = await Promise.all([
+          appointmentService.getMyAppointments().catch(() => null),
+          orderService.getMyOrders().catch(() => null),
+        ]);
+        const appointments = apptRes?.data || apptRes || [];
+        const orders = orderRes?.data || orderRes || [];
+        setRecentAppointments(Array.isArray(appointments) ? appointments.slice(0, 3) : []);
+        setRecentOrders(Array.isArray(orders) ? orders.slice(0, 3) : []);
+      } catch {
+        // ignore
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+  }, []);
+
   const badge = roleBadgeMap[user?.role] || roleBadgeMap.customer;
+
+  const statusMap = {
+    pending: { label: 'Chờ xác nhận', color: '#F59E0B' },
+    confirmed: { label: 'Đã xác nhận', color: '#3B82F6' },
+    in_progress: { label: 'Đang thực hiện', color: '#8B5CF6' },
+    completed: { label: 'Hoàn thành', color: '#10B981' },
+    cancelled: { label: 'Đã hủy', color: '#EF4444' },
+    shipping: { label: 'Đang giao', color: '#8B5CF6' },
+    delivered: { label: 'Đã giao', color: '#10B981' },
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    return timeStr.slice(0, 5);
+  };
 
   const renderPasswordField = (label, name, placeholder, showState, toggleShow) => (
     <div>
@@ -205,7 +255,7 @@ export default function Profile() {
             className="text-2xl font-bold mb-1"
             style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
           >
-            {user?.name || 'Người dùng'}
+            {user?.fullName || 'Người dùng'}
           </h1>
           <p className="text-sm mb-3" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
             {user?.email}
@@ -276,8 +326,8 @@ export default function Profile() {
                   </span>
                   <input
                     type="text"
-                    name="name"
-                    value={form.name}
+                    name="fullName"
+                    value={form.fullName}
                     onChange={handleChange}
                     placeholder="Nguyễn Văn A"
                     className="w-full pl-11 pr-4 py-3 rounded-xl border text-sm outline-none"
@@ -390,7 +440,153 @@ export default function Profile() {
             </form>
           </div>
         </div>
-      </div>
+
+        {/* Appointment History */}
+        {user?.role === 'customer' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div className="bg-white rounded-2xl p-8 border" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h2
+                  className="text-lg font-bold"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+                >
+                  Lịch sử làm tóc
+                </h2>
+                <Link
+                  to="/my-appointments"
+                  className="flex items-center gap-1 text-sm font-medium hover:underline"
+                  style={{ color: 'var(--primary)' }}
+                >
+                  Xem tất cả <FiChevronRight size={14} />
+                </Link>
+              </div>
+
+              {loadingHistory ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : recentAppointments.length === 0 ? (
+                <div className="text-center py-8">
+                  <FiCalendar size={32} style={{ color: 'var(--text-gray)' }} className="mx-auto mb-2" />
+                  <p className="text-sm" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
+                    Chưa có lịch hẹn nào
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentAppointments.map((appt) => {
+                    const status = statusMap[appt.status] || statusMap.pending;
+                    return (
+                      <div
+                        key={appt.id}
+                        className="flex items-center justify-between p-4 rounded-xl border"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: 'var(--bg-warm, #F5EDE4)' }}
+                          >
+                            <FiCalendar size={18} style={{ color: 'var(--primary)' }} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}>
+                              {appt.Service?.name || appt.service?.name || 'Dịch vụ'}
+                            </p>
+                            <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-gray)' }}>
+                              <FiClock size={12} />
+                              {formatDate(appt.date)} {formatTime(appt.startTime)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: status.color + '15', color: status.color }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Order History */}
+            <div className="bg-white rounded-2xl p-8 border" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center justify-between mb-6">
+                <h2
+                  className="text-lg font-bold"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+                >
+                  Lịch sử đơn hàng
+                </h2>
+                <Link
+                  to="/my-orders"
+                  className="flex items-center gap-1 text-sm font-medium hover:underline"
+                  style={{ color: 'var(--primary)' }}
+                >
+                  Xem tất cả <FiChevronRight size={14} />
+                </Link>
+              </div>
+
+              {loadingHistory ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : recentOrders.length === 0 ? (
+                <div className="text-center py-8">
+                  <FiShoppingBag size={32} style={{ color: 'var(--text-gray)' }} className="mx-auto mb-2" />
+                  <p className="text-sm" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
+                    Chưa có đơn hàng nào
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentOrders.map((order) => {
+                    const status = statusMap[order.status] || statusMap.pending;
+                    return (
+                      <Link
+                        key={order.id}
+                        to={`/my-orders/${order.id}`}
+                        className="flex items-center justify-between p-4 rounded-xl border hover:bg-gray-50 transition-colors"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: 'var(--bg-warm, #F5EDE4)' }}
+                          >
+                            <FiShoppingBag size={18} style={{ color: 'var(--primary)' }} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}>
+                              Đơn hàng #{order.id}
+                            </p>
+                            <p className="text-xs" style={{ color: 'var(--text-gray)' }}>
+                              {formatDate(order.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: status.color + '15', color: status.color }}
+                        >
+                          {status.label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        </div>
     </div>
   );
 }

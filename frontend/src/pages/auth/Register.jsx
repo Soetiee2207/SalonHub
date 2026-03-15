@@ -15,7 +15,7 @@ export default function Register() {
   }, [user, navigate]);
 
   const [form, setForm] = useState({
-    name: '',
+    fullName: '',
     email: '',
     phone: '',
     password: '',
@@ -30,7 +30,7 @@ export default function Register() {
   };
 
   const validate = () => {
-    if (!form.name.trim()) {
+    if (!form.fullName.trim()) {
       toast.error('Vui lòng nhập họ và tên');
       return false;
     }
@@ -174,7 +174,7 @@ export default function Register() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {renderInput({
                 label: 'Họ và tên',
-                name: 'name',
+                name: 'fullName',
                 icon: FiUser,
                 placeholder: 'Nguyễn Văn A',
               })}

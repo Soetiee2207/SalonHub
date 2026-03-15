@@ -18,6 +18,7 @@ const voucherRoutes = require('./routes/voucherRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/api/vouchers', voucherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/addresses', addressRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

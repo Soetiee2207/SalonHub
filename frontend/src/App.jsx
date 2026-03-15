@@ -25,6 +25,7 @@ const MyOrders = lazy(() => import('./pages/orders/MyOrders'));
 const OrderDetail = lazy(() => import('./pages/orders/OrderDetail'));
 const Notifications = lazy(() => import('./pages/notifications/Notifications'));
 const VnpayReturn = lazy(() => import('./pages/payments/VnpayReturn'));
+const MyAddresses = lazy(() => import('./pages/addresses/MyAddresses'));
 const Contact = lazy(() => import('./pages/Contact'));
 
 // Admin pages
@@ -63,6 +64,7 @@ function App() {
               <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
               <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
               <Route path="/my-orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+              <Route path="/my-addresses" element={<ProtectedRoute><MyAddresses /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             </Route>
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiMapPin, FiPhone, FiTag, FiCreditCard, FiTruck, FiArrowLeft } from 'react-icons/fi';
+import { FiMapPin, FiPhone, FiTag, FiCreditCard, FiTruck, FiArrowLeft, FiPlus, FiCheck, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { cartService } from '../../services/cartService';
 import { orderService } from '../../services/orderService';
 import { voucherService } from '../../services/voucherService';
+import { addressService } from '../../services/addressService';
 import { formatPrice } from '../../utils/formatPrice';
+import AddressForm from '../../components/address/AddressForm';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -13,29 +15,41 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [voucherCode, setVoucherCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [voucherApplied, setVoucherApplied] = useState(false);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
 
+  const fetchAddresses = async () => {
+    try {
+      const res = await addressService.getAll();
+      const data = res.data?.data || res.data || [];
+      setAddresses(data);
+      const defaultAddr = data.find(a => a.isDefault);
+      if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+      else if (data.length > 0) setSelectedAddressId(data[0].id);
+    } catch {}
+  };
+
   useEffect(() => {
-    cartService.getCart()
-      .then((res) => {
-        const data = res.data || res;
-        setCart(data);
-        if (!data?.items?.length) {
-          toast.error('Giỏ hàng trống');
-          navigate('/cart');
-        }
-      })
-      .catch(() => {
-        toast.error('Không thể tải giỏ hàng');
+    Promise.all([
+      cartService.getCart(),
+      fetchAddresses(),
+    ]).then(([cartRes]) => {
+      const data = cartRes.data || cartRes;
+      setCart(data);
+      if (!data?.items?.length) {
+        toast.error('Giỏ hàng trống');
         navigate('/cart');
-      })
-      .finally(() => setLoading(false));
+      }
+    }).catch(() => {
+      toast.error('Không thể tải giỏ hàng');
+      navigate('/cart');
+    }).finally(() => setLoading(false));
   }, [navigate]);
 
   const items = cart?.items || [];
@@ -54,9 +68,10 @@ export default function Checkout() {
     try {
       const res = await voucherService.validate({ code: voucherCode, orderAmount: subtotal });
       const data = res.data || res;
-      setDiscount(data.discount || 0);
+      const discountValue = data.discountAmount || 0;
+      setDiscount(discountValue);
       setVoucherApplied(true);
-      toast.success(`Áp dụng mã giảm giá thành công! Giảm ${formatPrice(data.discount || 0)}`);
+      toast.success(`Áp dụng mã giảm giá thành công! Giảm ${formatPrice(discountValue)}`);
     } catch (err) {
       toast.error(err.message || 'Mã giảm giá không hợp lệ');
       setDiscount(0);
@@ -66,22 +81,21 @@ export default function Checkout() {
     }
   };
 
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    if (!address.trim()) {
-      toast.error('Vui lòng nhập địa chỉ giao hàng');
-      return;
-    }
-    if (!phone.trim()) {
-      toast.error('Vui lòng nhập số điện thoại');
+    if (!selectedAddress) {
+      toast.error('Vui lòng chọn địa chỉ giao hàng');
       return;
     }
 
     setSubmitting(true);
     try {
+      const fullAddress = `${selectedAddress.street}, ${selectedAddress.wardName}, ${selectedAddress.districtName}, ${selectedAddress.provinceName}`;
       const orderData = {
-        address,
-        phone,
+        address: fullAddress,
+        phone: selectedAddress.phone,
         paymentMethod,
       };
       if (voucherApplied && voucherCode) {
@@ -127,39 +141,68 @@ export default function Checkout() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left - Form */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Delivery Info */}
+            {/* Delivery Address */}
             <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Thông tin giao hàng</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-                    <FiMapPin size={16} />
-                    Địa chỉ giao hàng
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Nhập địa chỉ giao hàng đầy đủ..."
-                    required
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-                    <FiPhone size={16} />
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Nhập số điện thoại..."
-                    required
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent"
-                  />
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-800">Địa chỉ giao hàng</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressForm(true)}
+                  className="flex items-center gap-1.5 text-sm text-[var(--primary)] hover:underline font-medium"
+                >
+                  <FiPlus size={14} /> Thêm mới
+                </button>
               </div>
+
+              {addresses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FiMapPin size={32} className="mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm mb-3">Bạn chưa có địa chỉ nào</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressForm(true)}
+                    className="px-4 py-2 bg-[var(--primary)] text-white text-sm rounded-lg hover:bg-[var(--primary-dark)] transition-colors"
+                  >
+                    Thêm địa chỉ
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {addresses.map((addr) => (
+                    <label
+                      key={addr.id}
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                        selectedAddressId === addr.id
+                          ? 'border-[var(--primary)] bg-[var(--bg-light)]'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="selectedAddress"
+                        value={addr.id}
+                        checked={selectedAddressId === addr.id}
+                        onChange={() => setSelectedAddressId(addr.id)}
+                        className="accent-[var(--primary)] mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-gray-800">{addr.fullName}</span>
+                          <span className="text-sm text-gray-500">{addr.phone}</span>
+                          {addr.isDefault && (
+                            <span className="text-xs text-[var(--primary)] bg-[var(--primary)]/5 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <FiCheck size={10} /> Mặc định
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {addr.street}, {addr.wardName}, {addr.districtName}, {addr.provinceName}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Voucher */}
@@ -279,6 +322,17 @@ export default function Checkout() {
           </div>
         </div>
       </form>
+
+      {showAddressForm && (
+        <AddressForm
+          address={null}
+          onClose={() => setShowAddressForm(false)}
+          onSaved={() => {
+            setShowAddressForm(false);
+            fetchAddresses();
+          }}
+        />
+      )}
     </div>
   );
 }

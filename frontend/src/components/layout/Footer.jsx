@@ -47,7 +47,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2 text-sm text-[var(--text-gray)]">
                 <FiMapPin size={14} />
-                <span>TP. Hồ Chí Minh, Việt Nam</span>
+                <span>TP. Hà Nội, Việt Nam</span>
               </div>
             </div>
           </div>

@@ -31,19 +31,9 @@ const app = express();
 
 // PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
 app.use(cors({
-  origin: function (origin, callback) {
-    // Cho phép: localhost, các link có đuôi .vercel.app và cả khi không có origin (như Postman)
-    // Thay dòng 38 cũ bằng dòng này
-  if (!origin || origin.includes('localhost') || origin.includes('vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  origin: true, // Cho phép tất cả các nguồn
   credentials: true,
-  optionsSuccessStatus: 200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
 // Đảm bảo có dòng này để đọc được body từ request POST (đăng nhập)

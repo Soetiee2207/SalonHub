@@ -31,3 +31,9 @@ npm-debug.log*
 baocao
 
 !taikhoan.txt
+*.jpg
+*.jpeg
+*.png
+*.gif
+node_modules
+.env

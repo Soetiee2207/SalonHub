@@ -27,15 +27,26 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
+const cors = require('axios'); // Nhớ khai báo ở trên đầu
+
+// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
 app.use(cors({
-  origin: [
-    'https://salonhub-soe.vercel.app', // Link Frontend của huynh
-    'http://localhost:5173'            // Để huynh còn chạy được ở máy local
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Cho phép: localhost, các link có đuôi .vercel.app và cả khi không có origin (như Postman)
+    if (!origin || origin.startsWith('http://localhost') || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
-app.use(express.json());
+
+// Đảm bảo có dòng này để đọc được body từ request POST (đăng nhập)
+app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
 // Routes

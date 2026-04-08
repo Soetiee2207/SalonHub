@@ -17,4 +17,4 @@ Mật khẩu mặc định: 123456
 - Khách 2: nguyennhatanh@gmail.com (Nguyễn Nhật Ánh)
 
 ---
-(Lưu ý: Vai trò Lễ tân đã được loại bỏ khỏi hệ thống)
+

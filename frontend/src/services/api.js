@@ -1,10 +1,12 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
+// Ưu tiên biến môi trường, nếu không có thì dùng thẳng link Render
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`, 
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: BASE_URL.endsWith('/') ? `${BASE_URL}api` : `${BASE_URL}/api`,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true // Rất quan trọng để gửi kèm Token/Cookie
 });
 
 

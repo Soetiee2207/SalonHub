@@ -26,12 +26,13 @@ const accountantRoutes = require('./routes/accountantRoutes');
 
 const app = express();
 
-// Middleware
+
 app.use(cors({
   origin: [
-    'http://localhost:5173', 
-    'salonhub-soe.vercel.app' 
+    'https://salonhub-soe.vercel.app', // Link Frontend của huynh
+    'http://localhost:5173'            // Để huynh còn chạy được ở máy local
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 app.use(express.json());

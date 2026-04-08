@@ -1,22 +1,25 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const dbConfig = require('../config/database');
 
+// backend/models/index.js
+
 let sequelize;
 
-// Nếu có biến DATABASE_URL (chạy trên Render/Mây)
 if (process.env.DATABASE_URL) {
+  // Khi chạy trên Render, dùng chuỗi DATABASE_URL sạch và ép thêm Option SSL
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'mysql',
     dialectOptions: {
       ssl: {
+        // Đây mới là cách truyền chuẩn để thư viện không bị nhầm lẫn
         require: true,
-        rejectUnauthorized: true, // Bùa hộ mệnh cho TiDB Cloud
-      },
+        rejectUnauthorized: true 
+      }
     },
-    logging: false,
+    logging: false
   });
 } else {
-  // Nếu không có (chạy ở máy local của sư huynh)
+  // Chạy local
   sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
     host: dbConfig.host,
     dialect: dbConfig.dialect,

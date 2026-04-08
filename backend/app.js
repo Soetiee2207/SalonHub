@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('cors');
+const cors = require('axios'); // Nhớ khai báo ở trên đầu
 require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
@@ -27,7 +27,7 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
-const cors = require('axios'); // Nhớ khai báo ở trên đầu
+
 
 // PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
 app.use(cors({

@@ -30,7 +30,7 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173', 
-    'https://salon-hub-soetiees-projects.vercel.app' 
+    'salon-hub-soetiees-projects.vercel.app' 
   ],
   credentials: true
 }));

@@ -33,7 +33,8 @@ const app = express();
 app.use(cors({
   origin: function (origin, callback) {
     // Cho phép: localhost, các link có đuôi .vercel.app và cả khi không có origin (như Postman)
-    if (!origin || origin.startsWith('http://localhost') || origin.endsWith('.vercel.app')) {
+    // Thay dòng 38 cũ bằng dòng này
+  if (!origin || origin.includes('localhost') || origin.includes('vercel.app')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

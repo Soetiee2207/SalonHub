@@ -1,15 +1,17 @@
 const app = require('./app');
 const db = require('./models');
 
-const PORT = process.env.PORT || 10000; // Render dùng port 10000
+// Port 10000 là chuẩn của Render
+const PORT = process.env.PORT || 10000; 
 
+// Chỉ chạy server sau khi đã kết nối Database thành công
 db.sequelize
   .sync()
   .then(() => {
     console.log('Database synced successfully.');
-    // CHỈ GỌI LỆNH NÀY 1 LẦN DUY NHẤT Ở ĐÂY
+    // CHỈ GỌI LỆNH NÀY DUY NHẤT MỘT LẦN TẠI ĐÂY
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`Server is running on port ${PORT}`);
     });
   })
   .catch((err) => {

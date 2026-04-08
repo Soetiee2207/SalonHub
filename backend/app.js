@@ -4,6 +4,11 @@ require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
 
+// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
+app.use(cors({
+  origin: true, 
+  credentials: true
+}));
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -29,12 +34,7 @@ const app = express();
 
 
 
-// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
-app.use(cors({
-  origin: true, // Cho phép tất cả các nguồn
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+
 
 // Đảm bảo có dòng này để đọc được body từ request POST (đăng nhập)
 app.use(express.json()); 

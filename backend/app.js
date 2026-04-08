@@ -28,18 +28,27 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
+// Health check (Must be before main routes and auth)
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, message: 'SalonHub API is running' });
+});
+
+// Hardened CORS for production
+const allowedOrigins = [
+  'https://salonhub-soe.vercel.app',
+  'http://localhost:3000',
+];
+
 app.use(cors({
-  origin: [
-    'https://salonhub-soe.vercel.app',
-    'http://localhost:3000',  // để dev local vẫn chạy được
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 204
 }));
 
-// Thêm dòng này để xử lý preflight request
-app.options('*', cors());
+// Handled by app.use(cors(...)) above
+
 
 
 
@@ -67,10 +76,7 @@ app.use('/api/schedules', staffScheduleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/accountant', accountantRoutes);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'SalonHub API is running' });
-});
+// Moved Health check to top
 
 // Error handler (must be last)
 app.use(errorHandler);

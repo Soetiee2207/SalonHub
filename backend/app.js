@@ -1,5 +1,5 @@
 const express = require('express');
-const cors = require('axios'); // Nhớ khai báo ở trên đầu
+const cors = require('cors'); // Nhớ khai báo ở trên đầu
 require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');

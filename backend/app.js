@@ -28,11 +28,18 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
-// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
 app.use(cors({
-  origin: true, 
-  credentials: true
+  origin: [
+    'https://salonhub-soe.vercel.app',
+    'http://localhost:3000',  // để dev local vẫn chạy được
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Thêm dòng này để xử lý preflight request
+app.options('*', cors());
 
 
 

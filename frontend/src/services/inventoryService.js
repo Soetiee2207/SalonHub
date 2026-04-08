@@ -8,4 +8,6 @@ export const inventoryService = {
   getProductStock: (id) => api.get(`/inventory/products/${id}/stock`),
   getLowStockProducts: (threshold) => api.get('/inventory/low-stock', { params: { threshold } }),
   getWarehouseStats: () => api.get('/inventory/stats'),
+  updateBatchLocation: (id, location) => api.patch(`/inventory/batches/${id}/location`, { warehouseLocation: location }),
+  normalizeProductBatches: (productId) => api.post(`/inventory/products/${productId}/normalize-batches`),
 };

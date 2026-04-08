@@ -1,16 +1,52 @@
 import { useState, useEffect } from 'react';
 import { 
   FiBox, FiSearch, FiFilter, FiAlertCircle, 
-  FiChevronDown, FiChevronUp, FiClock, FiMapPin 
+  FiChevronDown, FiChevronUp, FiClock, FiMapPin,
+  FiEdit2, FiCheck, FiX, FiAlertTriangle
 } from 'react-icons/fi';
 import { productService } from '../../services/productService';
+import { inventoryService } from '../../services/inventoryService';
 import { formatPrice } from '../../utils/formatPrice';
+import toast from 'react-hot-toast';
+import React from 'react';
 
 export default function InventoryGrid() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [editingLoc, setEditingLoc] = useState({ batchId: null, value: '' });
+
+  const getExpiryStatus = (date) => {
+    if (!date) return 'none';
+    const exp = new Date(date);
+    const now = new Date();
+    const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return 'expired';
+    if (diffDays <= 30) return 'expiring';
+    return 'safe';
+  };
+
+  const handleUpdateLocation = async (batchId) => {
+    try {
+      await inventoryService.updateBatchLocation(batchId, editingLoc.value);
+      toast.success('Đã cập nhật vị trí');
+      setEditingLoc({ batchId: null, value: '' });
+      fetchProducts(); // Refresh data
+    } catch (err) {
+      toast.error('Lỗi cập nhật vị trí');
+    }
+  };
+
+  const handleNormalize = async (productId) => {
+    try {
+      await inventoryService.normalizeProductBatches(productId);
+      toast.success('Đã chuẩn hóa lô hàng');
+      fetchProducts();
+    } catch (err) {
+      toast.error('Lỗi chuẩn hóa dữ liệu');
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -136,34 +172,98 @@ export default function InventoryGrid() {
                 {/* Expanded Lô hàng */}
                 {expandedId === p.id && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 bg-gray-50 flex-col space-y-3 shadow-inner">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FiClock className="text-[var(--primary)]" />
-                        <h4 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Danh sách các lô hàng & Hạn sử dụng</h4>
+                    <td colSpan="6" className="px-6 py-6 bg-slate-50 shadow-inner">
+                      <div className="flex items-center gap-2 mb-6">
+                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                           <FiClock size={16} />
+                        </div>
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Danh sách các lô hàng & Hạn sử dụng</h4>
                       </div>
+
                       {p.batches && p.batches.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {p.batches.map(batch => (
-                            <div key={batch.id} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
-                              <div>
-                                <p className="text-xs font-bold text-gray-700">Lô: {batch.batchNumber}</p>
-                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                                  <FiClock size={10} /> Hết hạn: {batch.expiryDate || 'N/A'}
-                                </p>
-                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                                  <FiMapPin size={10} /> Vị trí: {batch.warehouseLocation || 'Chưa định vị'}
-                                </p>
+                            <div key={batch.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex justify-between items-start group">
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mã Lô</p>
+                                  <p className="text-xs font-black text-slate-800">#{batch.batchNumber}</p>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hạn sử dụng</p>
+                                  <div className="flex items-center gap-2">
+                                     {getExpiryStatus(batch.expiryDate) === 'expired' && <FiAlertTriangle className="text-rose-500" />}
+                                     {getExpiryStatus(batch.expiryDate) === 'expiring' && <FiAlertTriangle className="text-amber-500" />}
+                                     <p className={`text-xs font-bold ${
+                                       getExpiryStatus(batch.expiryDate) === 'expired' ? 'text-rose-600' :
+                                       getExpiryStatus(batch.expiryDate) === 'expiring' ? 'text-amber-600' : 'text-slate-600'
+                                     }`}>
+                                       {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString('vi-VN') : 'Không thời hạn'}
+                                     </p>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vị trí kho</p>
+                                  {editingLoc.batchId === batch.id ? (
+                                    <div className="flex items-center gap-1 mt-1">
+                                       <input 
+                                         autoFocus
+                                         className="w-24 px-2 py-1 text-xs border-2 border-indigo-500 rounded-lg outline-none"
+                                         value={editingLoc.value}
+                                         onChange={e => setEditingLoc({...editingLoc, value: e.target.value})}
+                                       />
+                                       <button onClick={() => handleUpdateLocation(batch.id)} className="p-1 text-emerald-500 hover:bg-emerald-50 rounded bg-transparent border-0 cursor-pointer"><FiCheck size={14} /></button>
+                                       <button onClick={() => setEditingLoc({batchId: null, value: ''})} className="p-1 text-rose-500 hover:bg-rose-50 rounded bg-transparent border-0 cursor-pointer"><FiX size={14} /></button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 group/loc">
+                                       <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                                          <FiMapPin size={12} /> {batch.warehouseLocation || 'Chưa định vị'}
+                                       </p>
+                                       <button 
+                                         onClick={() => setEditingLoc({batchId: batch.id, value: batch.warehouseLocation || ''})}
+                                         className="p-1 opacity-0 group-hover:opacity-100 group-hover/loc:opacity-100 transition-all text-indigo-400 hover:text-indigo-600 bg-transparent border-0 cursor-pointer"
+                                       >
+                                          <FiEdit2 size={12} />
+                                       </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+
                               <div className="text-right">
-                                <p className="text-sm font-bold text-[var(--primary)]">{batch.quantity}</p>
-                                <p className="text-[10px] text-gray-400">còn lại</p>
+                                <div className="p-3 bg-slate-50 rounded-xl">
+                                   <p className="text-xl font-black text-slate-900 font-mono">{batch.quantity}</p>
+                                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Tồn kho lô</p>
+                                </div>
+                                <div className="mt-2 text-[9px] font-bold text-slate-400 uppercase">
+                                   Nhập: {new Date(batch.createdAt).toLocaleDateString('vi-VN')}
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <div className="p-4 bg-white rounded-xl border border-dashed border-gray-300 text-center text-gray-400 text-xs">
-                          Chưa có dữ liệu lô hàng chi tiết cho vật phẩm này.
+                        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                           <div className="p-4 bg-amber-50 text-amber-500 rounded-full mb-4">
+                              <FiAlertCircle size={32} />
+                           </div>
+                           <h5 className="text-sm font-black text-slate-800 uppercase tracking-tight">Vật phẩm chưa có lô hàng chi tiết</h5>
+                           <p className="text-xs text-slate-400 mt-1 max-w-xs text-center font-medium">
+                              {p.stock > 0 
+                                ? `CẢNH BÁO: Tồn kho thực tế đang ghi nhận ${p.stock} đơn vị nhưng chưa gán lô chi tiết. Vui lòng thực hiện kiểm kê hoặc tạo lô mặc định.` 
+                                : "Sản phẩm hiện đang hết hàng. Vui lòng thực hiện nhập hàng PO để khởi tạo lô mới."}
+                           </p>
+                           {p.stock > 0 && (
+                             <button 
+                               onClick={() => handleNormalize(p.id)}
+                               className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all border-0 cursor-pointer shadow-lg shadow-slate-200"
+                             >
+                                Chuẩn hóa dữ liệu (Tạo lô mặc định)
+                             </button>
+                           )}
                         </div>
                       )}
                     </td>
@@ -178,4 +278,3 @@ export default function InventoryGrid() {
   );
 }
 
-import React from 'react';

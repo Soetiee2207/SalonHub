@@ -33,6 +33,7 @@ const getAllProducts = async (req, res, next) => {
       where,
       include: [
         { model: ProductCategory, as: 'category' },
+        { model: db.ProductBatch, as: 'batches' },
       ],
       order,
     });

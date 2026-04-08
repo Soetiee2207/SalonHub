@@ -538,6 +538,67 @@ const getWarehouseStats = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// PATCH /api/inventory/batches/:id/location
+// Cập nhật vị trí kho cho lô hàng
+// ============================================================
+const updateBatchLocation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { warehouseLocation } = req.body;
+    const { ProductBatch } = db;
+
+    const batch = await ProductBatch.findByPk(id);
+    if (!batch) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy lô hàng' });
+    }
+
+    await batch.update({ warehouseLocation });
+
+    res.json({ success: true, message: 'Đã cập nhật vị trí kho' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// POST /api/inventory/products/:id/normalize-batches
+// Chuẩn hóa dữ liệu: Tạo lô mặc định cho sản phẩm có tồn nhưng chưa có lô
+// ============================================================
+const normalizeProductBatches = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { Product, ProductBatch } = db;
+
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại' });
+    }
+
+    if (product.stock <= 0) {
+      return res.status(400).json({ success: false, message: 'Sản phẩm không có tồn kho để chuẩn hóa' });
+    }
+
+    const existingBatchesCount = await ProductBatch.count({ where: { productId: id } });
+    if (existingBatchesCount > 0) {
+      return res.status(400).json({ success: false, message: 'Sản phẩm đã có dữ liệu lô hàng' });
+    }
+
+    // Tạo lô mặc định
+    await ProductBatch.create({
+      productId: id,
+      batchNumber: `LEGACY-${product.sku || id}`,
+      quantity: product.stock,
+      warehouseLocation: 'Chờ phân phối',
+      note: 'Lô hàng mặc định được tạo tự động để chuẩn hóa dữ liệu tồn kho cũ'
+    });
+
+    res.json({ success: true, message: 'Đã chuẩn hóa dữ liệu lô hàng thành công' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getTransactions,
   createImport,
@@ -546,4 +607,6 @@ module.exports = {
   getProductStock,
   getLowStockProducts,
   getWarehouseStats,
+  updateBatchLocation,
+  normalizeProductBatches
 };

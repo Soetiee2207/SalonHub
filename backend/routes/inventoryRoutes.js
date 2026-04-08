@@ -8,6 +8,8 @@ const {
   getProductStock,
   getLowStockProducts,
   getWarehouseStats,
+  updateBatchLocation,
+  normalizeProductBatches,
 } = require('../controllers/inventoryController');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -33,6 +35,20 @@ router.get(
   '/stats',
   authorize('admin', 'warehouse_staff'),
   getWarehouseStats
+);
+
+// PATCH /api/inventory/batches/:id/location — Cập nhật vị trí lô hàng
+router.patch(
+  '/batches/:id/location',
+  authorize('admin', 'warehouse_staff'),
+  updateBatchLocation
+);
+
+// POST /api/inventory/products/:id/normalize-batches — Chuẩn hóa lô hàng
+router.post(
+  '/products/:id/normalize-batches',
+  authorize('admin', 'warehouse_staff'),
+  normalizeProductBatches
 );
 
 // GET /api/inventory/products/:id/stock  — Tồn kho + lịch sử của 1 sản phẩm

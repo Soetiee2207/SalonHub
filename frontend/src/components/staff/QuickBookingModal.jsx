@@ -13,7 +13,7 @@ export default function QuickBookingModal({ onClose, onSuccess }) {
     phone: '',
     fullName: 'Khách vãng lai',
     serviceId: '',
-    startTime: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+    startTime: `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`
   });
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export default function QuickBookingModal({ onClose, onSuccess }) {
         ...formData,
         branchId: user.branchId,
         staffId: user.id,
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('sv-SE'), // Lấy YYYY-MM-DD theo giờ địa phương
       };
 
       await appointmentService.create(payload);

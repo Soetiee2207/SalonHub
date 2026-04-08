@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const db = require('../models');
 const { 
   Appointment, Service, User, Branch, StaffSchedule, 
@@ -144,8 +145,33 @@ const notifyStatusChanged = async (appointment, newStatus, cancelReason) => {
 // ============================================================
 const createAppointment = async (req, res, next) => {
   try {
-    const { branchId, staffId, serviceId, date, startTime, note } = req.body;
-    const userId = req.user.id;
+    const { branchId, staffId, serviceId, date, startTime, note, phone, fullName: walkInName } = req.body;
+    let userId = req.user.id;
+    let initialStatus = 'pending';
+
+    // --- Special Logic: Walk-in (Khách tạt vào) ---
+    // If requester is staff/admin and provides phone, we handle walk-in creation
+    if (['admin', 'staff', 'service_staff'].includes(req.user.role) && phone) {
+      initialStatus = 'in_progress'; // Khách tạt vào thì làm luôn
+      
+      let customer = await User.findOne({ where: { phone } });
+      
+      if (!customer) {
+        // Create new customer account on the fly
+        const salt = await bcrypt.genSalt(10);
+        const password = await bcrypt.hash('123456', salt);
+        const email = `${phone}@khach.salonhub.com`;
+        
+        customer = await User.create({
+          fullName: walkInName || 'Khách vãng lai',
+          phone,
+          email,
+          password,
+          role: 'customer'
+        });
+      }
+      userId = customer.id;
+    }
 
     // --- Input validation ---
     if (!branchId || !serviceId || !date || !startTime) {
@@ -164,13 +190,20 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Validate time format HH:MM
-    if (!/^\d{2}:\d{2}$/.test(startTime)) {
+    // Normalize startTime (remove SA/CH or AM/PM and trim)
+    const cleanStartTime = startTime.replace(/[SA|CH|AM|PM]/gi, '').trim();
+    
+    // Validate time format H:M or HH:MM
+    if (!/^\d{1,2}:\d{2}$/.test(cleanStartTime)) {
       return res.status(400).json({
         success: false,
         message: 'startTime must be in HH:MM format.',
       });
     }
+
+    // Ensure 2 digits for startTime internally
+    const [h, m] = cleanStartTime.split(':');
+    const normalizedStartTime = `${h.padStart(2, '0')}:${m}`;
 
     // --- Get service to calculate endTime and price ---
     const service = await Service.findByPk(serviceId);
@@ -181,11 +214,11 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    const endTime = addMinutes(startTime, service.duration);
+    const endTime = addMinutes(normalizedStartTime, service.duration);
     const totalPrice = service.price;
 
-    // --- If staffId provided, validate staff availability ---
-    if (staffId) {
+    // --- If staffId provided, validate staff availability (SKIP working hours check for Walk-in) ---
+    if (staffId && !phone) {
       const dayOfWeek = appointmentDate.getDay();
 
       const schedule = await StaffSchedule.findOne({
@@ -205,7 +238,7 @@ const createAppointment = async (req, res, next) => {
 
       // Check if appointment time falls within staff working hours
       if (
-        timeToMinutes(startTime) < timeToMinutes(schedule.startTime)
+        timeToMinutes(normalizedStartTime) < timeToMinutes(schedule.startTime)
         || timeToMinutes(endTime) > timeToMinutes(schedule.endTime)
       ) {
         return res.status(400).json({
@@ -225,7 +258,7 @@ const createAppointment = async (req, res, next) => {
       });
 
       const hasConflict = existingAppointments.some(
-        (appt) => timesOverlap(startTime, endTime, appt.startTime, appt.endTime),
+        (appt) => timesOverlap(normalizedStartTime, endTime, appt.startTime, appt.endTime),
       );
 
       if (hasConflict) {
@@ -243,11 +276,11 @@ const createAppointment = async (req, res, next) => {
       branchId,
       serviceId,
       date,
-      startTime,
+      startTime: normalizedStartTime,
       endTime,
       note: note || null,
       totalPrice,
-      status: 'pending',
+      status: initialStatus,
     });
 
     const fullAppointment = await Appointment.findByPk(appointment.id, {

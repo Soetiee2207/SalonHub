@@ -24,12 +24,16 @@ const register = async (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const existingUser = await db.User.findOne({ where: { email } });
+    // Check if user already exists by email or phone
+    const existingUser = await db.User.findOne({ 
+      where: { 
+        [db.Sequelize.Op.or]: [{ email }, { phone: phone || '' }] 
+      } 
+    });
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: 'Email already registered.',
+        message: existingUser.email === email ? 'Email already registered.' : 'Số điện thoại đã tồn tại trên hệ thống.',
       });
     }
 
@@ -83,12 +87,16 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user by email
-    const user = await db.User.findOne({ where: { email } });
+    // Find user by email or phone
+    const user = await db.User.findOne({ 
+      where: { 
+        [db.Sequelize.Op.or]: [{ email: email }, { phone: email }] 
+      } 
+    });
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Email hoặc mật khẩu không đúng',
+        message: 'Email, Số điện thoại hoặc mật khẩu không đúng',
       });
     }
 

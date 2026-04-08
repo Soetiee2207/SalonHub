@@ -106,27 +106,6 @@ export default function StaffDashboard() {
              </div>
            </div>
 
-           {/* Status Toggle */}
-           <div className="bg-orange-50/50 p-1.5 rounded-2xl border border-orange-100 flex items-center gap-1 shadow-inner">
-              {[
-                { id: 'available', icon: FiZap, label: 'Sẵn sàng', color: 'emerald' },
-                { id: 'break', icon: FiCoffee, label: 'Giải lao', color: 'amber' },
-                { id: 'busy', icon: FiAlertCircle, label: 'Bận', color: 'rose' }
-              ].map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => handleStatusChange(s.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all border-0 cursor-pointer ${
-                    stats.workStatus === s.id 
-                      ? `bg-${s.color}-500 text-white shadow-lg shadow-${s.color}-100` 
-                      : 'text-slate-400 hover:text-slate-600'
-                  }`}
-                >
-                  <s.icon size={14} />
-                  <span className={stats.workStatus === s.id ? 'block' : 'hidden md:block'}>{s.label}</span>
-                </button>
-              ))}
-           </div>
         </div>
       </header>
 

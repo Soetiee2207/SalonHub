@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     phone: {
       type: DataTypes.STRING,
       allowNull: true,
+      unique: true,
     },
     avatar: {
       type: DataTypes.STRING,

@@ -102,18 +102,18 @@ export default function Login() {
                   className="block text-sm font-medium mb-1.5"
                   style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
                 >
-                  Email
+                  Email hoặc Số điện thoại
                 </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
                     <FiMail size={18} />
                   </span>
                   <input
-                    type="email"
+                    type="text"
                     name="email"
                     value={form.email}
                     onChange={handleChange}
-                    placeholder="email@example.com"
+                    placeholder="Email hoặc Số điện thoại"
                     className="w-full pl-11 pr-4 py-3 rounded-xl border text-sm outline-none"
                     style={{
                       borderColor: 'var(--border)',

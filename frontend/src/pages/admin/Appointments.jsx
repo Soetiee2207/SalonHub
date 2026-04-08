@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FiSearch, FiX, FiCalendar, FiList, FiPlus, FiTrash2, FiShoppingBag, FiCheckCircle } from 'react-icons/fi';
+import { FiSearch, FiX, FiCalendar, FiList, FiPlus, FiTrash2, FiShoppingBag, FiCheckCircle, FiZap } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { appointmentService } from '../../services/appointmentService';
 import { branchService } from '../../services/branchService';
@@ -34,10 +34,6 @@ export default function AdminAppointments() {
   const [staffList, setStaffList] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // View States
-  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' or 'list'
-  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('');
@@ -131,14 +127,14 @@ export default function AdminAppointments() {
     try {
       await appointmentService.checkout(checkoutAppt.id, {
         products: selectedProducts.map(p => ({ productId: p.productId, quantity: p.quantity })),
-        paymentMethod: 'cod'
+        paymentMethod: 'cash'
       });
-      toast.success('Thanh toán và hoàn thành đơn hàng thành công!');
+      toast.success('Thanh toán thành công!');
       setCheckoutAppt(null);
       setProductSearch('');
       fetchData();
     } catch (err) {
-      toast.error(err.message || 'Lỗi thanh toán');
+      toast.error(err.response?.data?.message || err.message || 'Lỗi thanh toán');
     } finally {
       setSubmitting(false);
     }
@@ -156,146 +152,114 @@ export default function AdminAppointments() {
   const sorted = [...filtered].sort((a, b) => {
     const da = new Date(`${a.date?.split('T')[0] || a.date}T${a.startTime}`);
     const db = new Date(`${b.date?.split('T')[0] || b.date}T${b.startTime}`);
-    return db - da; // Mới nhất / gần nhất lên đầu
+    return db - da;
   });
 
   const totalProductAmount = selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
   const totalBill = (parseFloat(checkoutAppt?.totalPrice) || 0) + totalProductAmount;
 
   return (
-    <div className="p-6 pb-20 animate-fade-in-up">
+    <div className="p-4 md:p-6 pb-20 animate-fade-in-up">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 font-display">Lịch Hẹn Phòng Khách</h1>
-          <p className="text-gray-500 mt-1">Quản lý đặt chỗ, dịch vụ và vật phẩm (Layer 3 & 5)</p>
-        </div>
-        
-        <div className="flex bg-white rounded-xl shadow-sm border border-gray-100 p-1 self-start">
-          <button 
-            onClick={() => setViewMode('calendar')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all border-0 cursor-pointer ${viewMode === 'calendar' ? 'bg-[#8B5E3C] text-white shadow-lg shadow-brown-100' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <FiCalendar /> Lưới lịch (Time-block)
-          </button>
-          <button 
-             onClick={() => setViewMode('list')}
-             className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all border-0 cursor-pointer ${viewMode === 'list' ? 'bg-[#8B5E3C] text-white shadow-lg shadow-brown-100' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <FiList /> Danh sách
-          </button>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Quản Lý Lịch Hẹn</h1>
+          <p className="text-slate-400 text-sm font-medium mt-1 uppercase tracking-widest">Trung tâm điều hành phục vụ</p>
         </div>
       </div>
 
-      {/* Filters (Modularized in Header Style) */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      {/* Filters */}
+      <div className="bg-white rounded-3xl border border-slate-100 p-4 md:p-6 mb-8 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Tìm tên khách, mã lịch..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-3 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" placeholder="Tìm tên khách, mã..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-3 py-3 bg-slate-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
           </div>
-          <div>
-            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
-          </div>
-          <div>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]">
-              <option value="">Tất cả trạng thái</option>
-              {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </div>
-          <div>
-            <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]">
-              <option value="">Tất cả nhân viên</option>
-              {staffList.map(s => <option key={s.id} value={s.id}>{s.fullName || s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <select value={filterBranch} onChange={e => setFilterBranch(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]">
-              <option value="">Tất cả chi nhánh</option>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+          <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+            className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none" />
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
+            <option value="">Tất cả trạng thái</option>
+            {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)}
+            className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
+            <option value="">Tất cả thợ</option>
+            {staffList.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
+          </select>
+          <select value={filterBranch} onChange={e => setFilterBranch(e.target.value)}
+            className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
+            <option value="">Tất cả chi nhánh</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
-          <div className="w-10 h-10 border-4 border-gray-100 border-t-[#8B5E3C] rounded-full animate-spin mb-4" />
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Đang tải dữ liệu...</p>
+        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+          <div className="w-10 h-10 border-4 border-slate-100 border-t-[#8B5E3C] rounded-full animate-spin mb-4" />
+          <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">Đang nạp dữ liệu lịch hẹn...</p>
         </div>
+      ) : sorted.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-[2.5rem] border border-slate-100 text-slate-400 italic">Không tìm thấy lịch hẹn phù hợp</div>
       ) : (
-        viewMode === 'calendar' ? (
-          <AppointmentCalendar 
-            appointments={appointments} 
-            currentDate={currentDate} 
-            onDateChange={setCurrentDate}
-            onAppointmentClick={(appt) => {
-              if (appt.status === 'in_progress') openCheckout(appt);
-              else toast(`Lịch hẹn này đang ở trạng thái: ${statusLabels[appt.status]}`);
-            }}
-          />
-        ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="w-full text-sm min-w-[800px] md:min-w-full">
-                <thead className="bg-gray-50/50">
-                  <tr className="border-b border-gray-50">
-                    <th className="hidden md:table-cell text-left px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Mã lịch</th>
-                    <th className="text-left px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Khách hàng</th>
-                  <th className="text-left px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Thợ & Chi nhánh</th>
-                  <th className="text-left px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Dịch vụ</th>
-                  <th className="text-center px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Thời gian</th>
-                  <th className="text-center px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Trạng thái</th>
-                  <th className="text-center px-6 py-4 font-bold text-gray-500 uppercase tracking-wider text-[10px]">Hành động</th>
+        <div className="space-y-6">
+          {/* DESKTOP VIEW: Full Table */}
+          <div className="hidden lg:block bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mã</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Khách hàng</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nhân viên / Chi nhánh</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dịch vụ</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Thời gian</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Hành động</th>
                 </tr>
               </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {sorted.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-20 text-gray-400">Không tìm thấy lịch hẹn phù hợp</td></tr>
-                  ) : sorted.map(a => {
-                    const aid = a.id;
-                    const actions = statusActions[a.status] || [];
-                    return (
-                      <tr key={aid} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="hidden md:table-cell px-6 py-4 font-mono text-xs text-gray-400 font-bold">#{String(aid).padStart(6, '0')}</td>
-                        <td className="px-6 py-4 font-bold text-gray-800">{a.customer?.fullName || '---'}</td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs font-bold text-[#8B5E3C]">{a.staff?.fullName || 'Bất kỳ thợ nào'}</p>
-                        <p className="text-[10px] text-gray-400 font-medium uppercase mt-0.5">{a.branch?.name || '---'}</p>
+              <tbody className="divide-y divide-slate-50">
+                {sorted.map(a => {
+                  const actions = statusActions[a.status] || [];
+                  return (
+                    <tr key={a.id} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="px-6 py-5 text-xs font-black text-slate-300">#{String(a.id).padStart(5, '0')}</td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-black text-slate-800 uppercase tracking-tighter">{a.customer?.fullName || 'Khách vãng lai'}</p>
+                        <p className="text-[10px] text-slate-400 font-bold">{a.customer?.phone || 'Không có SĐT'}</p>
                       </td>
-                      <td className="px-6 py-4 text-xs font-bold">{a.service?.name || '---'}</td>
-                      <td className="px-6 py-4 text-center">
-                        <p className="text-[10px] font-bold text-gray-800">{formatDate(a.date)}</p>
-                        <p className="text-[10px] text-gray-400 font-medium">{a.startTime} - {a.endTime || '---'}</p>
+                      <td className="px-6 py-5">
+                        <p className="text-xs font-black text-slate-600">{a.staff?.fullName || 'Bất kỳ ai'}</p>
+                        <p className="text-[9px] font-bold text-slate-300 uppercase">{a.branch?.name}</p>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase border ${statusColors[a.status] || 'bg-gray-100 text-gray-600'}`}>
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-orange-500 bg-orange-50 px-3 py-1 rounded-lg">{a.service?.name}</span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <p className="text-sm font-black text-slate-700">{a.startTime}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{formatDate(a.date)}</p>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${statusColors[a.status] || 'bg-gray-100 text-gray-600'}`}>
                           {statusLabels[a.status]}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex justify-end gap-2">
                           {actions.map(act => (
-                            <button key={act.value} onClick={() => handleStatusUpdate(aid, act.value)}
-                              className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-transform hover:scale-105 active:scale-95 ${act.cls}`}>
-                              {act.label.toUpperCase()}
+                            <button key={act.value} onClick={() => handleStatusUpdate(a.id, act.value)}
+                              className={`px-4 py-2 text-[10px] font-black rounded-xl transition-all hover:scale-105 active:scale-95 ${act.cls}`}>
+                              {act.label}
                             </button>
                           ))}
                           {a.status === 'in_progress' && (
-                             <button onClick={() => openCheckout(a)}
-                              className="px-3 py-1.5 text-[10px] font-black rounded-lg bg-green-500 text-white shadow-sm hover:translate-y-[-1px] transition-all">
-                              THANH TOÁN (BILL)
+                            <button onClick={() => openCheckout(a)}
+                              className="px-4 py-2 text-[10px] font-black rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-50 hover:bg-emerald-600">
+                              BILL
                             </button>
                           )}
                           {!['cancelled', 'completed'].includes(a.status) && (
-                            <button onClick={() => handleCancel(aid)}
-                              className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-0 bg-transparent">
-                              <FiTrash2 size={16} />
-                            </button>
+                            <button onClick={() => handleCancel(a.id)} className="p-2 text-rose-300 hover:text-rose-500 transition-colors"><FiTrash2 size={16} /></button>
                           )}
                         </div>
                       </td>
@@ -305,8 +269,57 @@ export default function AdminAppointments() {
               </tbody>
             </table>
           </div>
+
+          {/* MOBILE VIEW: Card List */}
+          <div className="lg:hidden space-y-4">
+            {sorted.map(a => {
+              const actions = statusActions[a.status] || [];
+              return (
+                <div key={a.id} className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
+                        <FiCalendar />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-800">{a.startTime}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{formatDate(a.date)}</p>
+                      </div>
+                    </div>
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${statusColors[a.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {statusLabels[a.status]}
+                    </span>
+                  </div>
+
+                  <div className="mb-6">
+                    <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-1">{a.customer?.fullName || 'Khách vãng lai'}</h3>
+                    <p className="text-xs font-bold text-orange-500 flex items-center gap-2">
+                      <FiZap size={12} /> {a.service?.name}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-4 border-t border-slate-50">
+                    {actions.map(act => (
+                      <button key={act.value} onClick={() => handleStatusUpdate(a.id, act.value)}
+                        className={`flex-1 py-3.5 text-xs font-black rounded-2xl transition-all active:scale-95 ${act.cls}`}>
+                        {act.label}
+                      </button>
+                    ))}
+                    {a.status === 'in_progress' && (
+                      <button onClick={() => openCheckout(a)}
+                        className="flex-1 py-3.5 text-xs font-black rounded-2xl bg-emerald-500 text-white shadow-xl shadow-emerald-100">
+                        BILL
+                      </button>
+                    )}
+                    {!['cancelled', 'completed'].includes(a.status) && (
+                      <button onClick={() => handleCancel(a.id)} className="w-12 h-12 flex items-center justify-center text-rose-400 bg-rose-50 rounded-2xl"><FiTrash2 size={20} /></button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      )
       )}
 
       {/* Unified Checkout Modal (Service + Retail Products) */}

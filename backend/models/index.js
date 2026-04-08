@@ -1,9 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const dbConfig = require('../config/database');
 
-const { Sequelize, DataTypes } = require('sequelize');
-const dbConfig = require('../config/database');
-
 let sequelize;
 
 // Nếu có biến DATABASE_URL (chạy trên Render/Mây)

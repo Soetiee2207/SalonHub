@@ -7,7 +7,8 @@ const {
   getReconciliation,
   reconcilePayment,
   getRefundRequests,
-  processRefund
+  processRefund,
+  getReferenceDetail
 } = require('../controllers/accountantController');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -28,5 +29,8 @@ router.post('/reconciliation/:id', reconcilePayment);
 // Hoàn tiền (Refunds)
 router.get('/refunds', getRefundRequests);
 router.post('/refunds/:id/process', processRefund);
+
+// Chi tiết chứng từ
+router.get('/reference-detail/:type/:id', getReferenceDetail);
 
 module.exports = router;

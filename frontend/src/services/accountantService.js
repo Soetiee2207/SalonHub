@@ -11,4 +11,6 @@ export const accountantService = {
   
   getRefunds: () => api.get('/accountant/refunds'),
   processRefund: (id, data) => api.post(`/accountant/refunds/${id}/process`, data),
+  
+  getReferenceDetail: (type, id) => api.get(`/accountant/reference-detail/${type}/${id}`),
 };

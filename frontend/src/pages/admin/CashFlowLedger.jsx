@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { 
   FiArrowDownLeft, FiArrowUpRight, FiSearch, 
   FiPlus, FiFilter, FiCalendar, FiDownload,
-  FiFileText, FiRefreshCcw, FiTag, FiCreditCard, FiClock
+  FiFileText, FiRefreshCcw, FiTag, FiCreditCard, 
+  FiClock, FiEye, FiShoppingBag, FiScissors, FiUser, FiInfo
 } from 'react-icons/fi';
 import { accountantService } from '../../services/accountantService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -14,6 +15,11 @@ export default function CashFlowLedger() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({ type: '', category: '', page: 1 });
+  
+  // Detail Modal State
+  const [selectedRef, setSelectedRef] = useState(null);
+  const [refLoading, setRefLoading] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   
   const [formData, setFormData] = useState({
     type: 'payment',
@@ -54,6 +60,21 @@ export default function CashFlowLedger() {
       setFormData({ type: 'payment', category: 'other', amount: '', method: 'cash', note: '', status: 'completed' });
     } catch (err) {
       toast.error('Lỗi khi lưu phiếu');
+    }
+  };
+
+  const handleViewDetail = async (type, id) => {
+    if (!type || !id) return;
+    try {
+      setRefLoading(true);
+      setShowDetail(true);
+      const res = await accountantService.getReferenceDetail(type, id);
+      setSelectedRef({ data: res.data || res, type });
+    } catch (err) {
+      toast.error('Không tìm thấy chứng từ gốc');
+      setShowDetail(false);
+    } finally {
+      setRefLoading(false);
     }
   };
 
@@ -215,13 +236,14 @@ export default function CashFlowLedger() {
                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Danh mục</th>
                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Giá trị</th>
                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Diễn giải</th>
+                   <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Hành động</th>
                 </tr>
              </thead>
              <tbody className="divide-y divide-slate-50">
                 {loading ? (
-                  [1,2,3].map(i => <tr key={i} className="animate-pulse"><td colSpan="5" className="py-8 px-8"><div className="h-10 bg-slate-50 rounded-xl" /></td></tr>)
+                  [1,2,3].map(i => <tr key={i} className="animate-pulse"><td colSpan="6" className="py-8 px-8"><div className="h-10 bg-slate-50 rounded-xl" /></td></tr>)
                 ) : data.length === 0 ? (
-                  <tr><td colSpan="5" className="py-20 text-center text-slate-300 italic">Chưa có giao dịch nào được ghi sỗ</td></tr>
+                  <tr><td colSpan="6" className="py-20 text-center text-slate-300 italic">Chưa có giao dịch nào được ghi sỗ</td></tr>
                 ) : data.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
                     <td className="px-8 py-6">
@@ -255,12 +277,135 @@ export default function CashFlowLedger() {
                        <p className="text-xs text-slate-500 font-medium max-w-xs">{t.note}</p>
                        <p className="text-[10px] font-bold text-indigo-400 mt-1 uppercase">Bởi: {t.creator?.fullName}</p>
                     </td>
+                    <td className="px-8 py-6 text-center">
+                       {t.referenceId && (
+                         <button 
+                           onClick={() => handleViewDetail(t.referenceType, t.referenceId)}
+                           className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-900 hover:text-white transition-all border-0 cursor-pointer"
+                           title="Xem chứng từ gốc"
+                         >
+                            <FiEye size={16} />
+                         </button>
+                       )}
+                    </td>
                   </tr>
                 ))}
              </tbody>
           </table>
         </div>
       </div>
+      {/* Detail Reference Modal */}
+      <AnimatePresence>
+        {showDetail && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+               {/* Modal Header */}
+               <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                     <div className="p-3 bg-white/10 rounded-2xl text-white">
+                        {selectedRef?.type === 'order' ? <FiShoppingBag size={24} /> : <FiScissors size={24} />}
+                     </div>
+                     <div>
+                        <h2 className="text-xl font-black uppercase tracking-tighter">
+                           Chi tiết {selectedRef?.type === 'order' ? 'Đơn hàng' : 'Lịch hẹn'}
+                        </h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Mã tham chiếu: #{selectedRef?.data?.id}</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setShowDetail(false)} className="p-2 hover:bg-white/10 rounded-full text-white border-0 bg-transparent cursor-pointer transition-colors">✕</button>
+               </div>
+
+               <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+                  {refLoading ? (
+                    <div className="py-20 flex flex-col items-center gap-4 text-slate-300">
+                       <FiRefreshCcw className="animate-spin" size={32} />
+                       <p className="text-[10px] font-black uppercase tracking-[0.2em]">Đang nạp dữ liệu gốc...</p>
+                    </div>
+                  ) : selectedRef?.data ? (
+                    <div className="space-y-8 animate-fade-in">
+                       {/* Customer Info */}
+                       <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                          <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-black">
+                                {selectedRef.data.customer?.fullName?.split(' ').pop()?.[0] || 'K'}
+                             </div>
+                             <div>
+                                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedRef.data.customer?.fullName || 'Khách vãng lai'}</p>
+                                <p className="text-[10px] font-bold text-slate-400">{selectedRef.data.customer?.phone || 'Không có SĐT'}</p>
+                             </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Thời gian lập</p>
+                             <p className="text-xs font-bold text-slate-700">{new Date(selectedRef.data.createdAt).toLocaleDateString('vi-VN')}</p>
+                          </div>
+                       </div>
+
+                       {/* Items List */}
+                       <div>
+                          <div className="flex items-center gap-2 mb-4">
+                             <FiInfo className="text-indigo-500" />
+                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Nội dung chứng từ</h3>
+                          </div>
+                          
+                          <div className="space-y-3">
+                             {/* Appointment Specific */}
+                             {selectedRef.type === 'appointment' && (
+                               <div className="p-4 rounded-2xl border-2 border-indigo-50 bg-indigo-50/20 flex justify-between items-center group">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-500 shadow-sm"><FiScissors size={18} /></div>
+                                     <div>
+                                        <p className="text-xs font-black text-slate-800 uppercase">{selectedRef.data.service?.name}</p>
+                                        <p className="text-[10px] font-bold text-indigo-400">Dịch vụ chính - Bằng tay</p>
+                                     </div>
+                                  </div>
+                                  <p className="text-sm font-black text-slate-700">{formatPrice(selectedRef.data.totalPrice)}</p>
+                               </div>
+                             )}
+
+                             {/* Products (Either from Order or Appointment Upsell) */}
+                             {(selectedRef.type === 'order' ? selectedRef.data.items : selectedRef.data.upsellOrder?.items)?.map(item => (
+                               <div key={item.id} className="p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><FiShoppingBag size={18} /></div>
+                                     <div>
+                                        <p className="text-xs font-black text-slate-800 uppercase">{item.product?.name}</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Số lượng: x{item.quantity}</p>
+                                     </div>
+                                  </div>
+                                  <p className="text-sm font-black text-slate-700">{formatPrice(item.price * item.quantity)}</p>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+
+                       {/* Footer Summary */}
+                       <div className="bg-slate-900 text-white p-8 rounded-[2rem] flex justify-between items-center shadow-2xl shadow-slate-200">
+                          <div>
+                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Tổng cộng giá trị</p>
+                             <p className="text-sm font-medium text-slate-300 italic">Bao gồm VAT & Chiết khấu</p>
+                          </div>
+                          <p className="text-3xl font-black font-mono">
+                             {formatPrice(selectedRef.type === 'order' ? selectedRef.data.totalAmount : (parseFloat(selectedRef.data.totalPrice) + (parseFloat(selectedRef.data.upsellOrder?.totalAmount) || 0)))}
+                          </p>
+                       </div>
+                    </div>
+                  ) : (
+                    <div className="py-20 text-center text-slate-400 italic">Chứng từ này không có dữ liệu mở rộng</div>
+                  )}
+               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

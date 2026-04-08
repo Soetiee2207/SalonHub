@@ -7,6 +7,8 @@ const {
   Order, 
   OrderItem, 
   Appointment, 
+  Service,
+  Branch,
   User, 
   Product, 
   ProductBatch, 
@@ -345,6 +347,59 @@ const processRefund = async (req, res, next) => {
     }
 };
 
+// ============================================================
+// GET /api/accountant/reference-detail/:type/:id
+// Lấy chi tiết gốc của một chứng từ tham chiếu (Order/Appointment)
+// ============================================================
+const getReferenceDetail = async (req, res, next) => {
+    try {
+        const { type, id } = req.params;
+
+        if (type === 'order') {
+            const order = await Order.findByPk(id, {
+                include: [
+                    {
+                        model: OrderItem,
+                        as: 'items',
+                        include: [{ model: Product, as: 'product' }]
+                    },
+                    { model: User, as: 'customer', attributes: ['fullName', 'email', 'phone'] }
+                ]
+            });
+            if (!order) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+            return res.json({ success: true, data: order });
+        }
+
+        if (type === 'appointment') {
+            const appointment = await Appointment.findByPk(id, {
+                include: [
+                    { model: Service, as: 'service' },
+                    { model: User, as: 'customer', attributes: ['fullName', 'email', 'phone'] },
+                    { model: User, as: 'staff', attributes: ['fullName'] },
+                    { model: Branch, as: 'branch' },
+                    { 
+                        model: Order, 
+                        as: 'upsellOrder', 
+                        include: [
+                            { 
+                                model: OrderItem, 
+                                as: 'items', 
+                                include: [{ model: Product, as: 'product' }] 
+                            }
+                        ] 
+                    }
+                ]
+            });
+            if (!appointment) return res.status(404).json({ success: false, message: 'Không tìm thấy lịch hẹn' });
+            return res.json({ success: true, data: appointment });
+        }
+
+        return res.status(400).json({ success: false, message: 'Loại chứng từ không hợp lệ' });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
   getFinancialStats,
   getCashFlow,
@@ -352,5 +407,6 @@ module.exports = {
   getReconciliation,
   reconcilePayment,
   getRefundRequests,
-  processRefund
+  processRefund,
+  getReferenceDetail
 };

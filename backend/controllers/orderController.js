@@ -559,6 +559,18 @@ const cancelOrder = async (req, res, next) => {
       }
     }
 
+    // Tự động khách yêu cầu hoàn tiền nếu đơn đã thanh toán hoàn tất (VNPay)
+    if (order.paymentStatus === 'paid') {
+      const { RefundRequest } = db;
+      await RefundRequest.create({
+        type: 'order',
+        targetId: order.id,
+        amount: order.totalAmount,
+        reason: cancelReason || 'Khách hàng tự hủy đơn hàng sau khi hoàn tất thanh toán',
+        status: 'pending'
+      }, { transaction: t });
+    }
+
     await order.update({ status: 'cancelled' }, { transaction: t });
 
     await t.commit();

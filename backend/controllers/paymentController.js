@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const querystring = require('qs');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
+const { syncAppointmentAccounting } = require('./appointmentController');
 
 // VNPay return handler
 const vnpayReturn = async (req, res, next) => {
@@ -29,27 +30,42 @@ const vnpayReturn = async (req, res, next) => {
     }
 
     const responseCode = vnpParams['vnp_ResponseCode'];
-    const txnRef = vnpParams['vnp_TxnRef'];
+    const txnRef = vnpParams['vnp_TxnRef']; // Format: ORDER_123 or APP_456
     const transactionId = vnpParams['vnp_TransactionNo'];
     const amount = parseInt(vnpParams['vnp_Amount']) / 100;
 
+    const [refType, refId] = txnRef.split('_');
+
     if (responseCode === '00') {
-      // Payment success - find related order or appointment
-      // txnRef format: orderId or appointmentId
-      const order = await db.Order.findByPk(txnRef);
-
-      if (order) {
-        await order.update({ paymentStatus: 'paid' });
-
-        // Create payment record
-        await db.Payment.create({
-          orderId: order.id,
-          amount,
-          method: 'vnpay',
-          transactionId: transactionId.toString(),
-          status: 'success',
-          vnpayData: vnpParams,
-        });
+      if (refType === 'ORDER') {
+        const order = await db.Order.findByPk(refId);
+        if (order) {
+          await order.update({ paymentStatus: 'paid' });
+          await db.Payment.upsert({
+            orderId: order.id,
+            amount,
+            method: 'vnpay',
+            transactionId: transactionId.toString(),
+            status: 'success',
+            vnpayData: vnpParams,
+          });
+        }
+      } else if (refType === 'APP') {
+        const appointment = await db.Appointment.findByPk(refId);
+        if (appointment) {
+          await appointment.update({ status: 'completed' });
+          await db.Payment.upsert({
+            appointmentId: appointment.id,
+            amount,
+            method: 'vnpay',
+            transactionId: transactionId.toString(),
+            status: 'success',
+            vnpayData: vnpParams,
+            userId: appointment.userId
+          });
+          // Sync accounting for appointment
+          await syncAppointmentAccounting(appointment.id);
+        }
       }
 
       return res.status(200).json({
@@ -59,15 +75,23 @@ const vnpayReturn = async (req, res, next) => {
           responseCode,
           transactionId,
           amount,
+          type: refType
         },
       });
     } else {
       // Payment failed
-      const order = await db.Order.findByPk(txnRef);
-
-      if (order) {
+      if (refType === 'ORDER') {
         await db.Payment.create({
-          orderId: order.id,
+          orderId: refId,
+          amount,
+          method: 'vnpay',
+          transactionId: transactionId ? transactionId.toString() : null,
+          status: 'failed',
+          vnpayData: vnpParams,
+        });
+      } else if (refType === 'APP') {
+        await db.Payment.create({
+          appointmentId: refId,
           amount,
           method: 'vnpay',
           transactionId: transactionId ? transactionId.toString() : null,
@@ -81,6 +105,7 @@ const vnpayReturn = async (req, res, next) => {
         data: {
           message: 'Payment failed.',
           responseCode,
+          type: refType
         },
       });
     }
@@ -117,41 +142,17 @@ const vnpayIPN = async (req, res, next) => {
     const transactionId = vnpParams['vnp_TransactionNo'];
     const amount = parseInt(vnpParams['vnp_Amount']) / 100;
 
-    const order = await db.Order.findByPk(txnRef);
+    const [refType, refId] = txnRef.split('_');
 
-    if (!order) {
-      return res.status(200).json({
-        RspCode: '01',
-        Message: 'Order not found',
-      });
-    }
+    if (refType === 'ORDER') {
+      const order = await db.Order.findByPk(refId);
+      if (!order) return res.status(200).json({ RspCode: '01', Message: 'Order not found' });
+      if (parseFloat(order.totalAmount) !== amount) return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
+      if (order.paymentStatus === 'paid') return res.status(200).json({ RspCode: '02', Message: 'Order already confirmed' });
 
-    // Check if amount matches
-    if (parseFloat(order.totalAmount) !== amount) {
-      return res.status(200).json({
-        RspCode: '04',
-        Message: 'Invalid amount',
-      });
-    }
-
-    // Check if order already paid
-    if (order.paymentStatus === 'paid') {
-      return res.status(200).json({
-        RspCode: '02',
-        Message: 'Order already confirmed',
-      });
-    }
-
-    if (responseCode === '00') {
-      await order.update({ paymentStatus: 'paid' });
-
-      // Check if payment record already exists
-      const existingPayment = await db.Payment.findOne({
-        where: { orderId: order.id, transactionId: transactionId.toString() },
-      });
-
-      if (!existingPayment) {
-        await db.Payment.create({
+      if (responseCode === '00') {
+        await order.update({ paymentStatus: 'paid' });
+        await db.Payment.upsert({
           orderId: order.id,
           amount,
           method: 'vnpay',
@@ -160,17 +161,32 @@ const vnpayIPN = async (req, res, next) => {
           vnpayData: vnpParams,
         });
       }
+    } else if (refType === 'APP') {
+      const appointment = await db.Appointment.findByPk(refId);
+      if (!appointment) return res.status(200).json({ RspCode: '01', Message: 'Appointment not found' });
+      if (parseFloat(appointment.totalPrice) !== amount) {
+        // Might include upsell order
+        const total = await calculateTotalAppAmount(appointment);
+        if (total !== amount) return res.status(200).json({ RspCode: '04', Message: 'Invalid amount' });
+      }
+      if (appointment.status === 'completed') return res.status(200).json({ RspCode: '02', Message: 'Already confirmed' });
 
-      return res.status(200).json({
-        RspCode: '00',
-        Message: 'Confirm success',
-      });
-    } else {
-      return res.status(200).json({
-        RspCode: '00',
-        Message: 'Confirm success',
-      });
+      if (responseCode === '00') {
+        await appointment.update({ status: 'completed' });
+        await db.Payment.upsert({
+          appointmentId: appointment.id,
+          amount,
+          method: 'vnpay',
+          transactionId: transactionId.toString(),
+          status: 'success',
+          vnpayData: vnpParams,
+          userId: appointment.userId
+        });
+        await syncAppointmentAccounting(appointment.id);
+      }
     }
+
+    return res.status(200).json({ RspCode: '00', Message: 'Confirm success' });
   } catch (error) {
     return res.status(200).json({
       RspCode: '99',
@@ -320,6 +336,14 @@ function sortObject(obj) {
     sorted[key] = encodeURIComponent(obj[key]).replace(/%20/g, '+');
   }
   return sorted;
+}
+
+// Helper: Calculate total amount for appointment (service + upsell order)
+async function calculateTotalAppAmount(appointment) {
+  const upsellOrder = await db.Order.findOne({ where: { appointmentId: appointment.id } });
+  const servicePrice = parseFloat(appointment.totalPrice) || 0;
+  const productPrice = upsellOrder ? parseFloat(upsellOrder.totalAmount) : 0;
+  return servicePrice + productPrice;
 }
 
 module.exports = {

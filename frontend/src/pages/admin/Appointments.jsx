@@ -43,10 +43,8 @@ export default function AdminAppointments() {
   const [search, setSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
 
-  // Checkout State
-  const [checkoutAppt, setCheckoutAppt] = useState(null);
-  const [selectedProducts, setSelectedProducts] = useState([]); // Array of {productId, quantity, name, price}
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -125,10 +123,18 @@ export default function AdminAppointments() {
     if (!checkoutAppt) return;
     setSubmitting(true);
     try {
-      await appointmentService.checkout(checkoutAppt.id, {
+      const res = await appointmentService.checkout(checkoutAppt.id, {
         products: selectedProducts.map(p => ({ productId: p.productId, quantity: p.quantity })),
-        paymentMethod: 'cash'
+        paymentMethod
       });
+      
+      const data = res.data?.data || res.data || res;
+      
+      if (paymentMethod === 'vnpay' && data.paymentUrl) {
+         window.location.href = data.paymentUrl;
+         return;
+      }
+
       toast.success('Thanh toán thành công!');
       setCheckoutAppt(null);
       setProductSearch('');
@@ -378,7 +384,7 @@ export default function AdminAppointments() {
                 <div className="bg-gray-50 rounded-2xl p-6 flex flex-col">
                    <h3 className="text-sm font-black text-gray-800 uppercase mb-6 tracking-wider">Chi tiết hóa đơn</h3>
                    
-                   <div className="flex-1 space-y-4">
+                   <div className="flex-1 space-y-4 overflow-y-auto max-h-48 pr-2 custom-scrollbar">
                       {/* Service Item */}
                       <div className="flex justify-between items-start border-b border-dashed border-gray-200 pb-3">
                          <div>
@@ -404,6 +410,25 @@ export default function AdminAppointments() {
                       ) : (
                         <p className="text-[10px] text-gray-400 text-center italic py-4">Chưa có sản phẩm retail nào được thêm</p>
                       )}
+                   </div>
+ 
+                   {/* Payment Method Selection */}
+                   <div className="mt-6 pt-4 border-t border-gray-100">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Phương thức thanh toán</p>
+                      <div className="grid grid-cols-2 gap-3">
+                         <button 
+                           onClick={() => setPaymentMethod('cash')}
+                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'cash' ? 'bg-[#8B5E3C] text-white border-[#8B5E3C]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#8B5E3C]'}`}
+                         >
+                            TIỀN MẶT
+                         </button>
+                         <button 
+                           onClick={() => setPaymentMethod('vnpay')}
+                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'vnpay' ? 'bg-[#005BAA] text-white border-[#005BAA]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#005BAA]'}`}
+                         >
+                            VNPAY QR
+                         </button>
+                      </div>
                    </div>
 
                    {/* Total Calculation */}

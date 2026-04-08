@@ -7,6 +7,7 @@ const {
 } = db;
 const { createNotification } = require('./notificationController');
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
+const { generateVnpayUrl } = require('../utils/vnpayHelper');
 
 // ============================================================
 // Constants
@@ -868,34 +869,120 @@ const checkoutAppointment = async (req, res, next) => {
         }, { transaction });
       }
     }
-
     const servicePrice = parseFloat(appointment.totalPrice) || 0;
-
-    await appointment.update({
-      status: 'completed',
-      orderId: order ? order.id : appointment.orderId
-    }, { transaction });
-
-    // Đồng bộ Kế toán (Tạo phiếu thu & Payment)
-    await syncAppointmentAccounting(appointment.id, transaction);
-
     const totalBill = servicePrice + totalProductAmount;
-    await updateCustomerLoyalty(appointment.userId, totalBill / 1000, transaction);
+
+    let responseData = {
+      appointment: null,
+      order,
+      totalBill,
+    };
+
+    if (paymentMethod === 'vnpay') {
+      // Create pending payment record
+      await Payment.create({
+        appointmentId: appointment.id,
+        orderId: order ? order.id : null,
+        amount: totalBill,
+        method: 'vnpay',
+        status: 'pending',
+        userId: appointment.userId
+      }, { transaction });
+
+      const vnpayUrl = generateVnpayUrl({
+        amount: totalBill,
+        txnRef: `APP_${appointment.id}`,
+        orderInfo: `Thanh toan lich hen #${appointment.id}`,
+        ipAddr: req.ip || '127.0.0.1'
+      });
+      responseData.paymentUrl = vnpayUrl;
+    } else {
+      // Success immediate for cash/cod
+      await appointment.update({
+        status: 'completed',
+        orderId: order ? order.id : appointment.orderId
+      }, { transaction });
+
+      // Đồng bộ Kế toán (Tạo phiếu thu & Payment)
+      await syncAppointmentAccounting(appointment.id, transaction);
+      await updateCustomerLoyalty(appointment.userId, totalBill / 1000, transaction);
+    }
 
     await transaction.commit();
 
     const updatedAppt = await Appointment.findByPk(id, {
       include: APPOINTMENT_INCLUDES,
     });
+    responseData.appointment = updatedAppt;
 
     return res.status(200).json({
       success: true,
-      data: {
-        appointment: updatedAppt,
-        order,
-        totalBill,
-      },
+      data: responseData,
     });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    next(error);
+  }
+};
+
+const checkInAppointment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const appointment = await Appointment.findByPk(id);
+    if (!appointment) return res.status(404).json({ success: false, message: 'Lịch hẹn không tồn tại' });
+    
+    if (appointment.status !== 'confirmed' && appointment.status !== 'pending') {
+      return res.status(400).json({ success: false, message: 'Chỉ có thể check-in lịch đã xác nhận hoặc đang chờ' });
+    }
+
+    await appointment.update({ status: 'in_progress' });
+    res.json({ success: true, message: 'Đã check-in khách!', data: appointment });
+  } catch (error) { next(error); }
+};
+
+const updateUpsellItems = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { products = [] } = req.body;
+    
+    const appointment = await Appointment.findByPk(id, { transaction });
+    if (!appointment) throw new Error('Lịch hẹn không tồn tại');
+
+    let order;
+    if (appointment.orderId) {
+      order = await Order.findByPk(appointment.orderId, { transaction });
+      await OrderItem.destroy({ where: { orderId: order.id }, transaction });
+    } else {
+      order = await Order.create({
+        userId: appointment.userId,
+        appointmentId: appointment.id,
+        totalAmount: 0,
+        paymentStatus: 'unpaid',
+        status: 'pending'
+      }, { transaction });
+      await appointment.update({ orderId: order.id }, { transaction });
+    }
+
+    let totalAmount = 0;
+    for (const p of products) {
+      const product = await Product.findByPk(p.productId, { transaction });
+      if (!product) continue;
+      const price = parseFloat(product.price);
+      totalAmount += price * p.quantity;
+      
+      await OrderItem.create({
+        orderId: order.id,
+        productId: p.productId,
+        quantity: p.quantity,
+        price: price
+      }, { transaction });
+    }
+
+    await order.update({ totalAmount }, { transaction });
+    await transaction.commit();
+    
+    res.json({ success: true, message: 'Đã cập nhật đơn hàng bán thêm', data: order });
   } catch (error) {
     if (transaction) await transaction.rollback();
     next(error);
@@ -915,67 +1002,7 @@ module.exports = {
   cancelAppointment,
   getAvailableSlots,
   checkoutAppointment,
-  checkInAppointment: async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const appointment = await Appointment.findByPk(id);
-      if (!appointment) return res.status(404).json({ success: false, message: 'Lịch hẹn không tồn tại' });
-      
-      if (appointment.status !== 'confirmed' && appointment.status !== 'pending') {
-        return res.status(400).json({ success: false, message: 'Chỉ có thể check-in lịch đã xác nhận hoặc đang chờ' });
-      }
-
-      await appointment.update({ status: 'in_progress' });
-      res.json({ success: true, message: 'Đã check-in khách!', data: appointment });
-    } catch (error) { next(error); }
-  },
-  
-  updateUpsellItems: async (req, res, next) => {
-    const transaction = await db.sequelize.transaction();
-    try {
-      const { id } = req.params;
-      const { products = [] } = req.body;
-      
-      const appointment = await Appointment.findByPk(id, { transaction });
-      if (!appointment) throw new Error('Lịch hẹn không tồn tại');
-
-      let order;
-      if (appointment.orderId) {
-        order = await Order.findByPk(appointment.orderId, { transaction });
-        await OrderItem.destroy({ where: { orderId: order.id }, transaction });
-      } else {
-        order = await Order.create({
-          userId: appointment.userId,
-          appointmentId: appointment.id,
-          totalAmount: 0,
-          paymentStatus: 'unpaid',
-          status: 'pending'
-        }, { transaction });
-        await appointment.update({ orderId: order.id }, { transaction });
-      }
-
-      let totalAmount = 0;
-      for (const p of products) {
-        const product = await Product.findByPk(p.productId, { transaction });
-        if (!product) continue;
-        const price = parseFloat(product.price);
-        totalAmount += price * p.quantity;
-        
-        await OrderItem.create({
-          orderId: order.id,
-          productId: p.productId,
-          quantity: p.quantity,
-          price: price
-        }, { transaction });
-      }
-
-      await order.update({ totalAmount }, { transaction });
-      await transaction.commit();
-      
-      res.json({ success: true, message: 'Đã cập nhật đơn hàng bán thêm', data: order });
-    } catch (error) {
-      if (transaction) await transaction.rollback();
-      next(error);
-    }
-  }
+  checkInAppointment,
+  updateUpsellItems,
+  syncAppointmentAccounting
 };

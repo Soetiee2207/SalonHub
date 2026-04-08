@@ -3,6 +3,7 @@ const querystring = require('qs');
 const { Op } = require('sequelize');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
+const { generateVnpayUrl } = require('../utils/vnpayHelper');
 const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, sequelize } = db;
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
 
@@ -196,7 +197,12 @@ const createOrder = async (req, res, next) => {
 
     // Generate VNPay URL if payment method is vnpay
     if (paymentMethod === 'vnpay') {
-      const vnpayUrl = generateVnpayUrl(order);
+      const vnpayUrl = generateVnpayUrl({
+        amount: order.totalAmount,
+        txnRef: `ORDER_${order.id}`,
+        orderInfo: `Thanh toan don hang ${order.id}`,
+        ipAddr: req.ip || '127.0.0.1'
+      });
       responseData.paymentUrl = vnpayUrl;
     }
 
@@ -211,47 +217,6 @@ const createOrder = async (req, res, next) => {
 };
 
 
-// Helper: sort object keys alphabetically and encode values
-function sortObject(obj) {
-  const sorted = {};
-  const keys = Object.keys(obj).sort();
-  for (const key of keys) {
-    sorted[key] = encodeURIComponent(String(obj[key])).replace(/%20/g, '+');
-  }
-  return sorted;
-}
-
-// Generate VNPay payment URL
-function generateVnpayUrl(order) {
-  const date = new Date();
-  const createDate = date.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-
-  let vnpParams = {
-    vnp_Version: '2.1.0',
-    vnp_Command: 'pay',
-    vnp_TmnCode: vnpayConfig.tmnCode,
-    vnp_Locale: 'vn',
-    vnp_CurrCode: 'VND',
-    vnp_TxnRef: order.id.toString(),
-    vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
-    vnp_OrderType: 'other',
-    vnp_Amount: Math.round(parseFloat(order.totalAmount) * 100),
-    vnp_ReturnUrl: vnpayConfig.returnUrl,
-    vnp_IpAddr: '127.0.0.1',
-    vnp_CreateDate: createDate,
-  };
-
-  // Sort and encode params
-  vnpParams = sortObject(vnpParams);
-
-  const signData = querystring.stringify(vnpParams, { encode: false });
-  const hmac = crypto.createHmac('sha512', vnpayConfig.hashSecret);
-  const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
-
-  vnpParams.vnp_SecureHash = signed;
-
-  return `${vnpayConfig.url}?${querystring.stringify(vnpParams, { encode: false })}`;
-}
 
 // Get my orders
 const getMyOrders = async (req, res, next) => {

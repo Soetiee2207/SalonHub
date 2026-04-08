@@ -193,12 +193,66 @@ function StockLedger({ transactions, loading }) {
   );
 }
 
+/* ========== 4. EXPIRING ALERTS: "DANH SÁCH TẨU HỎA" ========== */
+function ExpiringAlerts({ items, loading }) {
+  if (loading) return <div className="h-64 bg-white rounded-xl animate-pulse border" />;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+      <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <FiClock className="text-amber-500" />
+        Hàng sắp tẩu hỏa (Hết hạn trong 30 ngày)
+      </h3>
+
+      {items && items.length > 0 ? (
+        <div className="space-y-4">
+          {items.map((item, idx) => (
+            <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-amber-50/50 border border-amber-100/50 hover:bg-amber-50 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-lg bg-white border border-amber-200 flex items-center justify-center overflow-hidden">
+                  {item.product?.image ? (
+                    <img src={item.product.image} alt={item.product?.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <FiBox className="text-amber-400" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-800">{item.product?.name}</p>
+                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                    Lô: {item.batchNumber} • Còn {item.quantity} sản phẩm
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-black text-rose-500 bg-white px-3 py-1 rounded-full border border-rose-100 inline-block">
+                  HẾT HẠN: {new Date(item.expiryDate).toLocaleDateString('vi-VN')}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">
+                  {Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))} ngày còn lại
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="h-40 flex flex-col items-center justify-center text-center">
+          <div className="p-3 bg-emerald-50 text-emerald-500 rounded-full mb-3">
+            <FiCheckCircle size={24} />
+          </div>
+          <p className="text-sm text-gray-500 font-medium tracking-tight">An tâm vận tiêu, không có hàng sắp hết hạn.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ========== MAIN DASHBOARD ========== */
 export default function WarehouseDashboard() {
   const [stats, setStats] = useState({
     orders: { pending: 0, packing: 0, shipping: 0 },
     lowStockCount: 0,
     expiringSoonCount: 0,
+    expiringSoonItems: [],
     stockSummary: { physical: 0, reserved: 0, available: 0 }
   });
   const [transactions, setTransactions] = useState([]);
@@ -251,7 +305,8 @@ export default function WarehouseDashboard() {
         <div className="lg:col-span-1">
           <OrderMetrics orders={stats.orders} loading={loading} />
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
+          <ExpiringAlerts items={stats.expiringSoonItems} loading={loading} />
           <StockLedger transactions={transactions} loading={loading} />
         </div>
       </div>

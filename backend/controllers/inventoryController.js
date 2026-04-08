@@ -481,6 +481,8 @@ const getWarehouseStats = async (req, res, next) => {
     // 3. Hàng sắp hết hạn (Expiring soon - within 30 days)
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+    
+    // Đếm số lượng
     const expiringSoonCount = await ProductBatch.count({
       where: {
         expiryDate: {
@@ -488,6 +490,21 @@ const getWarehouseStats = async (req, res, next) => {
         },
         quantity: { [Op.gt]: 0 },
       },
+    });
+
+    // Lấy danh sách chi tiết
+    const expiringSoonItems = await ProductBatch.findAll({
+      where: {
+        expiryDate: {
+          [Op.between]: [new Date(), thirtyDaysLater],
+        },
+        quantity: { [Op.gt]: 0 },
+      },
+      include: [
+        { model: Product, as: 'product', attributes: ['name', 'image'] }
+      ],
+      limit: 5,
+      order: [['expiryDate', 'ASC']]
     });
 
     // 4. Tổng quan tồn kho
@@ -508,6 +525,7 @@ const getWarehouseStats = async (req, res, next) => {
         }, { pending: 0, confirmed: 0, packing: 0, shipping: 0 }),
         lowStockCount,
         expiringSoonCount,
+        expiringSoonItems,
         stockSummary: {
           physical: parseInt(stockSummary[0]?.totalPhysical || 0),
           reserved: parseInt(stockSummary[0]?.totalReserved || 0),

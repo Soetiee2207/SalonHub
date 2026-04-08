@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    expiryDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
   }, {
     timestamps: true,
     tableName: 'products',

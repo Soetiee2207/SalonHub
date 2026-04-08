@@ -33,6 +33,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSON,
       allowNull: true,
     },
+    isReconciled: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    reconciledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    reconciledBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   }, {
     timestamps: true,
     tableName: 'payments',

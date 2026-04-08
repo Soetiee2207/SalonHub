@@ -7,7 +7,7 @@ const getAllProducts = async (req, res, next) => {
   try {
     const { categoryId, search, sort } = req.query;
 
-    const where = { isActive: true };
+    const where = {};
 
     if (categoryId) {
       where.categoryId = categoryId;

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { staffService } from '../../services/staffService';
 import { branchService } from '../../services/branchService';
 import { serviceService } from '../../services/serviceService';
+import { formatPrice } from '../../utils/formatPrice';
 
 export default function Staff() {
   const [staffList, setStaffList] = useState([]);
@@ -15,7 +16,7 @@ export default function Staff() {
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', phone: '', branchId: '', serviceIds: [] });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', phone: '', branchId: '', serviceIds: [], role: 'staff' });
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleStaff, setScheduleStaff] = useState(null);
@@ -41,17 +42,18 @@ export default function Staff() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ fullName: '', email: '', password: '', phone: '', branchId: '', serviceIds: [] });
+    setForm({ fullName: '', email: '', password: '', phone: '', branchId: '', serviceIds: [], role: 'staff' });
     setShowModal(true);
   };
 
   const openEdit = (s) => {
     setEditing(s);
-    const svcIds = (s.skills || s.services || []).map(sk => sk.id || sk.serviceId?.id || sk.serviceId || sk);
+    const svcIds = (s.skilledServices || s.skills || s.services || []).map(sk => sk.id || sk.serviceId?.id || sk.serviceId || sk);
     setForm({
       fullName: s.fullName || s.name || '', email: s.email || '', password: '',
       phone: s.phone || '', branchId: s.branchId?.id || s.branchId || '',
       serviceIds: svcIds,
+      role: s.role || 'staff'
     });
     setShowModal(true);
   };
@@ -69,8 +71,8 @@ export default function Staff() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const data = { fullName: form.fullName, email: form.email, phone: form.phone, branchId: form.branchId, serviceIds: form.serviceIds };
-      if (!editing) data.password = form.password;
+      const data = { ...form };
+      if (editing) delete data.password;
 
       if (editing) {
         await staffService.update(editing.id, data);
@@ -110,7 +112,13 @@ export default function Staff() {
       });
       setSchedules(mapped);
     } catch {
-      const mapped = dayValues.map((dv, i) => ({ dayOfWeek: dv, dayName: dayNames[i], startTime: '', endTime: '', isWorking: false }));
+      const mapped = dayValues.map((dv, i) => ({
+        dayOfWeek: dv,
+        dayName: dayNames[i],
+        startTime: (dv >= 1 && dv <= 6) ? '08:00' : '',
+        endTime: (dv >= 1 && dv <= 6) ? '20:00' : '',
+        isWorking: (dv >= 1 && dv <= 6)
+      }));
       setSchedules(mapped);
     }
     setShowScheduleModal(true);
@@ -138,18 +146,18 @@ export default function Staff() {
   };
 
   const getSkills = (s) => {
-    const skills = s.skills || s.services || [];
+    const skills = s.skilledServices || s.skills || s.services || [];
     return skills.map(sk => {
       const svc = services.find(sv => (sv.id) === (sk.id || sk.serviceId?.id || sk.serviceId || sk));
       return svc?.name || sk?.name || sk?.serviceId?.name || '';
     }).filter(Boolean);
   };
 
-  const filtered = staffList.filter(s =>
+  const sorted = [...staffList.filter(s =>
     (s.fullName || s.name || '').toLowerCase().includes(search.toLowerCase()) ||
     s.email?.toLowerCase().includes(search.toLowerCase()) ||
     s.phone?.includes(search)
-  );
+  )].sort((a, b) => (a.fullName || a.name || '').localeCompare(b.fullName || b.name || ''));
 
   return (
     <div className="p-6">
@@ -171,46 +179,106 @@ export default function Staff() {
           <div className="w-8 h-8 border-4 border-gray-200 rounded-full animate-spin" style={{ borderTopColor: 'var(--primary)' }}></div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg shadow overflow-x-auto custom-scrollbar">
+          <table className="w-full text-sm min-w-[700px] md:min-w-full">
             <thead>
               <tr className="border-b" style={{ backgroundColor: 'var(--bg-light)' }}>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Họ tên</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Email</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-700">Họ tên / Vai trò</th>
+                <th className="hidden lg:table-cell text-left px-4 py-3 font-semibold text-gray-700">Email</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Điện thoại</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Chi nhánh</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Kỹ năng</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-gray-700">Thông tin chuyên môn</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-700">Thao tác</th>
               </tr>
             </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
-              ) : filtered.map(s => (
-                <tr key={s.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{s.fullName || s.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{s.email}</td>
-                  <td className="px-4 py-3 text-gray-600">{s.phone}</td>
-                  <td className="px-4 py-3 text-gray-600">{getBranchName(s)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {getSkills(s).slice(0, 3).map((skill, i) => (
-                        <span key={i} className="px-2 py-0.5 text-xs rounded-full" style={{ backgroundColor: 'var(--bg-light)', color: 'var(--primary)' }}>{skill}</span>
-                      ))}
-                      {getSkills(s).length > 3 && <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">+{getSkills(s).length - 3}</span>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openSchedule(s)} className="px-2 py-1 text-xs rounded border hover:bg-gray-50" style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}>
-                        Lịch làm việc
-                      </button>
-                      <button onClick={() => openEdit(s)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><FiEdit2 size={16} /></button>
-                      <button onClick={() => setDeleteId(s.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><FiTrash2 size={16} /></button>
-                    </div>
+            <tbody className="divide-y divide-gray-50">
+              {sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-500">
+                    Không có dữ liệu
                   </td>
                 </tr>
-              ))}
+              ) : (
+                sorted.map((s) => (
+                  <tr key={s.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{s.fullName || s.name}</span>
+                        <span className="text-[10px] w-fit px-1.5 rounded-full bg-gray-100 text-gray-500 uppercase font-bold border border-gray-200">
+                          {s.role === 'staff'
+                            ? 'Thợ cắt'
+                            : s.role === 'receptionist'
+                            ? 'Kế toán'
+                            : s.role === 'warehouse_staff'
+                            ? 'Kho'
+                            : s.role}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-gray-600">{s.email}</td>
+                    <td className="px-4 py-3 text-gray-600">{s.phone}</td>
+                    <td className="px-4 py-3 text-gray-600">{getBranchName(s)}</td>
+                    <td className="hidden sm:table-cell px-4 py-3">
+                      {s.role === 'staff' || s.role === 'service_staff' ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-blue-600">
+                              {s.completedCount || 0} lần xong
+                            </span>
+                            <span className="text-xs font-bold text-green-600">
+                              {formatPrice(s.totalCommission || 0)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {getSkills(s)
+                              .slice(0, 2)
+                              .map((skill, i) => (
+                                <span
+                                  key={i}
+                                  className="px-1.5 py-0.5 text-[10px] rounded bg-orange-50 text-orange-600 border border-orange-100"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            {getSkills(s).length > 2 && (
+                              <span className="text-[10px] text-gray-400">
+                                +{getSkills(s).length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Không áp dụng</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        {(s.role === 'staff' || s.role === 'service_staff') && (
+                          <button
+                            onClick={() => openSchedule(s)}
+                            className="px-2 py-1 text-xs rounded border hover:bg-gray-50"
+                            style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                          >
+                            Lịch
+                          </button>
+                        )}
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          <FiEdit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(s.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -248,6 +316,16 @@ export default function Staff() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vai trò *</label>
+                <select required value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }}>
+                  <option value="staff">Thợ cắt (Service Staff)</option>
+                  <option value="accountant">Kế toán (Accountant)</option>
+                  <option value="warehouse_staff">Nhân viên kho (Warehouse)</option>
+                  <option value="admin">Quản trị viên (Admin)</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Chi nhánh *</label>
                 <select required value={form.branchId} onChange={e => setForm({ ...form, branchId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }}>
@@ -255,19 +333,21 @@ export default function Staff() {
                   {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Kỹ năng (dịch vụ)</label>
-                <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
-                  {services.map(svc => (
-                    <label key={svc.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
-                      <input type="checkbox" checked={form.serviceIds.includes(svc.id)}
-                        onChange={() => toggleService(svc.id)}
-                        className="rounded" style={{ accentColor: 'var(--primary)' }} />
-                      <span className="text-sm">{svc.name}</span>
-                    </label>
-                  ))}
+              {(form.role === 'staff' || form.role === 'service_staff') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Kỹ năng (dịch vụ)</label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                    {services.map(svc => (
+                      <label key={svc.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" checked={form.serviceIds.includes(svc.id)}
+                          onChange={() => toggleService(svc.id)}
+                          className="rounded" style={{ accentColor: 'var(--primary)' }} />
+                        <span className="text-sm">{svc.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
                 <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg text-white disabled:opacity-50" style={{ backgroundColor: 'var(--primary)' }}>

@@ -27,6 +27,11 @@ const Notification = require('./Notification')(sequelize, DataTypes);
 const StaffSchedule = require('./StaffSchedule')(sequelize, DataTypes);
 const StaffSkill = require('./StaffSkill')(sequelize, DataTypes);
 const Address = require('./Address')(sequelize, DataTypes);
+const InventoryTransaction = require('./InventoryTransaction')(sequelize, DataTypes);
+const ProductBatch = require('./ProductBatch')(sequelize, DataTypes);
+const CashFlowTransaction = require('./CashFlowTransaction')(sequelize, DataTypes);
+const RefundRequest = require('./RefundRequest')(sequelize, DataTypes);
+const CustomerServiceNote = require('./CustomerServiceNote')(sequelize, DataTypes);
 
 // ===================== ASSOCIATIONS =====================
 
@@ -116,6 +121,40 @@ Address.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.belongsToMany(Service, { through: StaffSkill, foreignKey: 'userId', otherKey: 'serviceId', as: 'skilledServices' });
 Service.belongsToMany(User, { through: StaffSkill, foreignKey: 'serviceId', otherKey: 'userId', as: 'skilledStaffMembers' });
 
+// InventoryTransaction associations
+InventoryTransaction.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+InventoryTransaction.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+InventoryTransaction.belongsTo(ProductBatch, { foreignKey: 'batchId', as: 'batch' });
+Product.hasMany(InventoryTransaction, { foreignKey: 'productId', as: 'inventoryTransactions' });
+User.hasMany(InventoryTransaction, { foreignKey: 'createdBy', as: 'inventoryActions' });
+ProductBatch.hasMany(InventoryTransaction, { foreignKey: 'batchId', as: 'inventoryTransactions' });
+
+// ProductBatch associations
+ProductBatch.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Product.hasMany(ProductBatch, { foreignKey: 'productId', as: 'batches' });
+
+// Accountant associations
+Payment.belongsTo(User, { as: 'reconciler', foreignKey: 'reconciledBy' });
+CashFlowTransaction.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+RefundRequest.belongsTo(User, { as: 'processor', foreignKey: 'processedBy' });
+
+// Use polymorphic-like association for RefundRequest
+RefundRequest.belongsTo(Order, { foreignKey: 'targetId', constraints: false, as: 'order' });
+RefundRequest.belongsTo(Appointment, { foreignKey: 'targetId', constraints: false, as: 'appointment' });
+Order.hasMany(RefundRequest, { foreignKey: 'targetId', as: 'refunds', constraints: false });
+Appointment.hasMany(RefundRequest, { foreignKey: 'targetId', as: 'refunds', constraints: false });
+
+// Barber/Staff Experience associations
+Appointment.belongsTo(Order, { as: 'upsellOrder', foreignKey: 'orderId' });
+Order.hasOne(Appointment, { as: 'parentAppointment', foreignKey: 'orderId' });
+
+CustomerServiceNote.belongsTo(User, { as: 'customer', foreignKey: 'customerId' });
+CustomerServiceNote.belongsTo(User, { as: 'staff', foreignKey: 'staffId' });
+CustomerServiceNote.belongsTo(Appointment, { as: 'appointment', foreignKey: 'appointmentId' });
+Appointment.hasMany(CustomerServiceNote, { as: 'notes', foreignKey: 'appointmentId' });
+User.hasMany(CustomerServiceNote, { as: 'notesAsCustomer', foreignKey: 'customerId' });
+User.hasMany(CustomerServiceNote, { as: 'notesAsStaff', foreignKey: 'staffId' });
+
 // ===================== EXPORT =====================
 
 const db = {
@@ -139,6 +178,11 @@ const db = {
   StaffSchedule,
   StaffSkill,
   Address,
+  InventoryTransaction,
+  ProductBatch,
+  CashFlowTransaction,
+  RefundRequest,
+  CustomerServiceNote,
 };
 
 module.exports = db;

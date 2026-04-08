@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const db = require('../models');
-const { Review, ProductReview, Appointment, User, Product, Service } = db;
+const { Review, ProductReview, Appointment, User, Product, Service, Order, OrderItem } = db;
 
 // POST /service - Customer creates review for completed appointment
 const createReview = async (req, res, next) => {
@@ -85,7 +85,7 @@ const getStaffReviews = async (req, res, next) => {
     const { staffId } = req.params;
 
     const reviews = await Review.findAll({
-      where: { staffId },
+      where: { staffId, isHidden: false },
       include: [
         { model: User, as: 'customer', attributes: ['id', 'fullName'] },
         {
@@ -123,7 +123,7 @@ const getProductReviews = async (req, res, next) => {
     const { productId } = req.params;
 
     const reviews = await ProductReview.findAll({
-      where: { productId },
+      where: { productId, isHidden: false },
       include: [
         { model: User, as: 'user', attributes: ['id', 'fullName'] },
       ],
@@ -170,12 +170,23 @@ const createProductReview = async (req, res, next) => {
       });
     }
 
-    // Verify product exists
-    const product = await Product.findByPk(productId);
-    if (!product) {
-      return res.status(404).json({
+    // Check if user has a delivered or completed order with this product
+    const purchased = await Order.findOne({
+      where: {
+        userId,
+        status: { [Op.in]: ['delivered', 'completed'] }
+      },
+      include: [{
+        model: OrderItem,
+        as: 'items',
+        where: { productId }
+      }]
+    });
+
+    if (!purchased) {
+      return res.status(400).json({
         success: false,
-        message: 'Product not found.',
+        message: 'You can only review products you have purchased and received.',
       });
     }
 
@@ -207,6 +218,98 @@ const createProductReview = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       data: fullReview,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET / - Admin/Receptionist. Get all reviews (service + product)
+const getAllReviewsAdmin = async (req, res, next) => {
+  try {
+    const [serviceReviews, productReviews] = await Promise.all([
+      Review.findAll({
+        include: [
+          { model: User, as: 'customer', attributes: ['id', 'fullName', 'phone'] },
+          { model: User, as: 'staff', attributes: ['id', 'fullName'] },
+          { 
+            model: Appointment, 
+            as: 'appointment',
+            include: [{ model: Service, as: 'service', attributes: ['name'] }]
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+      }),
+      ProductReview.findAll({
+        include: [
+          { model: User, as: 'user', attributes: ['id', 'fullName', 'phone'] },
+          { model: Product, as: 'product', attributes: ['id', 'name'] },
+        ],
+        order: [['createdAt', 'DESC']],
+      }),
+    ]);
+
+    // Map to a unified format
+    const unified = [
+      ...serviceReviews.map(r => ({
+        ...r.toJSON(),
+        type: 'service',
+        targetName: r.appointment?.service?.name || 'Dịch vụ',
+        customerName: r.customer?.fullName,
+        customerPhone: r.customer?.phone,
+      })),
+      ...productReviews.map(r => ({
+        ...r.toJSON(),
+        type: 'product',
+        targetName: r.product?.name || 'Sản phẩm',
+        customerName: r.user?.fullName,
+        customerPhone: r.user?.phone,
+      })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return res.status(200).json({
+      success: true,
+      data: unified,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PUT /:id - Admin/Receptionist. Update review (Reply or Toggle hidden)
+const updateReviewAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type, reply, isHidden } = req.body; // type is 'service' or 'product'
+
+    let review;
+    if (type === 'service') {
+      review = await Review.findByPk(id);
+    } else {
+      review = await ProductReview.findByPk(id);
+    }
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Review not found.',
+      });
+    }
+
+    if (reply !== undefined) {
+      review.reply = reply;
+      review.replyAt = new Date();
+    }
+    
+    if (isHidden !== undefined) {
+      review.isHidden = isHidden;
+    }
+
+    await review.save();
+
+    return res.status(200).json({
+      success: true,
+      data: review,
     });
   } catch (error) {
     next(error);
@@ -261,5 +364,7 @@ module.exports = {
   getStaffReviews,
   getProductReviews,
   createProductReview,
+  getAllReviewsAdmin,
+  updateReviewAdmin,
   deleteReview,
 };

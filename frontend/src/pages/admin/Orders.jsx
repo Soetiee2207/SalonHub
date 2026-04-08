@@ -8,6 +8,7 @@ const statusTabs = [
   { value: '', label: 'Tất cả' },
   { value: 'pending', label: 'Chờ xử lý' },
   { value: 'confirmed', label: 'Đã xác nhận' },
+  { value: 'packing', label: 'Đang đóng gói' },
   { value: 'shipping', label: 'Đang giao' },
   { value: 'delivered', label: 'Đã giao' },
   { value: 'completed', label: 'Hoàn thành' },
@@ -17,14 +18,15 @@ const statusTabs = [
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-700',
   confirmed: 'bg-blue-100 text-blue-700',
+  packing: 'bg-indigo-100 text-indigo-700',
   shipping: 'bg-purple-100 text-purple-700',
-  delivered: 'bg-indigo-100 text-indigo-700',
-  completed: 'bg-green-100 text-green-700',
+  delivered: 'bg-green-100 text-green-700',
+  completed: 'bg-emerald-100 text-emerald-700 font-bold',
   cancelled: 'bg-red-100 text-red-700',
 };
 
 const statusLabels = {
-  pending: 'Chờ xử lý', confirmed: 'Đã xác nhận', shipping: 'Đang giao',
+  pending: 'Chờ xử lý', confirmed: 'Đã xác nhận', packing: 'Đang đóng gói', shipping: 'Đang giao',
   delivered: 'Đã giao', completed: 'Hoàn thành', cancelled: 'Đã hủy',
 };
 
@@ -64,7 +66,18 @@ export default function AdminOrders() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {
-      await orderService.updateStatus(orderId, { status: newStatus });
+      const payload = { status: newStatus };
+      if (newStatus === 'shipping') {
+        const code = window.prompt('Nhập mã vận đơn (Tracking Code) để thực hiện giao hàng:');
+        if (code === null) return; // User cancelled
+        if (!code.trim()) {
+          toast.error('Mã vận đơn là bắt buộc khi chuyển sang trạng thái Đang giao');
+          return;
+        }
+        payload.trackingCode = code;
+      }
+      
+      await orderService.updateStatus(orderId, payload);
       toast.success('Cập nhật trạng thái thành công');
       fetchData();
     } catch (err) {
@@ -74,12 +87,12 @@ export default function AdminOrders() {
 
   const formatDate = (d) => d ? new Date(d).toLocaleString('vi-VN') : '---';
 
-  const filtered = orders.filter(o => {
+  const sorted = [...orders.filter(o => {
     const searchMatch = search === '' ||
       (String(o.id || '')).toLowerCase().includes(search.toLowerCase()) ||
       (o.customer?.fullName || o.customer?.name || '').toLowerCase().includes(search.toLowerCase());
     return searchMatch;
-  });
+  })].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
     <div className="p-6">
@@ -109,31 +122,31 @@ export default function AdminOrders() {
           <div className="w-8 h-8 border-4 border-gray-200 rounded-full animate-spin" style={{ borderTopColor: 'var(--primary)' }}></div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg shadow overflow-x-auto custom-scrollbar">
+          <table className="w-full text-sm min-w-[900px] md:min-w-full">
             <thead>
               <tr className="border-b" style={{ backgroundColor: 'var(--bg-light)' }}>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Mã đơn</th>
+                <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-gray-700">Mã đơn</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Khách hàng</th>
                 <th className="text-right px-4 py-3 font-semibold text-gray-700">Tổng tiền</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-700">Thanh toán</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-700">Trạng thái TT</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-700">Trạng thái đơn</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Ngày tạo</th>
+                <th className="hidden lg:table-cell text-center px-4 py-3 font-semibold text-gray-700">Ngày tạo</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-700">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr><td colSpan={8} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
-              ) : filtered.map(order => {
+              ) : sorted.map(order => {
                 const oid = order.id;
                 const isExpanded = expandedId === oid;
                 return (
                   <Fragment key={oid}>
                     <tr className={`border-b hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-gray-50' : ''}`}
                       onClick={() => setExpandedId(isExpanded ? null : oid)}>
-                      <td className="px-4 py-3 font-mono text-xs">{String(oid).padStart(6, '0')}</td>
+                      <td className="hidden sm:table-cell px-4 py-3 font-mono text-xs">{String(oid).padStart(6, '0')}</td>
                       <td className="px-4 py-3 font-medium">{order.customer?.fullName || order.customer?.name || '---'}</td>
                       <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--primary)' }}>{formatPrice(order.totalAmount || order.total || 0)}</td>
                       <td className="px-4 py-3 text-center text-gray-600">{order.paymentMethod === 'cod' ? 'Tiền mặt (COD)' : order.paymentMethod === 'vnpay' ? 'VNPay' : order.paymentMethod || '---'}</td>
@@ -147,7 +160,7 @@ export default function AdminOrders() {
                           {statusLabels[order.status] || order.status || '---'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-600 text-xs">{formatDate(order.createdAt)}</td>
+                      <td className="hidden lg:table-cell px-4 py-3 text-center text-gray-600 text-xs">{formatDate(order.createdAt)}</td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <select
                           value={order.status || ''}
@@ -189,10 +202,13 @@ export default function AdminOrders() {
                             </table>
                           )}
                           {order.shippingAddress && (
-                            <p className="mt-2 text-xs text-gray-500">Địa chỉ giao: {order.shippingAddress}</p>
+                            <p className="mt-2 text-xs text-gray-500"><strong>Địa chỉ giao:</strong> {order.shippingAddress}</p>
+                          )}
+                          {order.trackingCode && (
+                            <p className="mt-1 text-xs text-green-600 font-semibold italic">Mã vận đơn: {order.trackingCode}</p>
                           )}
                           {order.note && (
-                            <p className="mt-1 text-xs text-gray-500">Ghi chú: {order.note}</p>
+                            <p className="mt-1 text-xs text-gray-500"><strong>Ghi chú:</strong> {order.note}</p>
                           )}
                         </td>
                       </tr>

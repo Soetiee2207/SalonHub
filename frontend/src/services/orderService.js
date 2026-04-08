@@ -7,4 +7,5 @@ export const orderService = {
   getById: (id) => api.get(`/orders/${id}`),
   updateStatus: (id, data) => api.put(`/orders/${id}/status`, data),
   cancel: (id) => api.put(`/orders/${id}/cancel`),
+  confirmReceipt: (id) => api.put(`/orders/${id}/confirm-receipt`),
 };

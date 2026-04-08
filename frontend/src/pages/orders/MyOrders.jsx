@@ -8,8 +8,10 @@ import { formatPrice } from '../../utils/formatPrice';
 const statusConfig = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
   confirmed: { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700' },
-  shipping: { label: 'Đang giao', color: 'bg-indigo-100 text-indigo-700' },
+  packing: { label: 'Đang đóng gói', color: 'bg-indigo-100 text-indigo-700' },
+  shipping: { label: 'Đang giao', color: 'bg-purple-100 text-purple-700' },
   delivered: { label: 'Đã giao', color: 'bg-green-100 text-green-700' },
+  completed: { label: 'Hoàn thành', color: 'bg-emerald-100 text-emerald-700 font-bold' },
   cancelled: { label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
 };
 
@@ -23,6 +25,7 @@ export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
+  const [confirming, setConfirming] = useState(null);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -47,6 +50,20 @@ export default function MyOrders() {
       toast.error(err.message || 'Không thể hủy đơn hàng');
     } finally {
       setCancelling(null);
+    }
+  };
+
+  const handleConfirmReceipt = async (orderId) => {
+    if (!window.confirm('Vận tiêu đã tới đích? Sư huynh xác nhận đã nhận được hàng chứ?')) return;
+    setConfirming(orderId);
+    try {
+      await orderService.confirmReceipt(orderId);
+      toast.success('Chúc mừng sư huynh đã hoàn thành vận tiêu!');
+      fetchOrders();
+    } catch (err) {
+      toast.error(err.message || 'Không thể xác nhận nhận hàng');
+    } finally {
+      setConfirming(null);
     }
   };
 
@@ -124,8 +141,8 @@ export default function MyOrders() {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                    {order.status === 'pending' ? (
+                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                    {order.status === 'pending' && (
                       <button
                         onClick={() => handleCancelOrder(order.id)}
                         disabled={cancelling === order.id}
@@ -134,9 +151,17 @@ export default function MyOrders() {
                         <FiXCircle size={16} />
                         {cancelling === order.id ? 'Đang hủy...' : 'Hủy đơn'}
                       </button>
-                    ) : (
-                      <div />
                     )}
+                    {['shipping', 'delivered'].includes(order.status) && (
+                      <button
+                        onClick={() => handleConfirmReceipt(order.id)}
+                        disabled={confirming === order.id}
+                        className="flex items-center gap-1.5 text-sm bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 font-bold"
+                      >
+                        {confirming === order.id ? 'Đang xác nhận...' : 'Đã nhận hàng'}
+                      </button>
+                    )}
+                    <div className="flex-1" />
                     <Link
                       to={`/my-orders/${order.id}`}
                       className="flex items-center gap-1 text-sm text-[var(--primary)] hover:underline font-medium"

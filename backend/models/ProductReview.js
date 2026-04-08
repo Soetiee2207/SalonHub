@@ -25,6 +25,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    reply: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    replyAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    isHidden: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   }, {
     timestamps: true,
     tableName: 'product_reviews',

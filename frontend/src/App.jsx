@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import CustomerLayout from './components/layout/CustomerLayout';
 import AdminLayout from './components/layout/AdminLayout';
@@ -30,6 +30,9 @@ const Contact = lazy(() => import('./pages/Contact'));
 
 // Admin pages
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const StaffDashboard = lazy(() => import('./pages/admin/StaffDashboard'));
+const WarehouseDashboard = lazy(() => import('./pages/admin/WarehouseDashboard'));
+const AccountantDashboard = lazy(() => import('./pages/admin/AccountantDashboard'));
 const AdminBranches = lazy(() => import('./pages/admin/Branches'));
 const AdminServices = lazy(() => import('./pages/admin/Services'));
 const AdminProducts = lazy(() => import('./pages/admin/Products'));
@@ -38,6 +41,27 @@ const AdminOrders = lazy(() => import('./pages/admin/Orders'));
 const AdminAppointments = lazy(() => import('./pages/admin/Appointments'));
 const AdminVouchers = lazy(() => import('./pages/admin/Vouchers'));
 const AdminPayments = lazy(() => import('./pages/admin/Payments'));
+const AdminCustomers = lazy(() => import('./pages/admin/Customers'));
+const AdminReviews = lazy(() => import('./pages/admin/Reviews'));
+const Fulfillment = lazy(() => import('./pages/admin/Fulfillment'));
+const InventoryGrid = lazy(() => import('./pages/admin/InventoryGrid'));
+const WarehouseInventoryDocs = lazy(() => import('./pages/admin/WarehouseInventoryDocs'));
+const CashFlowLedger = lazy(() => import('./pages/admin/CashFlowLedger'));
+const PaymentReconciliation = lazy(() => import('./pages/admin/PaymentReconciliation'));
+const RefundHub = lazy(() => import('./pages/admin/RefundHub'));
+const FinancialReports = lazy(() => import('./pages/admin/FinancialReports'));
+
+
+
+function RoleDashboard() {
+  const { user } = useAuth();
+  const role = user?.role;
+
+  if (role === 'warehouse_staff') return <WarehouseDashboard />;
+  if (role === 'accountant') return <AccountantDashboard />;
+  if (role === 'staff' || role === 'service_staff') return <StaffDashboard />;
+  return <Dashboard />;
+}
 
 function App() {
   return (
@@ -68,9 +92,16 @@ function App() {
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute roles={['admin', 'staff']}><AdminLayout /></ProtectedRoute>}>
-              <Route index element={<Dashboard />} />
+            {/* Admin/Staff Routes — all management roles */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute roles={['admin', 'staff', 'service_staff', 'warehouse_staff', 'accountant']}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<RoleDashboard />} />
               <Route path="branches" element={<AdminBranches />} />
               <Route path="services" element={<AdminServices />} />
               <Route path="products" element={<AdminProducts />} />
@@ -79,6 +110,15 @@ function App() {
               <Route path="appointments" element={<AdminAppointments />} />
               <Route path="vouchers" element={<AdminVouchers />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="customers" element={<AdminCustomers />} />
+              <Route path="reviews" element={<AdminReviews />} />
+              <Route path="fulfillment" element={<Fulfillment />} />
+              <Route path="inventory" element={<InventoryGrid />} />
+              <Route path="inventory-docs" element={<WarehouseInventoryDocs />} />
+              <Route path="cash-ledger" element={<CashFlowLedger />} />
+              <Route path="reconciliation" element={<PaymentReconciliation />} />
+              <Route path="refunds" element={<RefundHub />} />
+              <Route path="reports" element={<FinancialReports />} />
             </Route>
           </Routes>
         </Suspense>

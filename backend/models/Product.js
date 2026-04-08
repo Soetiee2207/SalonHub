@@ -21,6 +21,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+    reservedStock: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    minStock: {
+      type: DataTypes.INTEGER,
+      defaultValue: 5,
+    },
     image: {
       type: DataTypes.STRING,
       allowNull: true,

@@ -93,11 +93,11 @@ export default function Branches() {
     }
   };
 
-  const filtered = branches.filter(b =>
+  const sorted = [...branches.filter(b =>
     b.name?.toLowerCase().includes(search.toLowerCase()) ||
     b.address?.toLowerCase().includes(search.toLowerCase()) ||
     b.phone?.includes(search)
-  );
+  )].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   return (
     <div className="p-6">
@@ -125,8 +125,8 @@ export default function Branches() {
           <div className="w-8 h-8 border-4 border-gray-200 rounded-full animate-spin" style={{ borderTopColor: 'var(--primary)' }}></div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-lg shadow overflow-x-auto custom-scrollbar">
+          <table className="w-full text-sm min-w-[600px] md:min-w-full">
             <thead>
               <tr className="border-b" style={{ backgroundColor: 'var(--bg-light)' }}>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Tên chi nhánh</th>
@@ -138,9 +138,9 @@ export default function Branches() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {sorted.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
-              ) : filtered.map(branch => (
+              ) : sorted.map(branch => (
                 <tr key={branch.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{branch.name}</td>
                   <td className="px-4 py-3 text-gray-600">{branch.address}</td>

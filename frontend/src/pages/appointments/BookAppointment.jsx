@@ -96,20 +96,19 @@ export default function BookAppointment() {
 
   // Load staff when step 2
   useEffect(() => {
-    if (currentStep === 2 && selectedBranch) {
+    if (currentStep === 2 && selectedBranch && selectedService) {
       setLoading(true);
-      staffService.getAll()
+      staffService.getAll({ 
+        branchId: selectedBranch.id, 
+        serviceId: selectedService.id 
+      })
         .then((res) => {
-          const all = res.data || res;
-          const filtered = all.filter(
-            (s) => s.branchId === selectedBranch.id || s.branch === selectedBranch.id || s.branch?.id === selectedBranch.id
-          );
-          setStaffList(filtered.length > 0 ? filtered : all);
+          setStaffList(res.data || res || []);
         })
         .catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [currentStep, selectedBranch]);
+  }, [currentStep, selectedBranch, selectedService]);
 
   // Load available slots when step 3 and date selected
   useEffect(() => {

@@ -9,4 +9,5 @@ export const appointmentService = {
   getAvailableSlots: (params) => api.get('/appointments/available-slots', { params }),
   updateStatus: (id, data) => api.put(`/appointments/${id}/status`, data),
   cancel: (id) => api.put(`/appointments/${id}/cancel`),
+  checkout: (id, data) => api.post(`/appointments/${id}/checkout`, data),
 };

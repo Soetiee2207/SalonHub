@@ -1,34 +1,153 @@
-const { Op } = require('sequelize');
 const db = require('../models');
-const { Appointment, Service, User, Branch, StaffSchedule } = db;
+const { 
+  Appointment, Service, User, Branch, StaffSchedule, 
+  Order, OrderItem, Product, Payment, RefundRequest,
+  InventoryTransaction, CashFlowTransaction 
+} = db;
+const { createNotification } = require('./notificationController');
+const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
 
-// Helper: add minutes to a time string "HH:MM"
-const addMinutes = (time, minutes) => {
-  const [h, m] = time.split(':').map(Number);
-  const totalMinutes = h * 60 + m + minutes;
-  const newH = Math.floor(totalMinutes / 60);
-  const newM = totalMinutes % 60;
-  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+// ============================================================
+// Constants
+// ============================================================
+
+const SLOT_INTERVAL_MINUTES = 30;
+
+const STATUS_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['in_progress', 'cancelled'],
+  in_progress: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
 };
 
-// Helper: convert "HH:MM" to total minutes for comparison
+const APPOINTMENT_INCLUDES = [
+  { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
+  { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
+  { model: Service, as: 'service' },
+  { model: Branch, as: 'branch' },
+];
+
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+// ============================================================
+// Time Helpers (pure functions – no side effects)
+// ============================================================
+
+/** Convert "HH:MM" → total minutes */
 const timeToMinutes = (time) => {
   const [h, m] = time.split(':').map(Number);
   return h * 60 + m;
 };
 
-// Helper: check if two time ranges overlap
-const timesOverlap = (start1, end1, start2, end2) => {
-  return timeToMinutes(start1) < timeToMinutes(end2) && timeToMinutes(start2) < timeToMinutes(end1);
+/** Add minutes to "HH:MM" → new "HH:MM" */
+const addMinutes = (time, minutes) => {
+  const total = timeToMinutes(time) + minutes;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-// POST / - Customer creates appointment
+/** Check if two [start, end) time ranges overlap */
+const timesOverlap = (start1, end1, start2, end2) => {
+  return timeToMinutes(start1) < timeToMinutes(end2)
+    && timeToMinutes(start2) < timeToMinutes(end1);
+};
+
+// ============================================================
+// Pagination Helper
+// ============================================================
+
+const parsePagination = (query) => {
+  const page = Math.max(1, parseInt(query.page, 10) || 1);
+  const limit = Math.min(
+    MAX_PAGE_SIZE,
+    Math.max(1, parseInt(query.limit, 10) || DEFAULT_PAGE_SIZE),
+  );
+  const offset = (page - 1) * limit;
+  return { page, limit, offset };
+};
+
+const buildPaginatedResponse = (rows, count, page, limit) => ({
+  success: true,
+  data: rows,
+  meta: {
+    total: count,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+  },
+});
+
+// ============================================================
+// Notification Helpers
+// ============================================================
+
+const STATUS_LABELS = {
+  pending: 'Chờ xác nhận',
+  confirmed: 'Đã xác nhận',
+  in_progress: 'Đang thực hiện',
+  completed: 'Đã hoàn thành',
+  cancelled: 'Đã hủy',
+};
+
+const notifyAppointmentCreated = async (appointment) => {
+  // Notify customer
+  await createNotification({
+    userId: appointment.userId,
+    title: 'Đặt tiền/lịch thành công',
+    message: `Lịch hẹn #${appointment.id} của Quý khách vào ngày ${appointment.date}, khung giờ ${appointment.startTime} đã được tiếp nhận. Hệ thống sẽ sớm gửi xác nhận cho Quý khách.`,
+    type: 'appointment',
+  });
+
+  // Notify staff if assigned
+  if (appointment.staffId) {
+    await createNotification({
+      userId: appointment.staffId,
+      title: 'Phân công phục vụ lịch hẹn',
+      message: `Bạn được phân công phục vụ lịch hẹn #${appointment.id} vào ngày ${appointment.date}, lúc ${appointment.startTime}. Vui lòng kiểm tra và chuẩn bị chu đáo.`,
+      type: 'appointment',
+    });
+  }
+};
+
+const notifyStatusChanged = async (appointment, newStatus, cancelReason) => {
+  const label = STATUS_LABELS[newStatus] || newStatus;
+  let customerMessage = `Lịch hẹn #${appointment.id} ngày ${appointment.date} đã được cập nhật: ${label}.`;
+
+  if (newStatus === 'cancelled' && cancelReason) {
+    customerMessage += ` Lý do: ${cancelReason}`;
+  }
+
+  await createNotification({
+    userId: appointment.userId,
+    title: `Cập nhật lịch hẹn - ${label}`,
+    message: customerMessage,
+    type: 'appointment',
+  });
+
+  // Also notify staff
+  if (appointment.staffId && appointment.staffId !== appointment.userId) {
+    await createNotification({
+      userId: appointment.staffId,
+      title: `Cập nhật lịch hẹn - ${label}`,
+      message: `Lịch hẹn #${appointment.id} ngày ${appointment.date} đã chuyển sang: ${label}.`,
+      type: 'appointment',
+    });
+  }
+};
+
+
+// ============================================================
+// POST / — Customer creates appointment
+// ============================================================
 const createAppointment = async (req, res, next) => {
   try {
     const { branchId, staffId, serviceId, date, startTime, note } = req.body;
     const userId = req.user.id;
 
-    // Validate required fields
+    // --- Input validation ---
     if (!branchId || !serviceId || !date || !startTime) {
       return res.status(400).json({
         success: false,
@@ -36,7 +155,24 @@ const createAppointment = async (req, res, next) => {
       });
     }
 
-    // Get service to calculate endTime and price
+    // Validate date format and ensure it's in the future
+    const appointmentDate = new Date(date);
+    if (isNaN(appointmentDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format.',
+      });
+    }
+
+    // Validate time format HH:MM
+    if (!/^\d{2}:\d{2}$/.test(startTime)) {
+      return res.status(400).json({
+        success: false,
+        message: 'startTime must be in HH:MM format.',
+      });
+    }
+
+    // --- Get service to calculate endTime and price ---
     const service = await Service.findByPk(serviceId);
     if (!service) {
       return res.status(404).json({
@@ -48,10 +184,8 @@ const createAppointment = async (req, res, next) => {
     const endTime = addMinutes(startTime, service.duration);
     const totalPrice = service.price;
 
-    // If staffId provided, validate staff availability
+    // --- If staffId provided, validate staff availability ---
     if (staffId) {
-      // Check staff schedule for the given day
-      const appointmentDate = new Date(date);
       const dayOfWeek = appointmentDate.getDay();
 
       const schedule = await StaffSchedule.findOne({
@@ -65,43 +199,44 @@ const createAppointment = async (req, res, next) => {
       if (!schedule) {
         return res.status(400).json({
           success: false,
-          message: 'Staff is not available on this day at this branch.',
+          message: 'Thợ không làm việc vào ngày này tại chi nhánh này.',
         });
       }
 
-      // Check if appointment time falls within staff schedule
+      // Check if appointment time falls within staff working hours
       if (
-        timeToMinutes(startTime) < timeToMinutes(schedule.startTime) ||
-        timeToMinutes(endTime) > timeToMinutes(schedule.endTime)
+        timeToMinutes(startTime) < timeToMinutes(schedule.startTime)
+        || timeToMinutes(endTime) > timeToMinutes(schedule.endTime)
       ) {
         return res.status(400).json({
           success: false,
-          message: `Staff is available from ${schedule.startTime} to ${schedule.endTime} on this day.`,
+          message: `Thợ làm việc từ ${schedule.startTime} đến ${schedule.endTime} trong ngày này.`,
         });
       }
 
       // Check for conflicting appointments
-      const conflictingAppointment = await Appointment.findOne({
+      const existingAppointments = await Appointment.findAll({
         where: {
           staffId,
           date,
-          status: { [Op.notIn]: ['cancelled'] },
-          [Op.and]: [
-            db.sequelize.literal(
-              `(TIME('${startTime}') < TIME(endTime) AND TIME('${endTime}') > TIME(startTime))`
-            ),
-          ],
+          status: { [db.Sequelize.Op.notIn]: ['cancelled'] },
         },
+        attributes: ['id', 'startTime', 'endTime'],
       });
 
-      if (conflictingAppointment) {
+      const hasConflict = existingAppointments.some(
+        (appt) => timesOverlap(startTime, endTime, appt.startTime, appt.endTime),
+      );
+
+      if (hasConflict) {
         return res.status(400).json({
           success: false,
-          message: 'Staff already has an appointment during this time slot.',
+          message: 'Khung giờ này đã có người đặt. Vui lòng chọn khung giờ khác.',
         });
       }
     }
 
+    // --- Create appointment ---
     const appointment = await Appointment.create({
       userId,
       staffId: staffId || null,
@@ -116,13 +251,11 @@ const createAppointment = async (req, res, next) => {
     });
 
     const fullAppointment = await Appointment.findByPk(appointment.id, {
-      include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: Service, as: 'service' },
-        { model: Branch, as: 'branch' },
-      ],
+      include: APPOINTMENT_INCLUDES,
     });
+
+    // --- Send notifications ---
+    await notifyAppointmentCreated(fullAppointment);
 
     return res.status(201).json({
       success: true,
@@ -133,18 +266,21 @@ const createAppointment = async (req, res, next) => {
   }
 };
 
-// GET /my-appointments - Customer gets own appointments
+// ============================================================
+// GET /my-appointments — Customer gets own appointments
+// ============================================================
 const getMyAppointments = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { status } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
     const where = { userId };
     if (status) {
       where.status = status;
     }
 
-    const appointments = await Appointment.findAll({
+    const { rows, count } = await Appointment.findAndCountAll({
       where,
       include: [
         { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
@@ -152,29 +288,27 @@ const getMyAppointments = async (req, res, next) => {
         { model: Branch, as: 'branch' },
       ],
       order: [['date', 'DESC'], ['startTime', 'DESC']],
+      limit,
+      offset,
     });
 
-    return res.status(200).json({
-      success: true,
-      data: appointments,
-    });
+    return res.status(200).json(
+      buildPaginatedResponse(rows, count, page, limit),
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// GET /:id - Get single appointment
+// ============================================================
+// GET /:id — Get single appointment
+// ============================================================
 const getAppointmentById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const appointment = await Appointment.findByPk(id, {
-      include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: Service, as: 'service' },
-        { model: Branch, as: 'branch' },
-      ],
+      include: APPOINTMENT_INCLUDES,
     });
 
     if (!appointment) {
@@ -188,7 +322,15 @@ const getAppointmentById = async (req, res, next) => {
     if (req.user.role === 'customer' && appointment.userId !== req.user.id) {
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to view this appointment.',
+        message: 'Bạn không có quyền xem lịch hẹn này.',
+      });
+    }
+
+    // Staff can only see own appointments
+    if ((req.user.role === 'staff' || req.user.role === 'service_staff') && appointment.staffId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xem lịch hẹn của thợ khác.',
       });
     }
 
@@ -201,10 +343,13 @@ const getAppointmentById = async (req, res, next) => {
   }
 };
 
-// GET / - Admin/staff list all appointments
+// ============================================================
+// GET / — Admin/staff list all appointments
+// ============================================================
 const getAllAppointments = async (req, res, next) => {
   try {
     const { date, staffId, branchId, status } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
     const where = {};
     if (date) where.date = date;
@@ -212,43 +357,47 @@ const getAllAppointments = async (req, res, next) => {
     if (branchId) where.branchId = branchId;
     if (status) where.status = status;
 
-    const appointments = await Appointment.findAll({
+    // Security: Staff can ONLY see their own appointments
+    if (req.user.role === 'staff' || req.user.role === 'service_staff') {
+      where.staffId = req.user.id;
+    }
+
+    const { rows, count } = await Appointment.findAndCountAll({
       where,
-      include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: Service, as: 'service' },
-        { model: Branch, as: 'branch' },
-      ],
+      include: APPOINTMENT_INCLUDES,
       order: [['date', 'DESC'], ['startTime', 'ASC']],
+      limit,
+      offset,
     });
 
-    return res.status(200).json({
-      success: true,
-      data: appointments,
-    });
+    return res.status(200).json(
+      buildPaginatedResponse(rows, count, page, limit),
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// GET /staff-appointments - Staff gets own appointments for date range
+// ============================================================
+// GET /staff-appointments — Staff gets own appointments
+// ============================================================
 const getStaffAppointments = async (req, res, next) => {
   try {
     const staffId = req.user.id;
     const { startDate, endDate } = req.query;
+    const { page, limit, offset } = parsePagination(req.query);
 
     const where = { staffId };
 
     if (startDate && endDate) {
-      where.date = { [Op.between]: [startDate, endDate] };
+      where.date = { [db.Sequelize.Op.between]: [startDate, endDate] };
     } else if (startDate) {
-      where.date = { [Op.gte]: startDate };
+      where.date = { [db.Sequelize.Op.gte]: startDate };
     } else if (endDate) {
-      where.date = { [Op.lte]: endDate };
+      where.date = { [db.Sequelize.Op.lte]: endDate };
     }
 
-    const appointments = await Appointment.findAll({
+    const { rows, count } = await Appointment.findAndCountAll({
       where,
       include: [
         { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
@@ -256,28 +405,31 @@ const getStaffAppointments = async (req, res, next) => {
         { model: Branch, as: 'branch' },
       ],
       order: [['date', 'ASC'], ['startTime', 'ASC']],
+      limit,
+      offset,
     });
 
-    return res.status(200).json({
-      success: true,
-      data: appointments,
-    });
+    return res.status(200).json(
+      buildPaginatedResponse(rows, count, page, limit),
+    );
   } catch (error) {
     next(error);
   }
 };
 
-// PUT /:id/status - Admin/staff update appointment status
+// ============================================================
+// PUT /:id/status — Admin/staff update appointment status
+// ============================================================
 const updateAppointmentStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, cancelReason } = req.body;
 
     const validStatuses = ['confirmed', 'in_progress', 'completed', 'cancelled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+        message: `Trạng thái không hợp lệ. Phải là: ${validStatuses.join(', ')}`,
       });
     }
 
@@ -285,20 +437,110 @@ const updateAppointmentStatus = async (req, res, next) => {
     if (!appointment) {
       return res.status(404).json({
         success: false,
-        message: 'Appointment not found.',
+        message: 'Không tìm thấy lịch hẹn.',
       });
     }
 
-    await appointment.update({ status });
+    // Validate status transition
+    const allowedNextStatuses = STATUS_TRANSITIONS[appointment.status] || [];
+    if (!allowedNextStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Không thể chuyển từ "${STATUS_LABELS[appointment.status]}" sang "${STATUS_LABELS[status]}". Trạng thái hợp lệ tiếp theo: ${allowedNextStatuses.map((s) => STATUS_LABELS[s]).join(', ') || 'không có'}.`,
+      });
+    }
+
+    const updateData = { status };
+    if (status === 'cancelled' && cancelReason) {
+      updateData.cancelReason = cancelReason;
+    }
+
+    // Special logic for "completed" status
+    if (status === 'completed' && appointment.status !== 'completed') {
+      const transaction = await db.sequelize.transaction();
+      try {
+        const fullAppt = await Appointment.findByPk(id, {
+          include: [{ model: Order, as: 'upsellOrder', include: [{ model: OrderItem, as: 'items' }] }],
+          transaction
+        });
+
+        let totalForLoyalty = parseFloat(fullAppt.totalPrice) || 0;
+
+        // Nếu có đơn hàng bán thêm chưa thanh toán/chưa hoàn thành
+        if (fullAppt.upsellOrder && fullAppt.upsellOrder.status !== 'completed') {
+          totalForLoyalty += parseFloat(fullAppt.upsellOrder.totalAmount) || 0;
+
+          // Trừ kho cho các sản phẩm trong đơn hàng bán thêm
+          for (const item of fullAppt.upsellOrder.items) {
+            const product = await Product.findByPk(item.productId, { transaction });
+            if (product) {
+              const stockBefore = product.stock ?? product.quantity;
+              const newStock = stockBefore - item.quantity;
+              
+              await product.update({ stock: newStock }, { transaction });
+
+              await InventoryTransaction.create({
+                productId: item.productId,
+                type: 'export',
+                quantity: item.quantity,
+                price: item.price,
+                stockBefore,
+                stockAfter: newStock,
+                note: `Xuất kho bán kèm theo lịch hẹn #${id}`,
+                referenceType: 'appointment',
+                referenceId: id,
+                createdBy: req.user.id
+              }, { transaction });
+            }
+          }
+
+          // Cập nhật trạng thái đơn hàng
+          await fullAppt.upsellOrder.update({ 
+            status: 'completed', 
+            paymentStatus: 'paid' 
+          }, { transaction });
+        }
+
+        // Cập nhật tích điểm (1 điểm per 1000 VND)
+        await updateCustomerLoyalty(fullAppt.userId, totalForLoyalty / 1000, transaction);
+
+        // Cập nhật trạng thái lịch hẹn
+        await appointment.update({ status: 'completed' }, { transaction });
+
+        // Đồng bộ Kế toán (Tạo phiếu thu & Payment)
+        await syncAppointmentAccounting(id, transaction);
+
+        await transaction.commit();
+      } catch (error) {
+        await transaction.rollback();
+        throw error;
+      }
+    } else {
+      await appointment.update(updateData);
+    }
+
+    // Tự động tạo yêu cầu hoàn tiền nếu lịch đã thanh toán (VNPay) mà bị hủy
+    if (status === 'cancelled') {
+        const payment = await Payment.findOne({
+            where: { appointmentId: id, status: 'success' }
+        });
+        if (payment) {
+            await RefundRequest.create({
+                type: 'appointment',
+                targetId: id,
+                amount: payment.amount,
+                reason: cancelReason || 'Hệ thống/Quản trị viên hủy lịch hẹn sau khi hoàn tất thanh toán',
+                status: 'pending'
+            });
+        }
+    }
 
     const updatedAppointment = await Appointment.findByPk(id, {
-      include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'phone'] },
-        { model: Service, as: 'service' },
-        { model: Branch, as: 'branch' },
-      ],
+      include: APPOINTMENT_INCLUDES,
     });
+
+    // Send notification
+    await notifyStatusChanged(updatedAppointment, status, cancelReason);
 
     return res.status(200).json({
       success: true,
@@ -309,35 +551,60 @@ const updateAppointmentStatus = async (req, res, next) => {
   }
 };
 
-// PUT /:id/cancel - Customer cancels own appointment
+// ============================================================
+// PUT /:id/cancel — Customer cancels own appointment
+// ============================================================
 const cancelAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
+    const { cancelReason } = req.body;
 
     const appointment = await Appointment.findByPk(id);
     if (!appointment) {
       return res.status(404).json({
         success: false,
-        message: 'Appointment not found.',
+        message: 'Không tìm thấy lịch hẹn.',
       });
     }
 
     if (appointment.userId !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'You can only cancel your own appointments.',
+        message: 'Bạn chỉ có thể hủy lịch hẹn của chính mình.',
       });
     }
 
     if (!['pending', 'confirmed'].includes(appointment.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Only pending or confirmed appointments can be cancelled.',
+        message: 'Chỉ có thể hủy lịch hẹn đang chờ xác nhận hoặc đã xác nhận.',
       });
     }
 
-    await appointment.update({ status: 'cancelled' });
+    const updateData = { status: 'cancelled' };
+    if (cancelReason) {
+      updateData.cancelReason = cancelReason;
+    }
+
+    await appointment.update(updateData);
+
+    // Tự động yêu cầu hoàn tiền nếu lịch đã cọc/thanh toán (VNPay)
+    const payment = await Payment.findOne({
+        where: { appointmentId: id, status: 'success' }
+    });
+    if (payment) {
+        await RefundRequest.create({
+            type: 'appointment',
+            targetId: id,
+            amount: payment.amount,
+            reason: cancelReason || 'Quý khách đã hủy lịch hẹn sau khi hoàn tất thanh toán',
+            status: 'pending'
+        });
+    }
+
+    // Send cancellation notification to staff
+    await notifyStatusChanged(appointment, 'cancelled', cancelReason);
 
     return res.status(200).json({
       success: true,
@@ -348,7 +615,9 @@ const cancelAppointment = async (req, res, next) => {
   }
 };
 
-// GET /available-slots - Public. Get available time slots
+// ============================================================
+// GET /available-slots — Public
+// ============================================================
 const getAvailableSlots = async (req, res, next) => {
   try {
     const { branchId, staffId, serviceId, date } = req.query;
@@ -360,7 +629,6 @@ const getAvailableSlots = async (req, res, next) => {
       });
     }
 
-    // Get service duration
     const service = await Service.findByPk(serviceId);
     if (!service) {
       return res.status(404).json({
@@ -369,7 +637,6 @@ const getAvailableSlots = async (req, res, next) => {
       });
     }
 
-    // Get staff schedule for the day
     const appointmentDate = new Date(date);
     const dayOfWeek = appointmentDate.getDay();
 
@@ -388,36 +655,30 @@ const getAvailableSlots = async (req, res, next) => {
       });
     }
 
-    // Get existing appointments for that staff on that date
     const existingAppointments = await Appointment.findAll({
       where: {
         staffId,
         date,
-        status: { [Op.notIn]: ['cancelled'] },
+        status: { [db.Sequelize.Op.notIn]: ['cancelled'] },
       },
+      attributes: ['startTime', 'endTime'],
       order: [['startTime', 'ASC']],
     });
 
-    // Generate slots in 30-minute intervals within the staff schedule
     const slots = [];
-    const slotInterval = 30; // minutes
     const scheduleStart = timeToMinutes(schedule.startTime);
     const scheduleEnd = timeToMinutes(schedule.endTime);
 
-    for (let time = scheduleStart; time + service.duration <= scheduleEnd; time += slotInterval) {
+    for (let time = scheduleStart; time + service.duration <= scheduleEnd; time += SLOT_INTERVAL_MINUTES) {
       const slotStart = `${String(Math.floor(time / 60)).padStart(2, '0')}:${String(time % 60).padStart(2, '0')}`;
       const slotEnd = addMinutes(slotStart, service.duration);
 
-      // Check if this slot conflicts with any existing appointment
-      const hasConflict = existingAppointments.some((appt) =>
-        timesOverlap(slotStart, slotEnd, appt.startTime, appt.endTime)
+      const hasConflict = existingAppointments.some(
+        (appt) => timesOverlap(slotStart, slotEnd, appt.startTime, appt.endTime),
       );
 
       if (!hasConflict) {
-        slots.push({
-          startTime: slotStart,
-          endTime: slotEnd,
-        });
+        slots.push({ startTime: slotStart, endTime: slotEnd });
       }
     }
 
@@ -430,6 +691,186 @@ const getAvailableSlots = async (req, res, next) => {
   }
 };
 
+/**
+ * Helper: Đồng bộ doanh thu sang Kế toán (CashFlow) và ghi nhận thanh toán
+ * Được gọi khi lịch hẹn hoàn thành (completed)
+ */
+const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
+  const options = transaction ? { transaction } : {};
+  
+  const appointment = await Appointment.findByPk(appointmentId, {
+    include: [
+      { model: Service, as: 'service' },
+      { 
+        model: Order, 
+        as: 'upsellOrder', 
+        include: [{ model: OrderItem, as: 'items' }] 
+      }
+    ],
+    ...options
+  });
+
+  if (!appointment) return;
+
+  const servicePrice = parseFloat(appointment.totalPrice) || 0;
+  const productPrice = appointment.upsellOrder ? parseFloat(appointment.upsellOrder.totalAmount) : 0;
+  const totalAmount = servicePrice + productPrice;
+
+  if (totalAmount <= 0) return;
+
+  // 1. Tạo hoặc cập nhật bản ghi Payment (Ghi nhận đã thu tiền)
+  const [payment, created] = await Payment.findOrCreate({
+    where: { appointmentId: appointment.id },
+    defaults: {
+      amount: totalAmount,
+      method: 'cash', // Mặc định thu tiền mặt tại quầy khi thợ hoàn tất
+      status: 'success',
+      orderId: appointment.orderId || null
+    },
+    ...options
+  });
+
+  if (!created) {
+    await payment.update({ amount: totalAmount, orderId: appointment.orderId || null }, options);
+  }
+
+  // 2. Tạo Phiếu thu (CashFlowTransaction) cho Kế toán
+  const existingTx = await CashFlowTransaction.findOne({
+    where: { referenceType: 'appointment', referenceId: appointment.id },
+    ...options
+  });
+
+  if (!existingTx) {
+    await CashFlowTransaction.create({
+      type: 'receipt', 
+      amount: totalAmount,
+      category: 'other', 
+      method: 'cash',
+      status: 'completed',
+      referenceType: 'appointment',
+      referenceId: appointment.id,
+      note: `Thu tiền dịch vụ: ${appointment.service?.name} + Bán lẻ - Lịch hẹn #${appointment.id}`,
+      createdBy: appointment.staffId
+    }, options);
+  } else {
+    await existingTx.update({ amount: totalAmount }, options);
+  }
+};
+
+// ============================================================
+// POST /:id/checkout — Unified Checkout
+// ============================================================
+const checkoutAppointment = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { products = [], paymentMethod = 'cod', voucherId = null } = req.body;
+
+    const appointment = await Appointment.findByPk(id, { transaction });
+    if (!appointment) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Lịch hẹn không tồn tại.' });
+    }
+
+    if (appointment.status === 'completed') {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'Lịch hẹn đã thanh toán trước đó.' });
+    }
+
+    let totalProductAmount = 0;
+    const orderItemsData = [];
+
+    for (const p of products) {
+      const product = await Product.findByPk(p.productId, { transaction });
+      if (!product || (product.stock ?? product.quantity) < p.quantity) {
+        throw new Error(`Sản phẩm ${product?.name || 'không xác định'} không đủ tồn kho.`);
+      }
+
+      const price = parseFloat(product.price);
+      const subtotal = price * p.quantity;
+      totalProductAmount += subtotal;
+
+      orderItemsData.push({
+        productId: p.productId,
+        quantity: p.quantity,
+        price,
+      });
+
+      await product.update({ 
+        stock: (product.stock ?? product.quantity) - p.quantity 
+      }, { transaction });
+    }
+
+    let order = null;
+    if (orderItemsData.length > 0) {
+      order = await Order.create({
+        userId: appointment.userId,
+        appointmentId: appointment.id,
+        totalAmount: totalProductAmount,
+        paymentMethod,
+        paymentStatus: 'paid',
+        status: 'completed',
+        voucherId,
+      }, { transaction });
+
+      for (const item of orderItemsData) {
+        await OrderItem.create({
+          ...item,
+          orderId: order.id,
+        }, { transaction });
+
+        // Ghi lại lịch sử kho cho từng sản phẩm
+        const pMod = await Product.findByPk(item.productId, { transaction });
+        await InventoryTransaction.create({
+          productId: item.productId,
+          type: 'export',
+          quantity: item.quantity,
+          price: item.price,
+          stockBefore: pMod.stock + item.quantity,
+          stockAfter: pMod.stock,
+          note: `Bán lẻ qua lịch hẹn #${appointment.id}`,
+          referenceType: 'appointment',
+          referenceId: appointment.id,
+          createdBy: req.user.id
+        }, { transaction });
+      }
+    }
+
+    const servicePrice = parseFloat(appointment.totalPrice) || 0;
+
+    await appointment.update({
+      status: 'completed',
+    }, { transaction });
+
+    // Đồng bộ Kế toán (Tạo phiếu thu & Payment)
+    await syncAppointmentAccounting(appointment.id, transaction);
+
+    const totalBill = servicePrice + totalProductAmount;
+    await updateCustomerLoyalty(appointment.userId, totalBill / 1000, transaction);
+
+    await transaction.commit();
+
+    const updatedAppt = await Appointment.findByPk(id, {
+      include: APPOINTMENT_INCLUDES,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        appointment: updatedAppt,
+        order,
+        totalBill,
+      },
+    });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    next(error);
+  }
+};
+
+// ============================================================
+// Exports
+// ============================================================
 module.exports = {
   createAppointment,
   getMyAppointments,
@@ -439,4 +880,68 @@ module.exports = {
   updateAppointmentStatus,
   cancelAppointment,
   getAvailableSlots,
+  checkoutAppointment,
+  checkInAppointment: async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const appointment = await Appointment.findByPk(id);
+      if (!appointment) return res.status(404).json({ success: false, message: 'Lịch hẹn không tồn tại' });
+      
+      if (appointment.status !== 'confirmed' && appointment.status !== 'pending') {
+        return res.status(400).json({ success: false, message: 'Chỉ có thể check-in lịch đã xác nhận hoặc đang chờ' });
+      }
+
+      await appointment.update({ status: 'in_progress' });
+      res.json({ success: true, message: 'Đã check-in khách!', data: appointment });
+    } catch (error) { next(error); }
+  },
+  
+  updateUpsellItems: async (req, res, next) => {
+    const transaction = await db.sequelize.transaction();
+    try {
+      const { id } = req.params;
+      const { products = [] } = req.body;
+      
+      const appointment = await Appointment.findByPk(id, { transaction });
+      if (!appointment) throw new Error('Lịch hẹn không tồn tại');
+
+      let order;
+      if (appointment.orderId) {
+        order = await Order.findByPk(appointment.orderId, { transaction });
+        await OrderItem.destroy({ where: { orderId: order.id }, transaction });
+      } else {
+        order = await Order.create({
+          userId: appointment.userId,
+          appointmentId: appointment.id,
+          totalAmount: 0,
+          paymentStatus: 'unpaid',
+          status: 'pending'
+        }, { transaction });
+        await appointment.update({ orderId: order.id }, { transaction });
+      }
+
+      let totalAmount = 0;
+      for (const p of products) {
+        const product = await Product.findByPk(p.productId, { transaction });
+        if (!product) continue;
+        const price = parseFloat(product.price);
+        totalAmount += price * p.quantity;
+        
+        await OrderItem.create({
+          orderId: order.id,
+          productId: p.productId,
+          quantity: p.quantity,
+          price: price
+        }, { transaction });
+      }
+
+      await order.update({ totalAmount }, { transaction });
+      await transaction.commit();
+      
+      res.json({ success: true, message: 'Đã cập nhật đơn hàng bán thêm', data: order });
+    } catch (error) {
+      if (transaction) await transaction.rollback();
+      next(error);
+    }
+  }
 };

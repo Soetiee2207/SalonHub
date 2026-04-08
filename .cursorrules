@@ -1,0 +1,48 @@
+# SalonHub System - Quy tắc làm việc (Working Rules)
+
+> [!NOTE]
+> Tài liệu này hợp nhất các quy chuẩn phát triển của dự án SalonHub. Mọi AI Agent và kỹ thuật viên phải tuân thủ nghiêm ngặt để đảm bảo chất lượng Luxury và tính ổn định của hệ thống.
+
+## 🇻🇳 Tóm tắt mục tiêu chính
+1. **Chất lượng Luxury**: Không sử dụng giao diện mặc định (Anti-Template). Mọi UI phải có hierarchy, motion và cảm giác cao cấp.
+2. **Quy trình chặt chẽ**: Lập kế hoạch (Planning) -> Viết test (TDD) -> Code -> Review.
+3. **Mã nguồn sạch**: Ưu tiên Immutability, không mutate trực tiếp dữ liệu. File nhỏ và tập trung (Single Responsibility).
+4. **Bảo mật & Hiệu năng**: Luôn validate ở boundary, không tin tưởng input từ client.
+
+---
+
+## 🛠 CORE DIRECTIVES
+
+### 1. Development Workflow
+Refer to: [cursorrules/common/development-workflow.md](./cursorrules/common/development-workflow.md)
+- **Plan First**: Always use the `planner` workflow for non-trivial tasks.
+- **TDD**: Write tests before implementation for logic-heavy features.
+- **Code Review**: Run `code-reviewer` checks after every major change.
+
+### 2. Design Excellence (The "WOW" Factor)
+Refer to: [cursorrules/web/design-quality.md](./cursorrules/web/design-quality.md)
+- **Anti-Template**: Strictly no generic card grids or default buttons.
+- **Rich Aesthetics**: Use modern typography (Inter/Outfit), deep layers (glassmorphism), and semantic colors.
+- **Motion**: Every interactive element must have a designed hover/active state.
+
+### 3. Coding Standards
+Refer to: [cursorrules/common/coding-style.md](./cursorrules/common/coding-style.md) | [cursorrules/web/coding-style.md](./cursorrules/web/coding-style.md)
+- **Immutability**: ALWAYS spread/copy objects. NEVER mutate.
+- **File Size**: Max 800 lines per file. Prefer small, composable components.
+- **Semantic HTML**: Use `<main>`, `<section>`, `<nav>`. Avoid `div` soup.
+- **Types**: Use explicit interfaces for all public APIs and props.
+
+### 4. Safety & Security
+Refer to: [cursorrules/common/security.md](./cursorrules/common/security.md)
+- **Input Validation**: Use Zod or similar for all API boundaries.
+- **Error Handling**: No silent failures. Always log context on server and show friendly messages on client.
+
+---
+
+## 📂 DIRECTORY STRUCTURE PREFERENCE
+- `cursorrules/common/`: Shared logic, git, and workflow rules.
+- `cursorrules/typescript/`: Language specific standards.
+- `cursorrules/web/`: Frontend design, CSS, and component rules.
+
+---
+*Authorized by Agent: Antigravity*

@@ -19,6 +19,10 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+const staffScheduleRoutes = require('./routes/staffScheduleRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+const accountantRoutes = require('./routes/accountantRoutes');
 
 const app = express();
 
@@ -42,6 +46,10 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/addresses', addressRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/schedules', staffScheduleRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/accountant', accountantRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

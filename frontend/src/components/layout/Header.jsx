@@ -103,9 +103,12 @@ export default function Header() {
                 <Link to="/notifications" className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors">
                   <FiBell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-[var(--error)] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
+                    <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex items-center justify-center bg-red-500 text-white text-[10px] h-5 w-5 rounded-full font-black border border-white shadow-sm">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    </div>
                   )}
                 </Link>
 
@@ -153,7 +156,7 @@ export default function Header() {
                         <FiMapPin size={16} />
                         Địa chỉ
                       </Link>
-                      {(user.role === 'admin' || user.role === 'staff') && (
+                      {user.role !== 'customer' && (
                         <Link
                           to="/admin"
                           onClick={() => setDropdownOpen(false)}
@@ -227,8 +230,18 @@ export default function Header() {
                   <Link to="/cart" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
                     <FiShoppingCart size={16} /> Giỏ hàng {cartCount > 0 && `(${cartCount})`}
                   </Link>
-                  <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiBell size={16} /> Thông báo {unreadCount > 0 && `(${unreadCount})`}
+                  <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center justify-between px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
+                    <div className="flex items-center gap-3">
+                      <FiBell size={16} /> Thông báo
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="flex h-2 w-2 bg-red-500 rounded-full animate-pulse mr-1"></span>
+                    )}
+                    {unreadCount > 0 && (
+                      <span className="flex h-5 w-5 bg-red-500 text-white text-[10px] font-black items-center justify-center rounded-full border border-white shadow-sm">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
                     <FiUser size={16} /> Hồ sơ
@@ -242,7 +255,7 @@ export default function Header() {
                   <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
                     <FiMapPin size={16} /> Địa chỉ
                   </Link>
-                  {(user.role === 'admin' || user.role === 'staff') && (
+                  {user.role !== 'customer' && (
                     <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--primary)] no-underline">
                       <FiSettings size={16} /> Quản trị
                     </Link>

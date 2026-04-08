@@ -10,7 +10,11 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      navigate(user.role === 'admin' || user.role === 'staff' ? '/admin' : '/', { replace: true });
+      if (user.role !== 'customer') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
   }, [user, navigate]);
 

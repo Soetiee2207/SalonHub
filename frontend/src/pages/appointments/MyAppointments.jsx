@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { appointmentService } from '../../services/appointmentService';
 import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
+import ReviewModal from '../../components/common/ReviewModal';
 
 const STATUS_MAP = {
   pending: { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
@@ -27,8 +28,6 @@ export default function MyAppointments() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(null);
   const [reviewModal, setReviewModal] = useState(null); // appointment object
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchAppointments = async () => {
@@ -59,21 +58,17 @@ export default function MyAppointments() {
     }
   };
 
-  const handleReviewSubmit = async () => {
+  const handleReviewSubmit = async ({ rating, comment }) => {
     if (!reviewModal) return;
     setSubmittingReview(true);
     try {
       await reviewService.createServiceReview({
         appointmentId: reviewModal.id,
-        serviceId: reviewModal.serviceId?.id || reviewModal.serviceId || reviewModal.service?.id,
-        staffId: reviewModal.staffId?.id || reviewModal.staffId || reviewModal.staff?.id,
         rating,
         comment,
       });
       toast.success('Cảm ơn bạn đã đánh giá!');
       setReviewModal(null);
-      setRating(5);
-      setComment('');
       fetchAppointments();
     } catch (err) {
       toast.error(err.message || 'Gửi đánh giá thất bại.');
@@ -188,7 +183,7 @@ export default function MyAppointments() {
                       )}
                       {canReview && (
                         <button
-                          onClick={() => { setReviewModal(appt); setRating(5); setComment(''); }}
+                          onClick={() => setReviewModal(appt)}
                           className="px-4 py-2 text-sm font-medium text-[var(--primary)] border border-[var(--accent)] rounded-lg hover:bg-[var(--bg-light)] transition-colors"
                         >
                           Đánh giá
@@ -204,59 +199,14 @@ export default function MyAppointments() {
       </div>
 
       {/* Review Modal */}
-      {reviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 relative">
-            <button
-              onClick={() => setReviewModal(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <FiX className="text-xl" />
-            </button>
-
-            <h2 className="text-xl font-bold text-gray-800 mb-1">Đánh giá dịch vụ</h2>
-            <p className="text-gray-500 text-sm mb-5">{getServiceName(reviewModal)}</p>
-
-            {/* Star Rating */}
-            <div className="flex items-center gap-1 mb-5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className="p-1"
-                >
-                  <FiStar
-                    className={`text-2xl transition-colors ${
-                      star <= rating
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                    style={star <= rating ? { fill: '#facc15' } : {}}
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-gray-500">{rating}/5</span>
-            </div>
-
-            {/* Comment */}
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] mb-4"
-              placeholder="Chia sẻ trải nghiệm của bạn..."
-            />
-
-            <button
-              onClick={handleReviewSubmit}
-              disabled={submittingReview}
-              className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-lg hover:bg-[var(--primary-light)] transition-colors disabled:opacity-50"
-            >
-              {submittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
-            </button>
-          </div>
-        </div>
-      )}
+      <ReviewModal
+        isOpen={!!reviewModal}
+        title="Đánh giá dịch vụ"
+        subtitle={reviewModal ? getServiceName(reviewModal) : ''}
+        onClose={() => setReviewModal(null)}
+        onSubmit={handleReviewSubmit}
+        submitting={submittingReview}
+      />
     </div>
   );
 }

@@ -33,6 +33,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    orderId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.ENUM('pending', 'confirmed', 'in_progress', 'completed', 'cancelled'),
       defaultValue: 'pending',
@@ -41,9 +45,17 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    cancelReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     totalPrice: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
+    },
+    commissionAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
     },
   }, {
     timestamps: true,

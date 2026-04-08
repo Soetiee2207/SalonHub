@@ -14,8 +14,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('pending', 'confirmed', 'packing', 'shipping', 'delivered', 'completed', 'cancelled'),
       defaultValue: 'pending',
+    },
+    trackingCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     paymentMethod: {
       type: DataTypes.ENUM('cod', 'vnpay'),
@@ -40,6 +44,10 @@ module.exports = (sequelize, DataTypes) => {
     discountAmount: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
+    },
+    appointmentId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   }, {
     timestamps: true,

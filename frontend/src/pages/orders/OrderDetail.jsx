@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiArrowLeft, FiXCircle, FiMapPin, FiPhone } from 'react-icons/fi';
+import { FiArrowLeft, FiXCircle, FiMapPin, FiPhone, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
+import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
+import ReviewModal from '../../components/common/ReviewModal';
 
 const statusConfig = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
@@ -24,25 +26,55 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [reviewProduct, setReviewProduct] = useState(null); // { id, name }
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const fetchOrder = async () => {
+    try {
+      const res = await orderService.getById(id);
+      setOrder(res.data || res);
+    } catch {
+      toast.error('Không thể tải thông tin đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    orderService.getById(id)
-      .then((res) => setOrder(res.data || res))
-      .catch(() => toast.error('Không thể tải thông tin đơn hàng'))
-      .finally(() => setLoading(false));
+    fetchOrder();
   }, [id]);
 
   const handleCancel = async () => {
+    if (!order) return;
     if (!window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return;
     setCancelling(true);
     try {
       await orderService.cancel(id);
       toast.success('Đã hủy đơn hàng thành công');
-      setOrder((prev) => ({ ...prev, status: 'cancelled' }));
+      await fetchOrder();
     } catch (err) {
       toast.error(err.message || 'Không thể hủy đơn hàng');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    if (!reviewProduct) return;
+    setSubmittingReview(true);
+    try {
+      await reviewService.createProductReview({
+        productId: reviewProduct.id,
+        rating,
+        comment,
+      });
+      toast.success('Cảm ơn bạn đã đánh giá sản phẩm!');
+      setReviewProduct(null);
+      await fetchOrder();
+    } catch (err) {
+      toast.error(err.message || 'Gửi đánh giá thất bại');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -158,8 +190,13 @@ export default function OrderDetail() {
                 <tbody>
                   {items.map((item, index) => (
                     <tr key={index} className="border-b border-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-800">
-                        {item.product?.name || item.name || 'Sản phẩm'}
+                      <td className="px-6 py-4 text-sm">
+                        <Link 
+                          to={`/products/${item.productId}`}
+                          className="font-medium text-gray-800 hover:text-[var(--primary)] hover:underline transition-colors"
+                        >
+                          {item.product?.name || item.name || 'Sản phẩm'}
+                        </Link>
                       </td>
                       <td className="px-4 py-4 text-sm text-center text-gray-600">
                         {item.quantity}
@@ -168,7 +205,23 @@ export default function OrderDetail() {
                         {formatPrice(item.price || 0)}
                       </td>
                       <td className="px-6 py-4 text-sm text-right font-medium text-gray-800">
-                        {formatPrice((item.price || 0) * (item.quantity || 0))}
+                        <div className="flex flex-col items-end gap-2">
+                           <span>{formatPrice((item.price || 0) * (item.quantity || 0))}</span>
+                            {['delivered', 'completed'].includes(order.status) && (
+                              item.isReviewed ? (
+                                <span className="text-[10px] text-emerald-500 font-black uppercase flex items-center gap-1">
+                                  <FiCheckCircle size={10} /> Đã đánh giá
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setReviewProduct({ id: item.productId, name: item.product?.name || item.name })}
+                                  className="text-[10px] text-orange-500 font-extrabold uppercase hover:text-orange-600 transition-colors cursor-pointer border-0 bg-transparent px-0 underline underline-offset-2"
+                                >
+                                  Đánh giá ngay
+                                </button>
+                              )
+                            )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -212,6 +265,15 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
+
+      <ReviewModal
+        isOpen={!!reviewProduct}
+        title="Đánh giá sản phẩm"
+        subtitle={reviewProduct?.name}
+        onClose={() => setReviewProduct(null)}
+        onSubmit={handleReviewSubmit}
+        submitting={submittingReview}
+      />
     </div>
   );
 }

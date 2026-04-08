@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { FiMapPin, FiPhone, FiTag, FiCreditCard, FiTruck, FiArrowLeft, FiPlus, FiCheck, FiUser } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { cartService } from '../../services/cartService';
@@ -11,6 +11,9 @@ import AddressForm from '../../components/address/AddressForm';
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedIds = location.state?.selectedIds || [];
+
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -52,11 +55,19 @@ export default function Checkout() {
     }).finally(() => setLoading(false));
   }, [navigate]);
 
-  const items = cart?.items || [];
-  const subtotal = items.reduce(
+  const items = useMemo(() => {
+    const rawItems = cart?.items || [];
+    if (selectedIds.length > 0) {
+      return rawItems.filter(item => selectedIds.includes(item.id));
+    }
+    return rawItems;
+  }, [cart, selectedIds]);
+
+  const subtotal = useMemo(() => items.reduce(
     (sum, item) => sum + (item.product?.price || 0) * item.quantity,
     0
-  );
+  ), [items]);
+
   const total = Math.max(0, subtotal - discount);
 
   const handleApplyVoucher = async () => {
@@ -100,6 +111,9 @@ export default function Checkout() {
       };
       if (voucherApplied && voucherCode) {
         orderData.voucherCode = voucherCode;
+      }
+      if (selectedIds.length > 0) {
+        orderData.cartItemIds = selectedIds;
       }
 
       const res = await orderService.create(orderData);

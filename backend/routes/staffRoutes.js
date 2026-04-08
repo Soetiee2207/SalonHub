@@ -1,29 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const {
+  updateWorkStatus,
+  getCustomerHistoryDetail,
+  saveCustomerServiceNote,
+  getStaffDashboardStats,
   getAllStaff,
-  getStaffById,
   createStaff,
   updateStaff,
-  deleteStaff,
-  getStaffSchedules,
-  setStaffSchedule,
-  addStaffSkill,
-  removeStaffSkill,
+  deleteStaff
 } = require('../controllers/staffController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// Public routes
-router.get('/', getAllStaff);
-router.get('/:id', getStaffById);
-router.get('/:id/schedules', getStaffSchedules);
+// Router: /api/staff
 
-// Admin routes
-router.post('/', authenticate, authorize('admin'), createStaff);
-router.put('/:id', authenticate, authorize('admin'), updateStaff);
-router.delete('/:id', authenticate, authorize('admin'), deleteStaff);
-router.post('/:id/schedules', authenticate, authorize('admin'), setStaffSchedule);
-router.post('/:id/skills', authenticate, authorize('admin'), addStaffSkill);
-router.delete('/:id/skills/:serviceId', authenticate, authorize('admin'), removeStaffSkill);
+// Các route công khai hoặc cho phép khách hàng (Phục vụ đặt lịch)
+router.get('/', authenticate, authorize('admin', 'staff', 'service_staff', 'customer'), getAllStaff);
+
+// Tất cả các route bên dưới yêu cầu đăng nhập và vai trò quản lý/nhân viên cụ thể
+router.use(authenticate, authorize('admin', 'staff', 'service_staff'));
+
+router.get('/stats', getStaffDashboardStats);
+router.put('/status', updateWorkStatus);
+router.get('/customer-history/:customerId', getCustomerHistoryDetail);
+router.post('/customer-notes', saveCustomerServiceNote);
+
+router.post('/', authorize('admin'), createStaff);
+router.put('/:id', authorize('admin'), updateStaff);
+router.delete('/:id', authorize('admin'), deleteStaff);
 
 module.exports = router;

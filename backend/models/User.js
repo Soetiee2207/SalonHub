@@ -30,12 +30,24 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: null,
     },
     role: {
-      type: DataTypes.ENUM('customer', 'staff', 'admin'),
+      type: DataTypes.ENUM('customer', 'staff', 'admin', 'warehouse_staff', 'service_staff', 'accountant'),
       defaultValue: 'customer',
     },
     branchId: {
       type: DataTypes.INTEGER,
       allowNull: true,
+    },
+    loyaltyPoints: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    workStatus: {
+      type: DataTypes.ENUM('available', 'break', 'busy'),
+      defaultValue: 'available',
+    },
+    rank: {
+      type: DataTypes.ENUM('Silver', 'Gold', 'Diamond'),
+      defaultValue: 'Silver',
     },
   }, {
     timestamps: true,

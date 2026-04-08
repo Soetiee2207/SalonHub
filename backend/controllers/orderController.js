@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const querystring = require('qs');
+const { Op } = require('sequelize');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
-const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, sequelize } = db;
+const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, sequelize } = db;
+const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
 
 // Create order from cart
 const createOrder = async (req, res, next) => {
@@ -10,11 +12,16 @@ const createOrder = async (req, res, next) => {
 
   try {
     const userId = req.user.id;
-    const { paymentMethod, address, phone, voucherCode } = req.body;
+    const { paymentMethod, address, phone, voucherCode, cartItemIds } = req.body;
 
     // Get cart items
+    const cartWhere = { userId };
+    if (cartItemIds && Array.isArray(cartItemIds) && cartItemIds.length > 0) {
+      cartWhere.id = { [Op.in]: cartItemIds };
+    }
+
     const cartItems = await Cart.findAll({
-      where: { userId },
+      where: cartWhere,
       include: [{ model: Product, as: 'product' }],
       transaction: t,
     });
@@ -140,14 +147,36 @@ const createOrder = async (req, res, next) => {
         { transaction: t }
       );
 
+      const resStockBefore = item.product.reservedStock;
+      const resStockAfter = resStockBefore + item.quantity;
+
       await item.product.update(
-        { stock: item.product.stock - item.quantity },
+        { reservedStock: resStockAfter },
         { transaction: t }
       );
+
+      // Ghi chú: Chờ xuất kho khi đóng gói xong
     }
 
-    // Clear cart
-    await Cart.destroy({ where: { userId }, transaction: t });
+    // Clear only selected items from cart
+    const finalCartItemIds = cartItems.map(item => item.id);
+    await Cart.destroy({ 
+      where: { 
+        id: { [Op.in]: finalCartItemIds },
+        userId 
+      }, 
+      transaction: t 
+    });
+
+    // Create Payment record as "pending"
+    await Payment.create({
+      userId,
+      orderId: order.id,
+      amount: totalAmount.toFixed(2),
+      method: paymentMethod,
+      status: 'pending',
+      isReconciled: false
+    }, { transaction: t });
 
     await t.commit();
 
@@ -180,6 +209,7 @@ const createOrder = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Helper: sort object keys alphabetically and encode values
 function sortObject(obj) {
@@ -247,9 +277,22 @@ const getMyOrders = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
+    // For each order, check which items have been reviewed
+    const ordersWithReviewInfo = await Promise.all(orders.map(async (order) => {
+      const orderJson = order.toJSON();
+      const itemsWithReviewInfo = await Promise.all(orderJson.items.map(async (item) => {
+        const review = await ProductReview.findOne({
+          where: { userId, productId: item.productId }
+        });
+        return { ...item, isReviewed: !!review };
+      }));
+      orderJson.items = itemsWithReviewInfo;
+      return orderJson;
+    }));
+
     res.json({
       success: true,
-      data: orders,
+      data: ordersWithReviewInfo,
     });
   } catch (error) {
     next(error);
@@ -295,9 +338,19 @@ const getOrderById = async (req, res, next) => {
       });
     }
 
+    // Check which items in this order have been reviewed by the user
+    const orderJson = order.toJSON();
+    const itemsWithReviewInfo = await Promise.all(orderJson.items.map(async (item) => {
+      const review = await ProductReview.findOne({
+        where: { userId: order.userId, productId: item.productId }
+      });
+      return { ...item, isReviewed: !!review };
+    }));
+    orderJson.items = itemsWithReviewInfo;
+
     res.json({
       success: true,
-      data: order,
+      data: orderJson,
     });
   } catch (error) {
     next(error);
@@ -343,7 +396,7 @@ const updateOrderStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['pending', 'confirmed', 'shipping', 'delivered', 'completed', 'cancelled'];
+    const validStatuses = ['pending', 'confirmed', 'packing', 'shipping', 'delivered', 'completed', 'cancelled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -351,7 +404,9 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(id, {
+      include: [{ model: OrderItem, as: 'items' }]
+    });
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -359,7 +414,117 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    await order.update({ status });
+    const oldStatus = order.status;
+    const newStatus = status;
+
+    // Logic xử lý kho khi chuyển trạng thái
+    const t = await sequelize.transaction();
+    try {
+      // 1. Chuyển sang packing: Trừ tồn kho thực tế, trừ tồn kho tạm giữ
+      if (oldStatus !== 'packing' && newStatus === 'packing') {
+        for (const item of order.items) {
+          const product = await Product.findByPk(item.productId, { transaction: t });
+          if (product) {
+            const stockBefore = product.stock;
+            const stockAfter = stockBefore - item.quantity;
+            const resStockAfter = Math.max(0, product.reservedStock - item.quantity);
+
+            await product.update({
+              stock: stockAfter,
+              reservedStock: resStockAfter
+            }, { transaction: t });
+
+            // Ghi nhật ký xuất kho thực tế (Sổ quỹ kho)
+            await InventoryTransaction.create({
+              productId: item.productId,
+              type: 'export',
+              quantity: item.quantity,
+              stockBefore,
+              stockAfter,
+              note: `Xuất kho thực tế (Đang đóng gói) cho đơn #${order.id}`,
+              referenceType: 'order',
+              referenceId: order.id,
+              createdBy: req.user.id
+            }, { transaction: t });
+
+            // Kiểm tra Tồn kho thấp (Low Stock Alert)
+            if (stockAfter <= (product.minStock || 5)) {
+              const { createNotification } = require('./notificationController');
+              await createNotification({
+                title: 'Cảnh báo: Tồn kho thấp từ Đơn hàng!',
+                message: `Sản phẩm "${product.name}" chỉ còn ${stockAfter} món sau khi đóng gói Đơn #${order.id}.`,
+                type: 'inventory',
+              });
+            }
+          }
+        }
+      }
+
+      // 2. Chuyển sang cancelled: Hoàn lại tồn kho
+      if (newStatus === 'cancelled') {
+        const needsStockRestore = ['packing', 'shipping', 'delivered'].includes(oldStatus);
+        const needsReservedReduce = ['pending', 'confirmed'].includes(oldStatus);
+
+        for (const item of order.items) {
+          const product = await Product.findByPk(item.productId, { transaction: t });
+          if (product) {
+            if (needsStockRestore) {
+              const stockBefore = product.stock;
+              const stockAfter = stockBefore + item.quantity;
+              await product.update({ stock: stockAfter }, { transaction: t });
+              
+              // Ghi nhật ký nhập kho hoàn trả
+              await InventoryTransaction.create({
+                productId: item.productId,
+                type: 'import',
+                quantity: item.quantity,
+                stockBefore,
+                stockAfter,
+                note: `Nhập kho hoàn trả (Đơn #${order.id} bị hủy sau khi đã đóng gói)`,
+                referenceType: 'order',
+                referenceId: order.id,
+                createdBy: req.user.id
+              }, { transaction: t });
+            }
+            if (needsReservedReduce) {
+              await product.update({
+                reservedStock: Math.max(0, product.reservedStock - item.quantity)
+              }, { transaction: t });
+            }
+          }
+        }
+      }
+
+      const updateData = { status: newStatus };
+      if (req.body.trackingCode) {
+        updateData.trackingCode = req.body.trackingCode;
+      }
+
+      await order.update(updateData, { transaction: t });
+
+      // Tích điểm nếu đơn hàng mới chuyển sang trạng thái Thành công
+      if (oldStatus !== 'completed' && newStatus === 'completed') {
+        const totalAmount = parseFloat(order.totalAmount) || 0;
+        await updateCustomerLoyalty(order.userId, totalAmount / 1000, t);
+      }
+
+      // Tự động khách yêu cầu hoàn tiền nếu đơn đã thanh toán hoàn tất (VNPay)
+      if (order.paymentStatus === 'paid' && newStatus === 'cancelled') {
+        const { RefundRequest } = db;
+        await RefundRequest.create({
+          type: 'order',
+          targetId: order.id,
+          amount: order.totalAmount,
+          reason: req.body.cancelReason || 'Hệ thống/Quản trị viên hủy đơn hàng sau khi hoàn tất thanh toán',
+          status: 'pending'
+        }, { transaction: t });
+      }
+
+      await t.commit();
+    } catch (err) {
+      await t.rollback();
+      throw err;
+    }
 
     const result = await Order.findByPk(id, {
       include: [
@@ -418,12 +583,12 @@ const cancelOrder = async (req, res, next) => {
       });
     }
 
-    // Restore stock
+    // Hoàn reservedStock
     for (const item of order.items) {
       const product = await Product.findByPk(item.productId, { transaction: t });
       if (product) {
         await product.update(
-          { stock: product.stock + item.quantity },
+          { reservedStock: Math.max(0, product.reservedStock - item.quantity) },
           { transaction: t }
         );
       }
@@ -453,6 +618,50 @@ const cancelOrder = async (req, res, next) => {
   }
 };
 
+// Customer confirms receipt of order
+const confirmOrderReceipt = async (req, res, next) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const order = await Order.findOne({
+      where: { id, userId },
+      transaction: t
+    });
+
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+    }
+
+    // Only allow completion if shipping or delivered
+    if (!['shipping', 'delivered'].includes(order.status)) {
+      await t.rollback();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Đơn hàng chưa ở trạng thái có thể xác nhận nhận hàng' 
+      });
+    }
+
+    await order.update({ status: 'completed' }, { transaction: t });
+
+    // Tích điểm thưởng cho khách hàng
+    const totalAmount = parseFloat(order.totalAmount) || 0;
+    await updateCustomerLoyalty(order.userId, totalAmount / 1000, t);
+
+    await t.commit();
+    res.json({
+      success: true,
+      message: 'Xác nhận nhận hàng thành công. Chúc mừng sư huynh đã hoàn thành vận tiêu!',
+      data: order
+    });
+  } catch (error) {
+    if (t) await t.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -460,4 +669,5 @@ module.exports = {
   getAllOrders,
   updateOrderStatus,
   cancelOrder,
+  confirmOrderReceipt
 };

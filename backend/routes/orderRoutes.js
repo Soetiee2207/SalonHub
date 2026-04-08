@@ -8,20 +8,22 @@ const {
   getAllOrders,
   updateOrderStatus,
   cancelOrder,
+  confirmOrderReceipt,
 } = require('../controllers/orderController');
 
 // Auth required
 router.post('/', authenticate, createOrder);
 router.get('/my-orders', authenticate, getMyOrders);
+router.put('/:id/confirm-receipt', authenticate, confirmOrderReceipt);
 
-// Admin/staff only
-router.get('/', authenticate, authorize('admin', 'staff'), getAllOrders);
+// Admin/staff/warehouse/accountant
+router.get('/', authenticate, authorize('admin', 'staff', 'warehouse_staff', 'accountant'), getAllOrders);
 
 // Auth required
 router.get('/:id', authenticate, getOrderById);
 
-// Admin/staff only
-router.put('/:id/status', authenticate, authorize('admin', 'staff'), updateOrderStatus);
+// Admin/staff/warehouse/accountant
+router.put('/:id/status', authenticate, authorize('admin', 'staff', 'warehouse_staff', 'accountant'), updateOrderStatus);
 
 // Auth required - cancel own order
 router.put('/:id/cancel', authenticate, cancelOrder);

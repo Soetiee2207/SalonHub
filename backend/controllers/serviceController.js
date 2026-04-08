@@ -6,7 +6,7 @@ const getAllServices = async (req, res, next) => {
   try {
     const { categoryId, search } = req.query;
 
-    const where = { isActive: true };
+    const where = {};
 
     if (categoryId) {
       where.categoryId = categoryId;

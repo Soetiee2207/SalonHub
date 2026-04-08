@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiCheck, FiImage } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiImage, FiClock, FiTag, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { serviceService } from '../../services/serviceService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -10,20 +10,23 @@ export default function AdminServices() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
+  
+  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', price: '', duration: '', categoryId: '', image: null });
-  const [imagePreview, setImagePreview] = useState(null);
-
-  // Category management
+  
   const [showCatModal, setShowCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
-  const [catForm, setCatForm] = useState({ name: '' });
   const [deleteCatId, setDeleteCatId] = useState(null);
 
-  const fetchData = async () => {
+  // Forms
+  const [form, setForm] = useState({ name: '', description: '', price: '', duration: '', categoryId: '', image: null });
+  const [imagePreview, setImagePreview] = useState(null);
+  const [catForm, setCatForm] = useState({ name: '' });
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [svcRes, catRes] = await Promise.all([serviceService.getAll(), serviceService.getCategories()]);
@@ -34,9 +37,9 @@ export default function AdminServices() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const openCreate = () => {
     setEditing(null);
@@ -58,9 +61,6 @@ export default function AdminServices() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
       setForm({ ...form, image: file });
       setImagePreview(URL.createObjectURL(file));
     }
@@ -118,7 +118,6 @@ export default function AdminServices() {
     }
   };
 
-  // Category CRUD
   const handleCatSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -149,11 +148,6 @@ export default function AdminServices() {
     }
   };
 
-  const getCatName = (svc) => {
-    const cat = categories.find(c => (c.id) === (svc.categoryId?.id || svc.categoryId));
-    return cat?.name || svc.categoryId?.name || '---';
-  };
-
   const filtered = services.filter(s => {
     const matchSearch = s.name?.toLowerCase().includes(search.toLowerCase());
     const matchCat = !filterCat || (s.categoryId?.id || s.categoryId) === filterCat;
@@ -161,150 +155,166 @@ export default function AdminServices() {
   });
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Quản lý dịch vụ</h1>
-        <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white" style={{ backgroundColor: 'var(--primary)' }}>
-          <FiPlus /> Thêm mới
+    <div className="p-6 pb-20 animate-fade-in-up">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 font-display">Danh Mục Dịch Vụ</h1>
+          <p className="text-gray-500 mt-1">Quản lý menu kỹ thuật (Layer 4 - Catalog)</p>
+        </div>
+        <button 
+          onClick={openCreate} 
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold shadow-lg shadow-brown-100 transition-all hover:scale-105 active:scale-95 border-0 cursor-pointer"
+          style={{ backgroundColor: 'var(--primary)' }}
+        >
+          <FiPlus fontSize={20} /> THÊM DỊCH VỤ MỚI
         </button>
       </div>
 
-      {/* Category management */}
-      <div className="mb-4 p-4 bg-white rounded-lg shadow">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm font-semibold text-gray-700">Danh mục:</span>
-          <button onClick={() => { setEditingCat(null); setCatForm({ name: '' }); setShowCatModal(true); }}
-            className="p-1 rounded text-white" style={{ backgroundColor: 'var(--primary)' }}><FiPlus size={14} /></button>
+      {/* Category Pills & Search */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex items-center gap-4 overflow-x-auto custom-scrollbar">
+           <div className="flex items-center gap-2 shrink-0 border-r border-gray-100 pr-4">
+              <FiTag className="text-[#8B5E3C]" />
+              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Danh mục:</span>
+              <button onClick={() => { setEditingCat(null); setCatForm({ name: '' }); setShowCatModal(true); }}
+                className="w-8 h-8 rounded-lg bg-gray-50 text-[#8B5E3C] border-0 cursor-pointer hover:bg-[#8B5E3C] hover:text-white transition-all"><FiPlus size={16} /></button>
+           </div>
+           <div className="flex gap-2 shrink-0">
+             <button onClick={() => setFilterCat('')}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer ${!filterCat ? 'bg-[#8B5E3C] text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                TẤT CẢ
+             </button>
+             {categories.map(cat => (
+                <div key={cat.id} className="group relative flex items-center">
+                  <button onClick={() => setFilterCat(cat.id)}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer ${filterCat === cat.id ? 'bg-[#8B5E3C] text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                    {cat.name.toUpperCase()}
+                  </button>
+                  <div className="absolute -top-2 -right-1 hidden group-hover:flex gap-1">
+                     <button onClick={(e) => { e.stopPropagation(); setEditingCat(cat); setCatForm({ name: cat.name }); setShowCatModal(true); }} className="w-5 h-5 bg-blue-500 text-white rounded-full flex items-center justify-center border-0 cursor-pointer shadow-sm"><FiEdit2 size={8} /></button>
+                     <button onClick={(e) => { e.stopPropagation(); setDeleteCatId(cat.id); }} className="w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center border-0 cursor-pointer shadow-sm"><FiTrash2 size={8} /></button>
+                  </div>
+                </div>
+             ))}
+           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setFilterCat('')}
-            className={`px-3 py-1 rounded-full text-sm border ${!filterCat ? 'text-white' : 'text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-            style={!filterCat ? { backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' } : {}}>
-            Tất cả
-          </button>
-          {categories.map(cat => (
-            <div key={cat.id} className="flex items-center gap-1">
-              <button onClick={() => setFilterCat(cat.id)}
-                className={`px-3 py-1 rounded-full text-sm border ${filterCat === (cat.id) ? 'text-white' : 'text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                style={filterCat === (cat.id) ? { backgroundColor: 'var(--primary)', borderColor: 'var(--primary)' } : {}}>
-                {cat.name}
-              </button>
-              <button onClick={() => { setEditingCat(cat); setCatForm({ name: cat.name }); setShowCatModal(true); }} className="p-0.5 text-blue-500 hover:bg-blue-50 rounded"><FiEdit2 size={12} /></button>
-              <button onClick={() => setDeleteCatId(cat.id)} className="p-0.5 text-red-500 hover:bg-red-50 rounded"><FiTrash2 size={12} /></button>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="relative mb-4 max-w-md">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input type="text" placeholder="Tìm kiếm dịch vụ..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
+        <div className="lg:col-span-4 relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Tìm tên dịch vụ..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm shadow-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]" 
+            />
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-gray-200 rounded-full animate-spin" style={{ borderTopColor: 'var(--primary)' }}></div>
+        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-dashed border-gray-200">
+           <div className="w-12 h-12 border-4 border-gray-100 border-t-[#8B5E3C] rounded-full animate-spin mb-4" />
+           <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Đang tải danh mục...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b" style={{ backgroundColor: 'var(--bg-light)' }}>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Hình ảnh</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Tên dịch vụ</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Danh mục</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-700">Giá</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Thời gian (phút)</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Trạng thái</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
-              ) : filtered.map(svc => (
-                <tr key={svc.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    {svc.image ? <img src={svc.image} alt="" className="w-12 h-12 object-cover rounded" /> : <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center"><FiImage className="text-gray-400" /></div>}
-                  </td>
-                  <td className="px-4 py-3 font-medium">{svc.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{getCatName(svc)}</td>
-                  <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--primary)' }}>{formatPrice(svc.price)}</td>
-                  <td className="px-4 py-3 text-center text-gray-600">{svc.duration}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button onClick={() => toggleStatus(svc)}
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${svc.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {svc.isActive !== false ? 'Hoạt động' : 'Ngừng'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(svc)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><FiEdit2 size={16} /></button>
-                      <button onClick={() => setDeleteId(svc.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><FiTrash2 size={16} /></button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filtered.length === 0 ? (
+            <div className="col-span-full text-center py-20 text-gray-400">Không tìm thấy dịch vụ nào</div>
+          ) : filtered.map(svc => (
+            <div key={svc.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative">
+               <div className="aspect-[4/3] overflow-hidden relative">
+                  {svc.image ? (
+                    <img src={svc.image} alt={svc.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300">
+                      <FiImage size={40} />
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )}
+                  <div className="absolute top-4 left-4">
+                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${svc.isActive !== false ? 'bg-green-500 text-white' : 'bg-red-500 text-white shadow-lg'}`}>
+                       {svc.isActive !== false ? 'Active' : 'Stopped'}
+                     </span>
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                     <button onClick={() => openEdit(svc)} className="w-10 h-10 rounded-full bg-white text-blue-600 flex items-center justify-center cursor-pointer border-0 shadow-lg hover:scale-110 active:scale-95 transition-all"><FiEdit2 /></button>
+                     <button onClick={() => setDeleteId(svc.id)} className="w-10 h-10 rounded-full bg-white text-red-600 flex items-center justify-center cursor-pointer border-0 shadow-lg hover:scale-110 active:scale-95 transition-all"><FiTrash2 /></button>
+                     <button onClick={() => toggleStatus(svc)} className="w-10 h-10 rounded-full bg-white text-gray-900 flex items-center justify-center cursor-pointer border-0 shadow-lg hover:scale-110 active:scale-95 transition-all"><FiCheckCircle className={svc.isActive ? 'text-green-500' : 'text-gray-300'} /></button>
+                  </div>
+               </div>
+               <div className="p-6">
+                  <p className="text-[10px] font-black text-[#8B5E3C] uppercase tracking-widest mb-1">{(categories.find(c => c.id === svc.categoryId)?.name || 'Dịch vụ').toUpperCase()}</p>
+                  <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{svc.name}</h3>
+                  <div className="flex items-center justify-between mt-4">
+                     <div className="flex flex-col">
+                        <span className="text-xs text-gray-400 font-bold flex items-center gap-1"><FiClock size={12} /> {svc.duration} phút</span>
+                        <span className="text-xl font-black text-gray-900 mt-1">{formatPrice(svc.price)}</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Service Modal */}
+      {/* Modals - Simplified for Readability */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">{editing ? 'Chỉnh sửa dịch vụ' : 'Thêm dịch vụ mới'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded"><FiX size={20} /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-xl max-h-[90vh] overflow-y-auto animate-scale-up custom-scrollbar">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold font-display">{editing ? 'Hiệu chỉnh dịch vụ' : 'Đăng ký dịch vụ mới'}</h2>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors border-0 cursor-pointer bg-transparent"><FiX size={24} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên dịch vụ *</label>
-                <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="md:col-span-2">
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Tên dịch vụ *</label>
+                    <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
+                 </div>
+                 <div className="md:col-span-2">
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Mô tả chi tiết</label>
+                    <textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                      className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none resize-none" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Danh mục *</label>
+                    <select required value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })}
+                      className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none appearance-none">
+                      <option value="">Chọn nhóm...</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                 </div>
+                 <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Thời gian (phút) *</label>
+                    <input type="number" required min="1" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
+                      className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Đơn giá (VND) *</label>
+                    <input type="number" required min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
+                      className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
+                 </div>
+                 <div>
+                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Ảnh đại diện</label>
+                    <label className="flex items-center justify-center gap-2 w-full py-4 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all">
+                       <FiImage className="text-gray-400" />
+                       <span className="text-xs font-bold text-gray-500 uppercase">{form.image ? 'Đã chọn ảnh' : 'Tải ảnh lên'}</span>
+                       <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    </label>
+                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
-                <textarea rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Danh mục *</label>
-                <select required value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }}>
-                  <option value="">-- Chọn danh mục --</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giá (VND) *</label>
-                  <input type="number" required min="0" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian (phút) *</label>
-                  <input type="number" required min="1" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh</label>
-                <div className="flex items-center gap-4">
-                  {imagePreview && <img src={imagePreview} alt="" className="w-20 h-20 object-cover rounded-lg" />}
-                  <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <FiImage className="text-gray-400" /> <span className="text-sm text-gray-500">Chọn ảnh</span>
-                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                  </label>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
-                <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg text-white disabled:opacity-50" style={{ backgroundColor: 'var(--primary)' }}>
-                  {submitting ? 'Đang xử lý...' : editing ? 'Cập nhật' : 'Thêm mới'}
+              
+              {imagePreview && (
+                 <div className="relative w-32 h-32 rounded-3xl overflow-hidden shadow-md">
+                    <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => { setImagePreview(null); setForm({...form, image: null}); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center border-0 cursor-pointer shadow-sm"><FiX size={12} /></button>
+                 </div>
+              )}
+
+              <div className="flex gap-4 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl hover:bg-gray-200 transition-all border-0 cursor-pointer">HUỶ BỎ</button>
+                <button type="submit" disabled={submitting} className="flex-[2] py-4 bg-[#8B5E3C] text-white font-black rounded-2xl shadow-lg shadow-brown-100 hover:scale-[1.02] active:scale-95 transition-all border-0 cursor-pointer disabled:opacity-50">
+                  {submitting ? 'ĐANG LƯU...' : editing ? 'CẬP NHẬT THAY ĐỔI' : 'XÁC NHẬN THÊM MỚI'}
                 </button>
               </div>
             </form>
@@ -312,21 +322,18 @@ export default function AdminServices() {
         </div>
       )}
 
-      {/* Category Modal */}
+      {/* Simplified Category Modal */}
       {showCatModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">{editingCat ? 'Sửa danh mục' : 'Thêm danh mục'}</h2>
-              <button onClick={() => setShowCatModal(false)} className="p-1 hover:bg-gray-100 rounded"><FiX size={20} /></button>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm animate-scale-up">
+            <h2 className="text-xl font-bold mb-6 font-display">{editingCat ? 'Sửa danh mục' : 'Thêm danh mục'}</h2>
             <form onSubmit={handleCatSubmit}>
-              <input type="text" required value={catForm.name} onChange={e => setCatForm({ name: e.target.value })} placeholder="Tên danh mục"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setShowCatModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
-                <button type="submit" className="px-4 py-2 rounded-lg text-white" style={{ backgroundColor: 'var(--primary)' }}>
-                  {editingCat ? 'Cập nhật' : 'Thêm'}
+              <input type="text" required value={catForm.name} onChange={e => setCatForm({ name: e.target.value })} placeholder="Tên danh mục..."
+                className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl text-sm mb-6 outline-none focus:ring-2 focus:ring-[#8B5E3C]" />
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowCatModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
+                <button type="submit" className="flex-1 py-3 bg-[#8B5E3C] text-white font-black rounded-xl border-0 cursor-pointer shadow-md">
+                  {editingCat ? 'LƯU' : 'THÊM'}
                 </button>
               </div>
             </form>
@@ -334,27 +341,18 @@ export default function AdminServices() {
         </div>
       )}
 
-      {/* Delete Confirmations */}
+      {/* Delete Confirmation */}
       {deleteId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-2">Xác nhận xóa</h3>
-            <p className="text-gray-600 mb-4">Bạn có chắc chắn muốn xóa dịch vụ này?</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteId(null)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
-              <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Xóa</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-xs text-center animate-scale-up">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-100">
+               <FiTrash2 size={24} />
             </div>
-          </div>
-        </div>
-      )}
-      {deleteCatId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-2">Xác nhận xóa danh mục</h3>
-            <p className="text-gray-600 mb-4">Bạn có chắc chắn muốn xóa danh mục này?</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteCatId(null)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
-              <button onClick={handleDeleteCat} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">Xóa</button>
+            <h3 className="text-lg font-bold mb-2">Xác nhận xóa?</h3>
+            <p className="text-xs text-gray-500 mb-6">Hành động này không thể hoàn tác. Dịch vụ sẽ bị gỡ khỏi menu.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteId(null)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
+              <button onClick={handleDelete} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA BỎ</button>
             </div>
           </div>
         </div>

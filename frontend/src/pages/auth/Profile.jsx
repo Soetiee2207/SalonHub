@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight, FiAward, FiImage } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
 import { appointmentService } from '../../services/appointmentService';
 import { orderService } from '../../services/orderService';
+import OrderTimeline from '../../components/profile/OrderTimeline';
+import UpcomingAppointments from '../../components/profile/UpcomingAppointments';
+import LoyaltyProgress from '../../components/profile/LoyaltyProgress';
+import TransformationGallery from '../../components/profile/TransformationGallery';
 
 const roleBadgeMap = {
   admin: { label: 'Quản trị viên', bg: '#8B5E3C', color: '#fff' },
@@ -585,6 +589,76 @@ export default function Profile() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Phase 2: New Profile Sections */}
+        {user?.role === 'customer' && (
+          <>
+            {/* Active Order Timeline */}
+            {recentOrders.length > 0 && recentOrders.some(o => !['delivered', 'completed', 'cancelled'].includes(o.status)) && (
+              <div className="bg-white rounded-2xl p-8 border mt-6" style={{ borderColor: 'var(--border)' }}>
+                <h2
+                  className="text-lg font-bold mb-4"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+                >
+                  <FiShoppingBag className="inline mr-2" size={18} />
+                  Theo dõi đơn hàng
+                </h2>
+                {recentOrders
+                  .filter(o => !['delivered', 'completed', 'cancelled'].includes(o.status))
+                  .slice(0, 2)
+                  .map(order => (
+                    <OrderTimeline key={order.id} order={order} />
+                  ))
+                }
+              </div>
+            )}
+
+            {/* Upcoming Appointments with Countdown */}
+            <div className="bg-white rounded-2xl p-8 border mt-6" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2
+                  className="text-lg font-bold"
+                  style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+                >
+                  <FiClock className="inline mr-2" size={18} />
+                  Lịch hẹn sắp tới
+                </h2>
+                <Link
+                  to="/my-appointments"
+                  className="flex items-center gap-1 text-sm font-medium hover:underline"
+                  style={{ color: 'var(--primary)' }}
+                >
+                  Xem tất cả <FiChevronRight size={14} />
+                </Link>
+              </div>
+              <UpcomingAppointments appointments={recentAppointments} />
+            </div>
+
+            {/* Loyalty Progress */}
+            <div className="bg-white rounded-2xl p-8 border mt-6" style={{ borderColor: 'var(--border)' }}>
+              <h2
+                className="text-lg font-bold mb-4"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+              >
+                <FiAward className="inline mr-2" size={18} />
+                Hạng thẻ thành viên
+              </h2>
+              <LoyaltyProgress points={user?.loyaltyPoints || 0} />
+            </div>
+
+            {/* Transformation Gallery */}
+            <div className="bg-white rounded-2xl p-8 border mt-6" style={{ borderColor: 'var(--border)' }}>
+              <h2
+                className="text-lg font-bold mb-4"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+              >
+                <FiImage className="inline mr-2" size={18} />
+                Lịch sử lột xác
+              </h2>
+              <TransformationGallery items={user?.transformations || []} />
+            </div>
+          </>
         )}
         </div>
     </div>

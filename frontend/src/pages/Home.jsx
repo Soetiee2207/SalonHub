@@ -1,16 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FiAward, FiClock, FiHeart, FiShield, FiArrowRight, FiUsers, FiMapPin, FiStar, FiShoppingBag } from 'react-icons/fi';
+import { FiAward, FiClock, FiHeart, FiShield, FiArrowRight, FiUsers, FiMapPin, FiStar, FiShoppingBag, FiChevronLeft, FiChevronRight as FiChevronRightIcon } from 'react-icons/fi';
 import { serviceService } from '../services/serviceService';
 import { productService } from '../services/productService';
 import { formatPrice } from '../utils/formatPrice';
 
-const HERO_IMG = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80';
+// ============================================================
+// Hero carousel slides
+// ============================================================
+const HERO_SLIDES = [
+  {
+    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
+    title: 'Không gian tóc đẳng cấp',
+    subtitle: 'Trải nghiệm dịch vụ chăm sóc tóc chuyên nghiệp tại SalonHub — nơi phong cách gặp sự tinh tế',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920&q=80',
+    title: 'Bộ sưu tập tóc Xuân-Hè 2026',
+    subtitle: 'Khám phá những xu hướng tóc mới nhất, được cập nhật liên tục bởi đội ngũ stylist hàng đầu',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=1920&q=80',
+    title: 'Nhuộm & Uốn cao cấp',
+    subtitle: 'Sử dụng 100% sản phẩm chính hãng, bảo vệ tóc tối đa trong mọi quy trình tạo kiểu',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1920&q=80',
+    title: 'Chăm sóc & Phục hồi tóc',
+    subtitle: 'Liệu trình phục hồi tóc hư tổn chuyên sâu, trả lại mái tóc bóng khỏe tự nhiên',
+  },
+];
+
 const SERVICE_IMGS = [
   'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=600&q=80',
   'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&q=80',
 ];
-const ABOUT_IMG = 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80';
 
 const features = [
   {
@@ -42,6 +66,123 @@ const stats = [
   { icon: FiStar, value: '4.8', label: 'Đánh giá trung bình' },
 ];
 
+// ============================================================
+// Hero Banner Carousel
+// ============================================================
+function HeroBanner() {
+  const [current, setCurrent] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const goToSlide = useCallback((index) => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setCurrent(index);
+    setTimeout(() => setIsTransitioning(false), 800);
+  }, [isTransitioning]);
+
+  const nextSlide = useCallback(() => {
+    goToSlide((current + 1) % HERO_SLIDES.length);
+  }, [current, goToSlide]);
+
+  const prevSlide = useCallback(() => {
+    goToSlide((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  }, [current, goToSlide]);
+
+  // Auto-slide every 5s
+  useEffect(() => {
+    const timer = setInterval(nextSlide, 5000);
+    return () => clearInterval(timer);
+  }, [nextSlide]);
+
+  const slide = HERO_SLIDES[current];
+
+  return (
+    <section className="relative flex items-center justify-center px-4 overflow-hidden" style={{ minHeight: '80vh' }}>
+      {/* Background images with crossfade */}
+      {HERO_SLIDES.map((s, idx) => (
+        <div
+          key={idx}
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+          style={{
+            backgroundImage: `url(${s.image})`,
+            opacity: idx === current ? 1 : 0,
+          }}
+        />
+      ))}
+      <div className="absolute inset-0" style={{ backgroundColor: 'rgba(30, 20, 12, 0.6)' }} />
+
+      {/* Content */}
+      <div className="relative z-10 max-w-3xl mx-auto text-center text-white">
+        <h1
+          key={`title-${current}`}
+          className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in-up"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {slide.title}
+        </h1>
+        <p
+          key={`sub-${current}`}
+          className="text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-in-up-delay"
+          style={{ color: 'rgba(255,255,255,0.9)' }}
+        >
+          {slide.subtitle}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up-delay-2">
+          <Link
+            to="/book-appointment"
+            className="cta-pulse inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-bold text-lg transition-all no-underline shadow-xl"
+            style={{ backgroundColor: 'var(--primary)', color: '#fff' }}
+          >
+            Đặt lịch ngay
+            <FiArrowRight />
+          </Link>
+          <Link
+            to="/services"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-semibold text-base border-2 border-white text-white transition-colors hover:bg-white/10 no-underline"
+          >
+            Khám phá dịch vụ
+          </Link>
+        </div>
+      </div>
+
+      {/* Carousel arrows */}
+      <button
+        onClick={prevSlide}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/40 text-white transition-colors backdrop-blur-sm cursor-pointer border-0"
+        aria-label="Previous slide"
+      >
+        <FiChevronLeft size={20} />
+      </button>
+      <button
+        onClick={nextSlide}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/40 text-white transition-colors backdrop-blur-sm cursor-pointer border-0"
+        aria-label="Next slide"
+      >
+        <FiChevronRightIcon size={20} />
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        {HERO_SLIDES.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => goToSlide(idx)}
+            className="w-3 h-3 rounded-full transition-all border-0 cursor-pointer"
+            style={{
+              backgroundColor: idx === current ? 'var(--primary)' : 'rgba(255,255,255,0.5)',
+              transform: idx === current ? 'scale(1.3)' : 'scale(1)',
+            }}
+            aria-label={`Go to slide ${idx + 1}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// Main Home Page
+// ============================================================
 export default function Home() {
   const [services, setServices] = useState([]);
   const [products, setProducts] = useState([]);
@@ -68,47 +209,8 @@ export default function Home() {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section
-        className="relative flex items-center justify-center px-4"
-        style={{ minHeight: '80vh' }}
-      >
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${HERO_IMG})` }}
-        />
-        <div className="absolute inset-0" style={{ backgroundColor: 'rgba(30, 20, 12, 0.6)' }} />
-        <div className="relative z-10 max-w-3xl mx-auto text-center text-white">
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in-up"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Không gian tóc đẳng cấp
-          </h1>
-          <p
-            className="text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-in-up-delay"
-            style={{ opacity: 0, color: 'rgba(255,255,255,0.9)' }}
-          >
-            Trải nghiệm dịch vụ chăm sóc tóc chuyên nghiệp tại SalonHub — nơi phong cách gặp sự tinh tế
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up-delay-2" style={{ opacity: 0 }}>
-            <Link
-              to="/book-appointment"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-semibold text-base transition-colors no-underline"
-              style={{ backgroundColor: 'var(--primary)', color: '#fff' }}
-            >
-              Đặt lịch ngay
-              <FiArrowRight />
-            </Link>
-            <Link
-              to="/services"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-semibold text-base border-2 border-white text-white transition-colors hover:bg-white/10 no-underline"
-            >
-              Khám phá dịch vụ
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Carousel */}
+      <HeroBanner />
 
       {/* Stats Bar */}
       <section style={{ backgroundColor: 'var(--bg-warm)' }}>
@@ -163,7 +265,7 @@ export default function Home() {
                 <Link
                   key={service.id}
                   to={`/services/${service.id}`}
-                  className="bg-white rounded-xl overflow-hidden border no-underline transition-transform duration-200 hover:scale-[1.02]"
+                  className="bg-white rounded-xl overflow-hidden border no-underline transition-transform duration-200 hover:scale-[1.02] relative"
                   style={{ borderColor: 'var(--border)' }}
                 >
                   <div className="h-48 overflow-hidden">
@@ -216,16 +318,13 @@ export default function Home() {
       <section className="py-16 px-4" style={{ backgroundColor: 'var(--bg-warm)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Image */}
             <div className="rounded-xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
               <img
-                src={ABOUT_IMG}
+                src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80"
                 alt="Dụng cụ salon chuyên nghiệp"
                 className="w-full h-full object-cover"
               />
             </div>
-
-            {/* Content */}
             <div>
               <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--primary-dark)', fontFamily: 'var(--font-display)' }}>
                 Tại sao chọn SalonHub?
@@ -347,7 +446,7 @@ export default function Home() {
           </p>
           <Link
             to="/book-appointment"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-semibold text-base text-white transition-colors no-underline"
+            className="cta-pulse inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-bold text-lg text-white transition-all no-underline shadow-xl"
             style={{ backgroundColor: 'var(--primary)' }}
           >
             Đặt lịch ngay

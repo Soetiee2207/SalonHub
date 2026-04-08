@@ -1,407 +1,267 @@
-const db = require('../models');
 const { Op } = require('sequelize');
-const bcrypt = require('bcryptjs');
+const db = require('../models');
+const { User, Appointment, Service, Order, OrderItem, Product, CustomerServiceNote, Branch, Review, sequelize } = db;
 
-// Get all staff members
+// ============================================================
+// PUT /api/staff/status
+// Cập nhật trạng thái làm việc của thợ (Available, Break, Busy)
+// ============================================================
+const updateWorkStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!['available', 'break', 'busy'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
+    }
+
+    await User.update({ workStatus: status }, { where: { id: req.user.id } });
+    res.json({ success: true, message: 'Cập nhật trạng thái thành công', status });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// GET /api/staff/customer-history/:customerId
+// Lấy lịch sử làm tóc và bí kíp (công thức hóa chất) của một khách
+// ============================================================
+const getCustomerHistoryDetail = async (req, res, next) => {
+  try {
+    const { customerId } = req.params;
+
+    const appointments = await Appointment.findAll({
+      where: { userId: customerId, status: 'completed' },
+      include: [
+        { model: Service, as: 'service', attributes: ['name', 'price'] },
+        { 
+          model: Order, 
+          as: 'upsellOrder', 
+          include: [{ 
+            model: OrderItem, 
+            as: 'items', 
+            include: [{ model: Product, as: 'product', attributes: ['name'] }] 
+          }] 
+        },
+        { model: CustomerServiceNote, as: 'notes' }
+      ],
+      order: [['date', 'DESC'], ['startTime', 'DESC']]
+    });
+
+    // Lấy tất cả ghi chú tích lũy cho khách hàng này
+    const allNotes = await CustomerServiceNote.findAll({
+      where: { customerId },
+      include: [{ model: User, as: 'staff', attributes: ['fullName'] }],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        appointments,
+        allNotes
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// POST /api/staff/customer-notes
+// Lưu công thức hóa chất hoặc ghi chú phục vụ khách
+// ============================================================
+const saveCustomerServiceNote = async (req, res, next) => {
+  try {
+    const { customerId, appointmentId, serviceId, notes, formulas, photos } = req.body;
+    
+    const serviceNote = await CustomerServiceNote.create({
+      customerId,
+      staffId: req.user.id,
+      appointmentId,
+      serviceId,
+      notes,
+      formulas,
+      photos // JSON
+    });
+
+    res.status(201).json({ success: true, data: serviceNote });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// GET /api/staff/dashboard-stats
+// Thống kê nhanh cho thợ (Lịch hôm nay, Review gần đây)
+// ============================================================
+const getStaffDashboardStats = async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const staffId = req.user.id;
+
+    const todayAppts = await Appointment.count({
+      where: { staffId, date: today, status: { [Op.ne]: 'cancelled' } }
+    });
+
+    const pendingAppts = await Appointment.count({
+      where: { staffId, date: today, status: { [Op.in]: ['pending', 'confirmed'] } }
+    });
+
+    const completedAppts = await Appointment.count({
+      where: { staffId, date: today, status: 'completed' }
+    });
+
+    // Tính điểm đánh giá trung bình
+    const reviews = await Review.findAll({
+      where: { staffId, isHidden: false },
+      attributes: ['rating']
+    });
+    
+    let avgRating = 5.0;
+    if (reviews.length > 0) {
+      const sum = reviews.reduce((s, r) => s + r.rating, 0);
+      avgRating = parseFloat((sum / reviews.length).toFixed(1));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        todayTotal: todayAppts,
+        pending: pendingAppts,
+        completed: completedAppts,
+        workStatus: req.user.workStatus,
+        averageRating: avgRating,
+        totalReviews: reviews.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// GET /api/staff
+// Lấy danh sách tất cả nhân viên (dành cho Admin/Quản lý)
+// ============================================================
 const getAllStaff = async (req, res, next) => {
   try {
-    const staff = await db.User.findAll({
-      where: { role: 'staff' },
-      attributes: { exclude: ['password'] },
-      include: [
-        { model: db.Branch, as: 'branch' },
-        {
-          model: db.StaffSkill,
-          as: 'skills',
-          include: [{ model: db.Service, as: 'service' }],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
-    });
+    const { branchId, serviceId } = req.query;
+    const where = {
+      role: { [Op.in]: ['admin', 'staff', 'service_staff', 'accountant', 'warehouse_staff'] }
+    };
 
-    res.status(200).json({
-      success: true,
-      data: staff,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get staff by ID
-const getStaffById = async (req, res, next) => {
-  try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-      attributes: { exclude: ['password'] },
-      include: [
-        { model: db.Branch, as: 'branch' },
-        {
-          model: db.StaffSkill,
-          as: 'skills',
-          include: [{ model: db.Service, as: 'service' }],
-        },
-        {
-          model: db.StaffSchedule,
-          as: 'schedules',
-          include: [{ model: db.Branch, as: 'branch' }],
-        },
-      ],
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
+    if (branchId) {
+      where.branchId = branchId;
     }
 
-    // Calculate average review rating
-    const avgRating = await db.Review.findOne({
-      where: { staffId: req.params.id },
-      attributes: [
-        [db.sequelize.fn('AVG', db.sequelize.col('rating')), 'averageRating'],
-        [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'totalReviews'],
-      ],
-      raw: true,
-    });
+    const include = [
+      { model: Branch, as: 'branch', attributes: ['name'] },
+      { 
+        model: db.Service, 
+        as: 'skilledServices', 
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+      }
+    ];
 
-    const staffData = staff.toJSON();
-    staffData.averageRating = avgRating.averageRating
-      ? parseFloat(parseFloat(avgRating.averageRating).toFixed(1))
-      : null;
-    staffData.totalReviews = parseInt(avgRating.totalReviews) || 0;
+    // Lọc theo kĩ năng nếu có serviceId
+    if (serviceId) {
+      include[1].where = { id: serviceId };
+    }
 
-    res.status(200).json({
-      success: true,
-      data: staffData,
+    const staff = await User.findAll({
+      where,
+      attributes: { exclude: ['password'] },
+      include,
+      order: [['fullName', 'ASC']]
     });
+    res.json({ success: true, data: staff });
   } catch (error) {
     next(error);
   }
 };
 
-// Create staff (admin only)
+// ============================================================
+// POST /api/staff
+// Thêm nhân viên mới (Admin only)
+// ============================================================
 const createStaff = async (req, res, next) => {
   try {
-    const { fullName, email, password, phone, branchId, serviceIds } = req.body;
+    const { email, password, fullName, phone, role, branchId } = req.body;
+    
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Check if email already exists
-    const existingUser = await db.User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already in use.',
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const staff = await db.User.create({
-      fullName,
+    const staff = await User.create({
       email,
       password: hashedPassword,
+      fullName,
       phone,
-      role: 'staff',
-      branchId: branchId || null,
+      role,
+      branchId,
+      isActive: true
     });
 
-    // Assign skills if provided
-    if (serviceIds && serviceIds.length > 0) {
-      const skillRecords = serviceIds.map((serviceId) => ({
-        userId: staff.id,
-        serviceId,
-      }));
-      await db.StaffSkill.bulkCreate(skillRecords);
+    if (req.body.serviceIds && Array.isArray(req.body.serviceIds)) {
+      await staff.setSkilledServices(req.body.serviceIds);
     }
 
-    const staffWithDetails = await db.User.findByPk(staff.id, {
-      attributes: { exclude: ['password'] },
-      include: [
-        { model: db.Branch, as: 'branch' },
-        {
-          model: db.StaffSkill,
-          as: 'skills',
-          include: [{ model: db.Service, as: 'service' }],
-        },
-      ],
-    });
-
-    res.status(201).json({
-      success: true,
-      data: staffWithDetails,
-    });
+    const result = staff.toJSON();
+    delete result.password;
+    res.status(201).json({ success: true, data: result });
   } catch (error) {
     next(error);
   }
 };
 
-// Update staff (admin only)
+// ============================================================
+// PUT /api/staff/:id
+// Cập nhật thông tin nhân viên (Admin only)
+// ============================================================
 const updateStaff = async (req, res, next) => {
   try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
+    const { id } = req.params;
+    const { serviceIds, ...userFields } = req.body;
+    delete userFields.password; // Không cho phép đổi pass qua đây
 
+    const staff = await User.findByPk(id);
     if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
+        return res.status(404).json({ success: false, message: 'Nhân viên không tồn tại' });
     }
 
-    const { fullName, email, phone, branchId, serviceIds } = req.body;
+    await staff.update(userFields);
 
-    const updateData = {};
-    if (fullName !== undefined) updateData.fullName = fullName;
-    if (email !== undefined) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
-    if (branchId !== undefined) updateData.branchId = branchId;
-
-    await staff.update(updateData);
-
-    // Update skills if provided
-    if (serviceIds !== undefined) {
-      await db.StaffSkill.destroy({ where: { userId: staff.id } });
-      if (serviceIds.length > 0) {
-        const skillRecords = serviceIds.map((serviceId) => ({
-          userId: staff.id,
-          serviceId,
-        }));
-        await db.StaffSkill.bulkCreate(skillRecords);
-      }
+    if (serviceIds && Array.isArray(serviceIds)) {
+      await staff.setSkilledServices(serviceIds);
     }
 
-    const updatedStaff = await db.User.findByPk(staff.id, {
-      attributes: { exclude: ['password'] },
-      include: [
-        { model: db.Branch, as: 'branch' },
-        {
-          model: db.StaffSkill,
-          as: 'skills',
-          include: [{ model: db.Service, as: 'service' }],
-        },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      data: updatedStaff,
-    });
+    res.json({ success: true, message: 'Cập nhật nhân viên thành công' });
   } catch (error) {
     next(error);
   }
 };
 
-// Delete staff (admin only) - soft approach
+// ============================================================
+// DELETE /api/staff/:id
+// Xóa nhân viên (Admin only)
+// ============================================================
 const deleteStaff = async (req, res, next) => {
   try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
-    }
-
-    await staff.update({ role: 'customer' });
-
-    // Remove schedules and skills
-    await db.StaffSchedule.destroy({ where: { userId: staff.id } });
-    await db.StaffSkill.destroy({ where: { userId: staff.id } });
-
-    res.status(200).json({
-      success: true,
-      data: { message: 'Staff member deactivated successfully.' },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get staff schedules
-const getStaffSchedules = async (req, res, next) => {
-  try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
-    }
-
-    const schedules = await db.StaffSchedule.findAll({
-      where: { userId: req.params.id },
-      include: [{ model: db.Branch, as: 'branch' }],
-      order: [['dayOfWeek', 'ASC']],
-    });
-
-    res.status(200).json({
-      success: true,
-      data: schedules,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Set staff schedule (admin only)
-const setStaffSchedule = async (req, res, next) => {
-  try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
-    }
-
-    const { schedules } = req.body;
-
-    if (!schedules || !Array.isArray(schedules)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Schedules must be an array of {dayOfWeek, startTime, endTime}.',
-      });
-    }
-
-    // Remove existing schedules
-    await db.StaffSchedule.destroy({ where: { userId: staff.id } });
-
-    // Create new schedules
-    const scheduleRecords = schedules.map((s) => ({
-      userId: staff.id,
-      branchId: staff.branchId,
-      dayOfWeek: s.dayOfWeek,
-      startTime: s.startTime,
-      endTime: s.endTime,
-    }));
-
-    await db.StaffSchedule.bulkCreate(scheduleRecords);
-
-    const updatedSchedules = await db.StaffSchedule.findAll({
-      where: { userId: staff.id },
-      include: [{ model: db.Branch, as: 'branch' }],
-      order: [['dayOfWeek', 'ASC']],
-    });
-
-    res.status(200).json({
-      success: true,
-      data: updatedSchedules,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Add staff skill (admin only)
-const addStaffSkill = async (req, res, next) => {
-  try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
-    }
-
-    const { serviceId } = req.body;
-
-    // Check if service exists
-    const service = await db.Service.findByPk(serviceId);
-    if (!service) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service not found.',
-      });
-    }
-
-    // Check if skill already exists
-    const existingSkill = await db.StaffSkill.findOne({
-      where: { userId: staff.id, serviceId },
-    });
-
-    if (existingSkill) {
-      return res.status(400).json({
-        success: false,
-        message: 'Staff already has this skill.',
-      });
-    }
-
-    const skill = await db.StaffSkill.create({
-      userId: staff.id,
-      serviceId,
-    });
-
-    const skillWithService = await db.StaffSkill.findByPk(skill.id, {
-      include: [{ model: db.Service, as: 'service' }],
-    });
-
-    res.status(201).json({
-      success: true,
-      data: skillWithService,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Remove staff skill (admin only)
-const removeStaffSkill = async (req, res, next) => {
-  try {
-    const staff = await db.User.findOne({
-      where: { id: req.params.id, role: 'staff' },
-    });
-
-    if (!staff) {
-      return res.status(404).json({
-        success: false,
-        message: 'Staff member not found.',
-      });
-    }
-
-    const skill = await db.StaffSkill.findOne({
-      where: { userId: staff.id, serviceId: req.params.serviceId },
-    });
-
-    if (!skill) {
-      return res.status(404).json({
-        success: false,
-        message: 'Skill not found for this staff member.',
-      });
-    }
-
-    await skill.destroy();
-
-    res.status(200).json({
-      success: true,
-      data: { message: 'Skill removed successfully.' },
-    });
+    await User.destroy({ where: { id: req.params.id } });
+    res.json({ success: true, message: 'Xóa nhân viên thành công' });
   } catch (error) {
     next(error);
   }
 };
 
 module.exports = {
+  updateWorkStatus,
+  getCustomerHistoryDetail,
+  saveCustomerServiceNote,
+  getStaffDashboardStats,
   getAllStaff,
-  getStaffById,
   createStaff,
   updateStaff,
-  deleteStaff,
-  getStaffSchedules,
-  setStaffSchedule,
-  addStaffSkill,
-  removeStaffSkill,
+  deleteStaff
 };

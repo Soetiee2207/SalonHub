@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Login() {
-  const { user, login } = useAuth();
+  const { user, login, googleLogin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +38,19 @@ export default function Login() {
       await login(form);
       toast.success('Đăng nhập thành công!');
     } catch (err) {
-      toast.error(err.message || 'Email hoặc mật khẩu không đúng');
+      toast.error(err.message || 'Email, Số điện thoại hoặc mật khẩu không đúng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    try {
+      await googleLogin(credentialResponse.credential);
+      toast.success('Đăng nhập Google thành công!');
+    } catch (err) {
+      toast.error(err.message || 'Đăng nhập Google thất bại');
     } finally {
       setLoading(false);
     }
@@ -179,6 +192,28 @@ export default function Login() {
               >
                 {loading ? 'Đang xử lý...' : 'Đăng nhập'}
               </button>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-100"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase tracking-widest font-bold">
+                  <span className="bg-white px-4 text-slate-300">Hoặc</span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => toast.error('Đăng nhập Google thất bại')}
+                  theme="outline"
+                  shape="pill"
+                  size="large"
+                  text="continue_with"
+                  locale="vi"
+                  width="320"
+                />
+              </div>
             </form>
 
             <p

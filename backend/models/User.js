@@ -17,9 +17,14 @@ module.exports = (sequelize, DataTypes) => {
         isEmail: true,
       },
     },
+    googleId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true, // Allow null for Google-only users
     },
     phone: {
       type: DataTypes.STRING,

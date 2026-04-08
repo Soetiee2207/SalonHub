@@ -5,6 +5,7 @@ const { uploadSingle } = require('../middleware/upload');
 const {
   register,
   login,
+  googleLogin,
   getProfile,
   updateProfile,
   changePassword,
@@ -13,6 +14,7 @@ const {
 // Public routes
 router.post('/register', register);
 router.post('/login', login);
+router.post('/google-login', googleLogin);
 
 // Protected routes (require authentication)
 router.get('/profile', authenticate, getProfile);

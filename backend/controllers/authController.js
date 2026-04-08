@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../models');
+const { OAuth2Client } = require('google-auth-library');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (user) => {
   return jwt.sign(
@@ -105,7 +108,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Email hoặc mật khẩu không đúng',
+        message: 'Email, Số điện thoại hoặc mật khẩu không đúng',
       });
     }
 
@@ -261,9 +264,75 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    Login with Google
+// @route   POST /api/auth/google-login
+const googleLogin = async (req, res) => {
+  try {
+    const { tokenId } = req.body;
+
+    if (!tokenId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google Token is required.',
+      });
+    }
+
+    // Verify Google Token
+    const ticket = await client.verifyIdToken({
+      idToken: tokenId,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { sub: googleId, email, name: fullName, picture: avatar } = ticket.getPayload();
+
+    // Find or create user
+    let user = await db.User.findOne({
+      where: {
+        [db.Sequelize.Op.or]: [{ googleId }, { email }],
+      },
+    });
+
+    if (!user) {
+      // Create new customer account if not exists
+      user = await db.User.create({
+        fullName,
+        email,
+        googleId,
+        avatar,
+        role: 'customer',
+        password: null, // No password for Google users
+      });
+    } else if (!user.googleId) {
+      // Link Google account to existing email account
+      await user.update({ googleId, avatar: user.avatar || avatar });
+    }
+
+    // Generate SalonHub token
+    const token = generateToken(user);
+
+    const userData = user.toJSON();
+    delete userData.password;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: userData,
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Google Login error:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Xác thực Google thất bại.',
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
+  googleLogin,
   getProfile,
   updateProfile,
   changePassword,

@@ -1,12 +1,34 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const dbConfig = require('../config/database');
 
-const sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
-  host: dbConfig.host,
-  dialect: dbConfig.dialect,
-  pool: dbConfig.pool,
-  logging: dbConfig.logging,
-});
+const { Sequelize, DataTypes } = require('sequelize');
+const dbConfig = require('../config/database');
+
+let sequelize;
+
+// Nếu có biến DATABASE_URL (chạy trên Render/Mây)
+if (process.env.DATABASE_URL) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'mysql',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: true, // Bùa hộ mệnh cho TiDB Cloud
+      },
+    },
+    logging: false,
+  });
+} else {
+  // Nếu không có (chạy ở máy local của sư huynh)
+  sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
+    host: dbConfig.host,
+    dialect: dbConfig.dialect,
+    pool: dbConfig.pool,
+    logging: dbConfig.logging,
+  });
+}
+
+// ... giữ nguyên phần Import models và Associations bên dưới ...
 
 // Import models
 const User = require('./User')(sequelize, DataTypes);
@@ -32,6 +54,7 @@ const ProductBatch = require('./ProductBatch')(sequelize, DataTypes);
 const CashFlowTransaction = require('./CashFlowTransaction')(sequelize, DataTypes);
 const RefundRequest = require('./RefundRequest')(sequelize, DataTypes);
 const CustomerServiceNote = require('./CustomerServiceNote')(sequelize, DataTypes);
+
 
 // ===================== ASSOCIATIONS =====================
 

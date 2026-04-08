@@ -1,9 +1,12 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: `${API_URL}/api`, 
   headers: { 'Content-Type': 'application/json' }
 });
+
 
 // Request interceptor - add auth token
 api.interceptors.request.use((config) => {

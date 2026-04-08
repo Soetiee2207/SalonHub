@@ -840,6 +840,7 @@ const checkoutAppointment = async (req, res, next) => {
 
     await appointment.update({
       status: 'completed',
+      orderId: order ? order.id : appointment.orderId
     }, { transaction });
 
     // Đồng bộ Kế toán (Tạo phiếu thu & Payment)

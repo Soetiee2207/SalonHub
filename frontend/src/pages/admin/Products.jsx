@@ -230,7 +230,7 @@ export default function AdminProducts() {
                   <td className="hidden md:table-cell px-4 py-3 text-gray-600">{getCatName(p)}</td>
                   <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--primary)' }}>{formatPrice(p.price)}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.stock <= 0 ? 'bg-red-100 text-red-700' : p.stock <= 10 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.stock <= 0 ? 'bg-red-100 text-red-700' : p.stock <= 10 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`} title="Tồn kho được quản lý bởi bộ phận Kho vận">
                       {p.stock}
                     </span>
                   </td>
@@ -287,9 +287,10 @@ export default function AdminProducts() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho *</label>
-                  <input type="number" required min="0" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tồn kho (Quản lý bởi kho)</label>
+                  <input type="number" readOnly value={form.stock || 0}
+                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg focus:outline-none text-gray-500 cursor-not-allowed" />
+                  <p className="text-[10px] text-gray-400 mt-1 italic">* Phải lập "Phiếu Nhập PO" tại trang Kho để tăng số lượng.</p>
                 </div>
               </div>
               <div>

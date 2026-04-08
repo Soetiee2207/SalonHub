@@ -227,15 +227,15 @@ export default function WarehouseDashboard() {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 font-serif">Tổng đà thủ kho</h1>
           <p className="text-sm text-gray-500 mt-1">Nghiệp vụ quan sát real-time tồn kho & vận tiêu</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex">
           <button
             onClick={fetchDashboardData}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-xl hover:shadow-sm transition-all"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-xl hover:shadow-sm transition-all"
           >
             <FiRefreshCw className={loading ? 'animate-spin' : ''} />
             Làm mới nhãn thuật
@@ -257,8 +257,8 @@ export default function WarehouseDashboard() {
       </div>
 
       {/* Footer Banner */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-6 text-white flex items-center justify-between">
-        <div className="flex items-center gap-5">
+      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
           <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
             <FiCheckCircle size={32} className="text-green-400" />
           </div>
@@ -267,7 +267,7 @@ export default function WarehouseDashboard() {
             <p className="text-gray-400 text-sm">Không có sự cố biến động bất thường trong 24 giờ qua.</p>
           </div>
         </div>
-        <div className="hidden md:block">
+        <div className="w-full md:w-auto flex justify-center">
           <div className="flex items-center gap-2 text-xs font-mono bg-white/5 px-4 py-2 rounded-full border border-white/10">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             REAL-TIME WMS SYNC

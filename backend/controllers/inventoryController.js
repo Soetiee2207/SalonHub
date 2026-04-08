@@ -138,8 +138,9 @@ const createImport = async (req, res, next) => {
     }, { transaction: t });
 
     // 4. Tự động tạo Phiếu Chi (CashFlowTransaction) cho Kế toán
-    if (purchasePrice && parseFloat(purchasePrice) > 0) {
-      const totalAmount = parseFloat(purchasePrice) * parseInt(quantity);
+    const actualPurchasePrice = purchasePrice || price;
+    if (actualPurchasePrice && parseFloat(actualPurchasePrice) > 0) {
+      const totalAmount = parseFloat(actualPurchasePrice) * parseInt(quantity);
       await CashFlowTransaction.create({
         type: 'payment',
         category: 'supplier_payment',
@@ -148,7 +149,7 @@ const createImport = async (req, res, next) => {
         status: 'pending',
         referenceType: 'inventory_import',
         referenceId: transaction.id,
-        note: `Thanh toán nhập kho lô ${batchNumber || transaction.id} - SP: ${product.name}`,
+        note: `Chi tiền nhập hàng: ${product.name} (SL: ${quantity}) - Lô: ${batchNumber || 'Mới'}`,
         createdBy,
       }, { transaction: t });
     }

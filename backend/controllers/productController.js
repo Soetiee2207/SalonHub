@@ -98,7 +98,7 @@ const createProduct = async (req, res, next) => {
       name,
       description,
       price,
-      stock: stock || 0,
+      stock: 0, // Tồn kho khởi tạo luôn là 0, phải nhập kho PO mới tăng
       categoryId,
       image,
     });
@@ -134,7 +134,7 @@ const updateProduct = async (req, res, next) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
-    if (stock !== undefined) updateData.stock = stock;
+    // stock is NOT allowed to be updated here
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (req.file) updateData.image = req.file.path;

@@ -59,11 +59,12 @@ const getFinancialStats = async (req, res, next) => {
       }
     }) || 0;
 
-    // 3. Chi phí vận hành (từ CashFlowTransaction type='payment')
+    // 3. Chi phí vận hành (từ CashFlowTransaction)
+    // Bao gồm cả 'completed' và 'pending' để chủ doanh nghiệp thấy được dòng tiền sắp chi
     const totalExpenses = await CashFlowTransaction.sum('amount', {
       where: { 
         type: 'payment',
-        status: 'completed',
+        status: { [Op.in]: ['completed', 'pending'] },
         ...dateFilter
       }
     }) || 0;
@@ -98,12 +99,44 @@ const getFinancialStats = async (req, res, next) => {
             cogs: cogs,
             operating: totalExpenses - cogs > 0 ? totalExpenses - cogs : 0
         },
-        netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs
+        netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs,
+        // 5. Dữ liệu biểu đồ 7 ngày gần nhất
+        chartData: await getChartData()
       },
     });
   } catch (error) {
     next(error);
   }
+};
+
+// Hàm helper tính toán dữ liệu biểu đồ
+const getChartData = async () => {
+    const days = [];
+    const now = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const start = new Date(d.setHours(0, 0, 0, 0));
+        const end = new Date(d.setHours(23, 59, 59, 999));
+
+        const dayName = d.toLocaleDateString('vi-VN', { weekday: 'short' });
+
+        const rev = await Payment.sum('amount', {
+            where: { status: 'success', createdAt: { [Op.between]: [start, end] } }
+        }) || 0;
+
+        const exp = await CashFlowTransaction.sum('amount', {
+            where: { 
+                type: 'payment', 
+                status: { [Op.in]: ['completed', 'pending'] },
+                createdAt: { [Op.between]: [start, end] } 
+            }
+        }) || 0;
+
+        days.push({ name: dayName, revenue: rev, expenses: exp });
+    }
+    return days;
 };
 
 // ============================================================

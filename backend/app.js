@@ -28,6 +28,11 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
+// Root health check for Render/Cloudflare
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'SalonHub Server is alive and well!' });
+});
+
 // Health check (Must be before main routes and auth)
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'SalonHub API is running' });

@@ -80,12 +80,12 @@ export default function Fulfillment() {
           <p className="text-sm text-gray-500">Xử lý đóng gói và bàn giao shipper</p>
         </div>
         
-        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm overflow-x-auto custom-scrollbar no-scrollbar">
           {['pending', 'confirmed', 'packing', 'shipping'].map(s => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 filterStatus === s ? 'bg-[var(--primary)] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'
               }`}
             >
@@ -110,8 +110,8 @@ export default function Fulfillment() {
       </div>
 
       {/* Orders List */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left min-w-[900px]">
           <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
             <tr>
               <th className="px-6 py-4 font-semibold">Đơn hàng</th>

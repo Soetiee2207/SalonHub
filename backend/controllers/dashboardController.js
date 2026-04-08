@@ -505,7 +505,7 @@ const getCommandCenter = async (req, res, next) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Low stock alerts (Physical stock <= minimum stock)
+    // 1. Low stock alerts
     const lowStock = await db.Product.findAll({
       where: {
         stock: { [Op.lte]: db.sequelize.col('minStock') },
@@ -544,13 +544,35 @@ const getCommandCenter = async (req, res, next) => {
       include: [{ model: db.User, as: 'customer', attributes: ['fullName'] }],
     });
 
+    // 5. Hourly traffic for today
+    const traffic = await db.Appointment.findAll({
+      where: { date: today },
+      attributes: [
+        [db.sequelize.fn('HOUR', db.sequelize.col('startTime')), 'hour'],
+        [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count'],
+      ],
+      group: [db.sequelize.fn('HOUR', db.sequelize.col('startTime'))],
+      order: [[db.sequelize.fn('HOUR', db.sequelize.col('startTime')), 'ASC']],
+      raw: true,
+    });
+
+    const fullHours = [];
+    for (let h = 8; h <= 20; h++) {
+      const found = traffic.find((t) => Number(t.hour) === h);
+      fullHours.push({
+        hour: h,
+        label: `${h}:00`,
+        count: found ? Number(found.count) : 0,
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: {
         lowStock: lowStock.map(p => ({
           type: 'critical',
           title: 'Cảnh báo tồn kho',
-          message: `Sản phẩm ${p.name} hiện chỉ còn ${p.stock ?? p.quantity} sản phẩm trong kho. Vui lòng kiểm tra và nhập thêm hàng.`,
+          message: `Sản phẩm ${p.name} hiện chỉ còn ${p.stock ?? p.quantity} sản phẩm trong kho.`,
           id: p.id,
           icon: 'FiPackage'
         })),
@@ -563,10 +585,11 @@ const getCommandCenter = async (req, res, next) => {
           icon: 'FiCalendar'
         })),
         todaySchedule,
+        hours: fullHours,
         recentReviews: recentServiceReviews.map(r => ({
           type: 'info',
           title: 'Phản hồi mới',
-          message: `Khách hàng ${r.customer?.fullName} đã gửi đánh giá: "${r.comment?.slice(0, 30)}..."`,
+          message: `Khách hàng ${r.customer?.fullName} đã gửi đánh giá.`,
           id: r.id,
           icon: 'FiStar'
         })),

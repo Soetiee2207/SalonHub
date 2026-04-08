@@ -265,7 +265,7 @@ export default function WarehouseInventoryDocs() {
           <p className="text-slate-400 mt-2 font-medium">Lập lệnh điều hành nghiệp vụ Kho vận chuyên nghiệp</p>
         </div>
         
-        <div className="flex gap-4 p-2 bg-slate-50 rounded-3xl border border-slate-100 w-full md:w-auto overflow-x-auto">
+        <div className="flex gap-4 p-2 bg-slate-50 rounded-3xl border border-slate-100 w-full md:w-auto overflow-x-auto custom-scrollbar no-scrollbar">
           <button 
             onClick={() => { setActiveTab('import'); resetForm(); }}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all border-0 cursor-pointer ${
@@ -305,8 +305,8 @@ export default function WarehouseInventoryDocs() {
             </button>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-slate-50/50">
                   <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Thời gian / Số hiệu</th>

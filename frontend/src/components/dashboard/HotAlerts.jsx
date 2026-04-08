@@ -1,7 +1,20 @@
 import React from 'react';
-import { FiAlertCircle, FiInfo, FiClock, FiPackage } from 'react-icons/fi';
+import { 
+  FiAlertCircle, FiInfo, FiClock, FiPackage, 
+  FiCalendar, FiStar, FiAlertTriangle 
+} from 'react-icons/fi';
 
-const AlertItem = ({ type, title, message, time, icon: Icon }) => {
+const iconMap = {
+  FiAlertCircle,
+  FiInfo,
+  FiClock,
+  FiPackage,
+  FiCalendar,
+  FiStar,
+  FiAlertTriangle
+};
+
+const AlertItem = ({ type, title, message, time, icon }) => {
   const styles = {
     critical: {
       bg: 'bg-red-50',
@@ -24,11 +37,12 @@ const AlertItem = ({ type, title, message, time, icon: Icon }) => {
   };
 
   const s = styles[type] || styles.info;
+  const SelectedIcon = iconMap[icon] || FiInfo;
 
   return (
     <div className={`flex items-start gap-4 p-4 rounded-xl border-l-4 transition-all hover:translate-x-1 ${s.bg} ${s.border} ${s.text} border-opacity-50 mb-3`}>
       <div className={`mt-0.5 ${s.iconColor}`}>
-        <Icon size={18} />
+        <SelectedIcon size={18} />
       </div>
       <div className="flex-1 min-w-0">
         <h5 className="text-sm font-bold truncate">{title}</h5>

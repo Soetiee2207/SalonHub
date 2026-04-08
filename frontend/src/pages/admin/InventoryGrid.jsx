@@ -71,8 +71,8 @@ export default function InventoryGrid() {
       </div>
 
       {/* Inventory Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-left">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left min-w-[800px]">
           <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] tracking-wider">
             <tr>
               <th className="px-6 py-4 font-bold">Vật phẩm</th>

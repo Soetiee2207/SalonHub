@@ -11,8 +11,8 @@ db.sequelize
     console.log('✅ Success: Database synced successfully.');
     console.log(`📡 Connecting to: ${process.env.DB_HOST || 'local TiDB/MySQL'}`);
     
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server is running on port ${PORT} (0.0.0.0)`);
       console.log(`🔗 API Health check: http://localhost:${PORT}/api/health`);
     });
   })

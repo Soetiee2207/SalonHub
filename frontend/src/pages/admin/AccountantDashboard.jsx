@@ -66,15 +66,7 @@ export default function AccountantDashboard() {
 
   if (loading && !stats) return <div className="h-screen flex items-center justify-center"><FiRefreshCcw className="animate-spin text-slate-300" size={40} /></div>;
 
-  const revenueData = [
-    { name: 'Thứ 2', revenue: 4500000, expenses: 2100000 },
-    { name: 'Thứ 3', revenue: 5200000, expenses: 2300000 },
-    { name: 'Thứ 4', revenue: 3800000, expenses: 1900000 },
-    { name: 'Thứ 5', revenue: 6100000, expenses: 2800000 },
-    { name: 'Thứ 6', revenue: 7500000, expenses: 3100000 },
-    { name: 'Thứ 7', revenue: 9800000, expenses: 4200000 },
-    { name: 'Chủ nhật', revenue: 12000000, expenses: 5000000 },
-  ];
+  const revenueData = stats?.chartData || [];
 
   const pieData = [
     { name: 'Dịch vụ Salon', value: stats?.revenue?.service || 0, color: '#6366f1' },

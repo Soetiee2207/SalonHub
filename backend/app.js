@@ -4,11 +4,7 @@ require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
 
-// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
-app.use(cors({
-  origin: true, 
-  credentials: true
-}));
+
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -32,7 +28,11 @@ const accountantRoutes = require('./routes/accountantRoutes');
 const app = express();
 
 
-
+// PHẢI ĐẶT TRƯỚC TẤT CẢ CÁC ROUTES
+app.use(cors({
+  origin: true, 
+  credentials: true
+}));
 
 
 

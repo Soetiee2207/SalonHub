@@ -18,7 +18,7 @@ export default function Header() {
   const socket = useSocket();
 
   const fetchUnreadCount = () => {
-    notificationService.getAll({ unread: true })
+    notificationService.getUnreadCount()
       .then(res => {
         const count = res.data?.totalUnread || res.totalUnread || 0;
         setUnreadCount(count);
@@ -35,7 +35,7 @@ export default function Header() {
         })
         .catch(() => {});
 
-      notificationService.getAll({ unread: true })
+      notificationService.getUnreadCount()
         .then(res => {
           const count = res.data?.totalUnread || res.totalUnread || 0;
           setUnreadCount(count);

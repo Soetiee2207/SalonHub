@@ -12,6 +12,7 @@ const { authenticate } = require('../middleware/auth');
 router.use(authenticate);
 
 router.get('/', getMyNotifications);
+router.get('/unread-count', getUnreadCount);
 router.put('/read-all', markAllAsRead);
 router.put('/:id/read', markAsRead);
 router.delete('/:id', deleteNotification);

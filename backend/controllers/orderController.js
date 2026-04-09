@@ -431,7 +431,6 @@ const updateOrderStatus = async (req, res, next) => {
 
             // Kiểm tra Tồn kho thấp (Low Stock Alert)
             if (stockAfter <= (product.minStock || 5)) {
-              const { createNotification } = require('./notificationController');
               await createNotification({
                 title: 'Cảnh báo: Tồn kho thấp từ Đơn hàng!',
                 message: `Sản phẩm "${product.name}" chỉ còn ${stockAfter} món sau khi đóng gói Đơn #${order.id}.`,
@@ -477,6 +476,7 @@ const updateOrderStatus = async (req, res, next) => {
         }
       }
 
+      const updateData = { status: newStatus };
       await order.update(updateData, { transaction: t });
 
       // --- REAL-TIME NOTIFICATION TO CUSTOMER ---
@@ -597,7 +597,7 @@ const cancelOrder = async (req, res, next) => {
         type: 'order',
         targetId: order.id,
         amount: order.totalAmount,
-        reason: cancelReason || 'Khách hàng tự hủy đơn hàng sau khi hoàn tất thanh toán',
+        reason: req.body.cancelReason || 'Khách hàng tự hủy đơn hàng sau khi hoàn tất thanh toán',
         status: 'pending'
       }, { transaction: t });
     }
@@ -622,6 +622,34 @@ const cancelOrder = async (req, res, next) => {
     });
   } catch (error) {
     await t.rollback();
+    next(error);
+  }
+};
+
+// Check order status only
+const getOrderStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findByPk(id, {
+      attributes: ['id', 'status', 'paymentStatus']
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đơn hàng'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus
+      }
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -676,6 +704,7 @@ module.exports = {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  getOrderStatus,
   cancelOrder,
   confirmOrderReceipt
 };

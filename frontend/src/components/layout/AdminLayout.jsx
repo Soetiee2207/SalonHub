@@ -7,6 +7,7 @@ import {
   FiTruck, FiClipboard, FiRefreshCw, FiFileText, FiBell
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSocket } from '../../contexts/SocketContext';
 import { notificationService } from '../../services/notificationService';
 
 // Sidebar links per role
@@ -65,16 +66,34 @@ export default function AdminLayout() {
 
   const role = user?.role || 'staff';
 
+  const fetchUnreadCount = () => {
+    notificationService.getUnreadCount()
+      .then(res => {
+        const count = res.data?.totalUnread || res.totalUnread || 0;
+        setUnreadCount(count);
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     if (user) {
-      notificationService.getAll({ unread: true })
-        .then(res => {
-          const count = res.data?.totalUnread || res.totalUnread || 0;
-          setUnreadCount(count);
-        })
-        .catch(() => {});
+      fetchUnreadCount();
     }
   }, [user, location.pathname]);
+
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('new_notification', fetchUnreadCount);
+      socket.on('new_role_notification', fetchUnreadCount);
+
+      return () => {
+        socket.off('new_notification', fetchUnreadCount);
+        socket.off('new_role_notification', fetchUnreadCount);
+      };
+    }
+  }, [socket]);
   const sidebarLinks = useMemo(() => linksByRole[role] || linksByRole.staff, [role]);
   const roleLabel = roleLabels[role] || 'Nhân viên';
 

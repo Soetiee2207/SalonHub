@@ -18,9 +18,31 @@ const getMyNotifications = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
+    // Count total unread notifications for this user
+    const totalUnread = await db.Notification.count({
+      where: { userId: req.user.id, isRead: false }
+    });
+
     res.status(200).json({
       success: true,
       data: notifications,
+      totalUnread: totalUnread
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get current user's unread notification count
+const getUnreadCount = async (req, res, next) => {
+  try {
+    const count = await db.Notification.count({
+      where: { userId: req.user.id, isRead: false }
+    });
+
+    res.status(200).json({
+      success: true,
+      totalUnread: count
     });
   } catch (error) {
     next(error);
@@ -152,6 +174,7 @@ const createRoleNotification = async (role, { title, message, type }) => {
 
 module.exports = {
   getMyNotifications,
+  getUnreadCount,
   markAsRead,
   markAllAsRead,
   deleteNotification,

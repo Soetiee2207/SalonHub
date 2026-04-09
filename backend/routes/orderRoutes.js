@@ -7,6 +7,7 @@ const {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  getOrderStatus,
   cancelOrder,
   confirmOrderReceipt,
 } = require('../controllers/orderController');
@@ -21,6 +22,7 @@ router.get('/', authenticate, authorize('admin', 'staff', 'warehouse_staff', 'ac
 
 // Auth required
 router.get('/:id', authenticate, getOrderById);
+router.get('/:id/status', authenticate, getOrderStatus);
 
 // Admin/staff/warehouse/accountant
 router.put('/:id/status', authenticate, authorize('admin', 'staff', 'warehouse_staff', 'accountant'), updateOrderStatus);

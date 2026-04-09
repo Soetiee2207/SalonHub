@@ -45,6 +45,8 @@ export default function AdminAppointments() {
 
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [checkoutAppt, setCheckoutAppt] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);

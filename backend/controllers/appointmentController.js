@@ -108,7 +108,15 @@ const notifyAppointmentCreated = async (appointment) => {
     await createNotification({
       userId: appointment.staffId,
       title: 'Phân công phục vụ lịch hẹn',
-      message: `Bạn được phân công phục vụ lịch hẹn #${appointment.id} vào ngày ${appointment.date}, lúc ${appointment.startTime}. Vui lòng kiểm tra và chuẩn bị chu đáo.`,
+      message: `Bạn được phân công phục vụ lịch hẹn #${appointment.id} vào ngày ${appointment.date}, lúc ${appointment.startTime}.`,
+      type: 'appointment',
+    });
+  } else {
+    // Notify admin/receptionist that a new unassigned appointment needs attention
+    const { createRoleNotification } = require('./notificationController');
+    await createRoleNotification('admin', {
+      title: 'Lịch hẹn mới chờ phân công',
+      message: `Khách hàng đã đặt lịch hẹn #${appointment.id} ngày ${appointment.date} nhưng chưa chọn thợ. Vui lòng kiểm tra.`,
       type: 'appointment',
     });
   }
@@ -565,6 +573,14 @@ const updateAppointmentStatus = async (req, res, next) => {
                 amount: payment.amount,
                 reason: cancelReason || 'Hệ thống/Quản trị viên hủy lịch hẹn sau khi hoàn tất thanh toán',
                 status: 'pending'
+            });
+
+            // Notify Accountant of new Refund Request
+            const { createRoleNotification } = require('./notificationController');
+            await createRoleNotification('accountant', {
+                title: 'Yêu cầu hoàn tiền mới (Lịch hẹn)',
+                message: `Lịch hẹn #${id} bị hủy sau khi thanh toán. Cần xử lý hoàn tiền: ${Math.floor(payment.amount).toLocaleString()}đ`,
+                type: 'refund'
             });
         }
     }

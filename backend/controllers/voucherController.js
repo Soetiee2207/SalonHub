@@ -1,5 +1,6 @@
 const db = require('../models');
 const { Op } = require('sequelize');
+const { createRoleNotification } = require('./notificationController');
 
 // Get all vouchers
 const getAllVouchers = async (req, res, next) => {
@@ -107,6 +108,13 @@ const createVoucher = async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: voucher,
+    });
+
+    // --- REAL-TIME NOTIFICATION TO ALL CUSTOMERS ---
+    await createRoleNotification('customer', {
+        title: 'Mã giảm giá mới dành cho bạn!',
+        message: `Nhận ngay ưu đãi ${voucher.discount}${voucher.discountType === 'percent' ? '%' : 'đ'} với mã: ${voucher.code}. Đặt lịch hoặc mua sắm ngay!`,
+        type: 'voucher'
     });
   } catch (error) {
     next(error);

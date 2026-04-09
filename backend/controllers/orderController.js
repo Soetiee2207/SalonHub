@@ -6,6 +6,7 @@ const vnpayConfig = require('../config/vnpay');
 const { generateVnpayUrl } = require('../utils/vnpayHelper');
 const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, sequelize } = db;
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
+const { createNotification, createRoleNotification } = require('./notificationController');
 
 // Create order from cart
 const createOrder = async (req, res, next) => {
@@ -205,6 +206,22 @@ const createOrder = async (req, res, next) => {
       });
       responseData.paymentUrl = vnpayUrl;
     }
+
+    // --- REAL-TIME NOTIFICATIONS ---
+    // 1. Notify Warehouse Staff
+    await createRoleNotification('warehouse_staff', {
+      title: 'Đơn hàng mới chờ xử lý',
+      message: `Đơn hàng #${order.id} vừa được đặt thành công. Vui lòng kiểm tra và đóng gói. Tổng tiền: ${Math.floor(totalAmount).toLocaleString()}đ`,
+      type: 'order'
+    });
+
+    // 2. Notify Customer (Confirmed receipt of order request)
+    await createNotification({
+      userId,
+      title: 'Đặt hàng thành công',
+      message: `Đơn hàng #${order.id} của bạn đã được tiếp nhận và đang chờ xác nhận.`,
+      type: 'order'
+    });
 
     res.status(201).json({
       success: true,
@@ -460,12 +477,26 @@ const updateOrderStatus = async (req, res, next) => {
         }
       }
 
-      const updateData = { status: newStatus };
-      if (req.body.trackingCode) {
-        updateData.trackingCode = req.body.trackingCode;
-      }
-
       await order.update(updateData, { transaction: t });
+
+      // --- REAL-TIME NOTIFICATION TO CUSTOMER ---
+      const statusLabels = {
+        confirmed: 'đã được xác nhận',
+        packing: 'đang được đóng gói',
+        shipping: 'đang trên đường vận chuyển',
+        delivered: 'đã được giao tới bạn',
+        completed: 'đã hoàn thành',
+        cancelled: 'đã bị hủy'
+      };
+
+      if (statusLabels[newStatus]) {
+        await createNotification({
+          userId: order.userId,
+          title: `Cập nhật đơn hàng #${order.id}`,
+          message: `Đơn hàng của bạn ${statusLabels[newStatus]}.`,
+          type: 'order'
+        });
+      }
 
       // Tích điểm nếu đơn hàng mới chuyển sang trạng thái Thành công
       if (oldStatus !== 'completed' && newStatus === 'completed') {

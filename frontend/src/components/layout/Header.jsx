@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiUser, FiShoppingCart, FiBell, FiMenu, FiX, FiLogOut, FiSettings, FiCalendar, FiPackage, FiMapPin } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSocket } from '../../contexts/SocketContext';
 import { cartService } from '../../services/cartService';
 import { notificationService } from '../../services/notificationService';
 
@@ -14,6 +15,16 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef(null);
+  const socket = useSocket();
+
+  const fetchUnreadCount = () => {
+    notificationService.getAll({ unread: true })
+      .then(res => {
+        const count = res.data?.totalUnread || res.totalUnread || 0;
+        setUnreadCount(count);
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (user) {
@@ -32,6 +43,24 @@ export default function Header() {
         .catch(() => {});
     }
   }, [user, location.pathname]);
+
+  // Listen for real-time notifications via socket
+  useEffect(() => {
+    if (socket) {
+      socket.on('new_notification', () => {
+        fetchUnreadCount();
+      });
+
+      socket.on('new_role_notification', () => {
+        fetchUnreadCount();
+      });
+
+      return () => {
+        socket.off('new_notification');
+        socket.off('new_role_notification');
+      };
+    }
+  }, [socket]);
 
   useEffect(() => {
     const handleClick = (e) => {

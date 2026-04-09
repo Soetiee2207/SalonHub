@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import CustomerLayout from './components/layout/CustomerLayout';
 import AdminLayout from './components/layout/AdminLayout';
@@ -68,66 +69,70 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <AuthProvider>
-        <BrowserRouter>
-          <Toaster position="top-right" />
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              {/* Customer Routes */}
-              <Route element={<CustomerLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/services/:id" element={<ServiceDetail />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/products/:id" element={<ProductDetail />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/vnpay-return" element={<VnpayReturn />} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-                <Route path="/book-appointment" element={<ProtectedRoute><BookAppointment /></ProtectedRoute>} />
-                <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
-                <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
-                <Route path="/my-orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
-                <Route path="/my-addresses" element={<ProtectedRoute><MyAddresses /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-              </Route>
+        <SocketProvider>
+          <BrowserRouter>
+            <Toaster position="top-right" />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                {/* Customer Routes */}
+                <Route element={<CustomerLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/services/:id" element={<ServiceDetail />} />
+                  <Route path="/products" element={<Products />} />
+                  <Route path="/products/:id" element={<ProductDetail />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/vnpay-return" element={<VnpayReturn />} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                  <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                  <Route path="/book-appointment" element={<ProtectedRoute><BookAppointment /></ProtectedRoute>} />
+                  <Route path="/my-appointments" element={<ProtectedRoute><MyAppointments /></ProtectedRoute>} />
+                  <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+                  <Route path="/my-orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
+                  <Route path="/my-addresses" element={<ProtectedRoute><MyAddresses /></ProtectedRoute>} />
+                  <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                </Route>
 
-              {/* Admin/Staff Routes — all management roles */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute roles={['admin', 'staff', 'service_staff', 'warehouse_staff', 'accountant']}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<RoleDashboard />} />
-                <Route path="branches" element={<AdminBranches />} />
-                <Route path="services" element={<AdminServices />} />
-                <Route path="products" element={<AdminProducts />} />
-                <Route path="staff" element={<AdminStaff />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="appointments" element={<AdminAppointments />} />
-                <Route path="vouchers" element={<AdminVouchers />} />
-                <Route path="payments" element={<AdminPayments />} />
-                <Route path="customers" element={<AdminCustomers />} />
-                <Route path="reviews" element={<AdminReviews />} />
-                <Route path="fulfillment" element={<Fulfillment />} />
-                <Route path="inventory" element={<InventoryGrid />} />
-                <Route path="inventory-docs" element={<WarehouseInventoryDocs />} />
-                <Route path="cash-ledger" element={<CashFlowLedger />} />
-                <Route path="reconciliation" element={<PaymentReconciliation />} />
-                <Route path="refunds" element={<RefundHub />} />
-                <Route path="reports" element={<FinancialReports />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+                {/* Admin/Staff Routes — all management roles */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute roles={['admin', 'staff', 'service_staff', 'warehouse_staff', 'accountant']}>
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<RoleDashboard />} />
+                  <Route path="branches" element={<AdminBranches />} />
+                  <Route path="services" element={<AdminServices />} />
+                  <Route path="products" element={<AdminProducts />} />
+                  <Route path="staff" element={<AdminStaff />} />
+                  <Route path="orders" element={<AdminOrders />} />
+                  <Route path="appointments" element={<AdminAppointments />} />
+                  <Route path="vouchers" element={<AdminVouchers />} />
+                  <Route path="payments" element={<AdminPayments />} />
+                  <Route path="customers" element={<AdminCustomers />} />
+                  <Route path="reviews" element={<AdminReviews />} />
+                  <Route path="fulfillment" element={<Fulfillment />} />
+                  <Route path="inventory" element={<InventoryGrid />} />
+                  <Route path="inventory-docs" element={<WarehouseInventoryDocs />} />
+                  <Route path="cash-ledger" element={<CashFlowLedger />} />
+                  <Route path="reconciliation" element={<PaymentReconciliation />} />
+                  <Route path="refunds" element={<RefundHub />} />
+                  <Route path="reports" element={<FinancialReports />} />
+                </Route>
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </SocketProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );
 }
+
+export default App;
 
 export default App;

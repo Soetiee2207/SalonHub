@@ -3,6 +3,7 @@ const querystring = require('qs');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
 const { syncAppointmentAccounting } = require('./appointmentController');
+const { createNotification, createRoleNotification } = require('./notificationController');
 
 // VNPay return handler
 const vnpayReturn = async (req, res, next) => {
@@ -66,6 +67,25 @@ const vnpayReturn = async (req, res, next) => {
           // Sync accounting for appointment
           await syncAppointmentAccounting(appointment.id);
         }
+      }
+
+      // --- REAL-TIME NOTIFICATIONS ---
+      // 1. Notify Accountant
+      await createRoleNotification('accountant', {
+        title: 'Thanh toán trực tuyến thành công',
+        message: `Giao dịch VNPay mới cho ${refType} #${refId} trị giá ${amount.toLocaleString()}đ đã được xác nhận.`,
+        type: 'payment'
+      });
+
+      // 2. Notify Customer
+      const targetUserId = refType === 'ORDER' ? (await db.Order.findByPk(refId))?.userId : (await db.Appointment.findByPk(refId))?.userId;
+      if (targetUserId) {
+        await createNotification({
+          userId: targetUserId,
+          title: 'Thanh toán thành công',
+          message: `Giao dịch cho ${refType === 'ORDER' ? 'đơn hàng' : 'lịch hẹn'} #${refId} đã được xác nhận. Cảm ơn quý khách!`,
+          type: 'payment'
+        });
       }
 
       return res.status(200).json({
@@ -322,6 +342,23 @@ const refundPayment = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: payment,
+    });
+
+    // --- REAL-TIME NOTIFICATIONS ---
+    const targetUserId = payment.order ? payment.order.userId : (payment.appointment ? payment.appointment.userId : null);
+    if (targetUserId) {
+      await createNotification({
+        userId: targetUserId,
+        title: 'Hoàn tiền thành công',
+        message: `Giao dịch hoàn tiền cho ${payment.order ? 'đơn hàng' : 'lịch hẹn'} đã được xử lý. Vui lòng kiểm tra tài khoản của quý khách.`,
+        type: 'refund'
+      });
+    }
+
+    await createRoleNotification('accountant', {
+      title: 'Đã xử lý hoàn tiền',
+      message: `Giao dịch hoàn tiền cho ${payment.order ? 'Đơn hàng #' + payment.order.id : 'Lịch hẹn'} đã được thực hiên bởi ${req.user.fullName}.`,
+      type: 'refund'
     });
   } catch (error) {
     next(error);

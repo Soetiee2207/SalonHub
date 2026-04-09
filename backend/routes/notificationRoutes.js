@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getMyNotifications,
+  getUnreadCount,
   markAsRead,
   markAllAsRead,
   deleteNotification,

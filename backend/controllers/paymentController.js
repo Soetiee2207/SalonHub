@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const querystring = require('qs');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
+const sepayConfig = require('../config/sepay');
 const { syncAppointmentAccounting } = require('./appointmentController');
 const { createNotification, createRoleNotification } = require('./notificationController');
 
@@ -383,9 +384,151 @@ async function calculateTotalAppAmount(appointment) {
   return servicePrice + productPrice;
 }
 
+// SePay Webhook handler
+const sepayWebhook = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+    // 1. Authenticate with API Key
+    if (!authHeader || authHeader !== `Apikey ${sepayConfig.apiKey}`) {
+      console.warn(`[SePay] Unauthorized access attempt from ${clientIp}`);
+      return res.status(401).json({ success: false, message: 'Invalid API Key' });
+    }
+
+    // 2. IP Whitelist Check (Optional but recommended)
+    // if (!sepayConfig.ipWhitelist.includes(clientIp)) {
+    //   console.warn(`[SePay] Untrusted IP: ${clientIp}`);
+    //   return res.status(401).json({ success: false, message: 'Untrusted IP source' });
+    // }
+
+    const { id, code, transferAmount, transferType, transferDate, nội_dung } = req.body;
+
+    // Only process incoming transfers
+    if (transferType !== 'in') {
+      return res.status(200).json({ success: true, message: 'Ignoring outgoing transfer' });
+    }
+
+    if (!code) {
+      return res.status(200).json({ success: true, message: 'No payment code found' });
+    }
+
+    // 3. Match Order or Appointment
+    let targetType = null;
+    let targetId = null;
+
+    const orderMatch = code.match(sepayConfig.patterns.order);
+    const appointmentMatch = code.match(sepayConfig.patterns.appointment);
+
+    if (orderMatch) {
+      targetType = 'ORDER';
+      targetId = orderMatch[1];
+    } else if (appointmentMatch) {
+      targetType = 'APP';
+      targetId = appointmentMatch[1];
+    } else {
+      return res.status(200).json({ success: true, message: 'Code does not match any pattern' });
+    }
+
+    const t = await db.sequelize.transaction();
+    try {
+      if (targetType === 'ORDER') {
+        const order = await db.Order.findByPk(targetId, { transaction: t });
+        if (!order) {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Order not found' });
+        }
+
+        // Allow some tolerance in amount comparison if needed, but SePay sends raw bank numbers
+        if (Math.abs(parseFloat(order.totalAmount) - parseFloat(transferAmount)) > 1) {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Amount mismatch' });
+        }
+
+        if (order.paymentStatus === 'paid') {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Order already paid' });
+        }
+
+        await order.update({ paymentStatus: 'paid', status: 'confirmed' }, { transaction: t });
+        await db.Payment.upsert({
+          orderId: order.id,
+          amount: transferAmount,
+          method: 'sepay',
+          transactionId: id.toString(),
+          status: 'success',
+          vnpayData: req.body, // Reusing field for convenience
+        }, { transaction: t });
+
+      } else if (targetType === 'APP') {
+        const appointment = await db.Appointment.findByPk(targetId, { transaction: t });
+        if (!appointment) {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Appointment not found' });
+        }
+
+        // Match total price (including upsell order if any)
+        const totalAmount = await calculateTotalAppAmount(appointment);
+        if (Math.abs(totalAmount - parseFloat(transferAmount)) > 1) {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Amount mismatch for appointment' });
+        }
+
+        if (appointment.status === 'completed') {
+          await t.rollback();
+          return res.status(200).json({ success: true, message: 'Appointment already completed' });
+        }
+
+        await appointment.update({ status: 'completed' }, { transaction: t });
+        await db.Payment.upsert({
+          appointmentId: appointment.id,
+          amount: transferAmount,
+          method: 'sepay',
+          transactionId: id.toString(),
+          status: 'success',
+          userId: appointment.userId,
+          vnpayData: req.body,
+        }, { transaction: t });
+
+        await syncAppointmentAccounting(appointment.id);
+      }
+
+      await t.commit();
+
+      // --- REAL-TIME NOTIFICATIONS ---
+      await createRoleNotification('accountant', {
+        title: 'Thanh toán chuyển khoản thành công (SePay)',
+        message: `Giao dịch ${targetType} #${targetId} trị giá ${parseFloat(transferAmount).toLocaleString()}đ đã được tự động xác nhận qua SePay.`,
+        type: 'payment'
+      });
+
+      const targetUserId = targetType === 'ORDER' ? (await db.Order.findByPk(targetId))?.userId : (await db.Appointment.findByPk(targetId))?.userId;
+      if (targetUserId) {
+        await createNotification({
+          userId: targetUserId,
+          title: 'Thanh toán thành công',
+          message: `Giao dịch chuyển khoản cho ${targetType === 'ORDER' ? 'đơn hàng' : 'lịch hẹn'} #${targetId} đã được xác nhận. Cảm ơn quý khách!`,
+          type: 'payment'
+        });
+      }
+
+      return res.status(201).json({ success: true, message: 'Payment processed successfully' });
+
+    } catch (err) {
+      await t.rollback();
+      throw err;
+    }
+
+  } catch (error) {
+    console.error('[SePay Webhook Error]:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   vnpayReturn,
   vnpayIPN,
+  sepayWebhook,
   getPayments,
   getPaymentById,
   refundPayment,

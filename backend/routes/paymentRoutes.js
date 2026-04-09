@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   vnpayReturn,
   vnpayIPN,
+  sepayWebhook,
   getPayments,
   getPaymentById,
   refundPayment,
@@ -12,6 +13,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 // Public routes - VNPay callbacks
 router.get('/vnpay-return', vnpayReturn);
 router.get('/vnpay-ipn', vnpayIPN);
+router.post('/sepay-webhook', sepayWebhook);
 
 // Admin routes
 router.get('/', authenticate, authorize('admin'), getPayments);

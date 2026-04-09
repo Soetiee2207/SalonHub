@@ -22,7 +22,7 @@ const HERO_SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=1920&q=80',
     title: 'Nhuộm & Uốn cao cấp',
-    subtitle: 'Sử dụng 100% sản phẩm chính hãng, bảo vệ tóc tối đa trong mọi quy trình tạo kiểu',
+    subtitle: 'Sử dụng 100% sản phẩm chính hãng, bảo vệ kết cấu tóc tối đa',
   },
   {
     image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1920&q=80',

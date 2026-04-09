@@ -50,11 +50,11 @@ export default function Header() {
   };
 
   const navLinks = [
-    { to: '/', label: 'Trang chủ' },
-    { to: '/services', label: 'Dịch vụ' },
-    { to: '/products', label: 'Sản phẩm' },
-    { to: '/book-appointment', label: 'Đặt lịch' },
-    { to: '/contact', label: 'Liên hệ' },
+    { to: '/', label: 'Trang Chủ' },
+    { to: '/services', label: 'Dịch Vụ' },
+    { to: '/products', label: 'Sản Phẩm' },
+    { to: '/book-appointment', label: 'Đặt Lịch' },
+    { to: '/contact', label: 'Liên Hệ' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -123,14 +123,14 @@ export default function Header() {
                   </button>
 
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-1 w-52 bg-white border border-[var(--border)] rounded-xl py-1 z-50">
+                    <div className="absolute right-0 mt-1 w-64 bg-white border border-[var(--border)] rounded-xl py-1 z-50 shadow-2xl">
                       <Link
                         to="/profile"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
                         <FiSettings size={16} />
-                        Hồ sơ
+                        Thông Tin Cá Nhân
                       </Link>
                       <Link
                         to="/my-orders"
@@ -138,7 +138,7 @@ export default function Header() {
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
                         <FiPackage size={16} />
-                        Đơn hàng
+                        Quản Lý Đơn Hàng
                       </Link>
                       <Link
                         to="/my-appointments"
@@ -146,7 +146,7 @@ export default function Header() {
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
                         <FiCalendar size={16} />
-                        Lịch hẹn
+                        Lịch Hẹn Của Tôi
                       </Link>
                       <Link
                         to="/my-addresses"
@@ -154,7 +154,7 @@ export default function Header() {
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
                         <FiMapPin size={16} />
-                        Địa chỉ
+                        Sổ Địa Chỉ
                       </Link>
                       {user.role !== 'customer' && (
                         <Link

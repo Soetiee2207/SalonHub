@@ -9,6 +9,7 @@ import { formatPrice } from '../../utils/formatPrice';
 
 // Components
 import AppointmentCalendar from '../../components/dashboard/AppointmentCalendar';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 const statusColors = {
   pending: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -47,6 +48,8 @@ export default function AdminAppointments() {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [checkoutAppt, setCheckoutAppt] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [createdResult, setCreatedResult] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -135,6 +138,13 @@ export default function AdminAppointments() {
       if (paymentMethod === 'vnpay' && data.paymentUrl) {
          window.location.href = data.paymentUrl;
          return;
+      }
+      
+      if (paymentMethod === 'sepay') {
+        setCreatedResult(data);
+        setShowBankModal(true);
+        setCheckoutAppt(null); // Close checkout modal
+        return;
       }
 
       toast.success('Thanh toán thành công!');
@@ -339,8 +349,8 @@ export default function AdminAppointments() {
                 <div className="flex items-center gap-3">
                    <div className="p-2 bg-white/10 rounded-xl"><FiShoppingBag size={24} /></div>
                    <div>
-                      <h2 className="text-xl font-bold font-display">Tạo hóa đơn tổng hợp</h2>
-                      <p className="text-[10px] opacity-70 uppercase font-bold tracking-widest">Mã lịch: #{checkoutAppt.id} - Khách: {checkoutAppt.customer?.fullName}</p>
+                       <h2 className="text-xl font-bold font-display">Tạo hóa đơn tổng hợp</h2>
+                       <p className="text-[10px] opacity-70 uppercase font-bold tracking-widest">Mã lịch: #{checkoutAppt.id} - Khách: {checkoutAppt.customer?.fullName}</p>
                    </div>
                 </div>
                 <button onClick={() => { setCheckoutAppt(null); setProductSearch(''); }} className="p-2 hover:bg-white/10 rounded-full transition-colors border-0 bg-transparent text-white cursor-pointer"><FiX size={20} /></button>
@@ -417,7 +427,7 @@ export default function AdminAppointments() {
                    {/* Payment Method Selection */}
                    <div className="mt-6 pt-4 border-t border-gray-100">
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Phương thức thanh toán</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                          <button 
                            onClick={() => setPaymentMethod('cash')}
                            className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'cash' ? 'bg-[#8B5E3C] text-white border-[#8B5E3C]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#8B5E3C]'}`}
@@ -429,6 +439,12 @@ export default function AdminAppointments() {
                            className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'vnpay' ? 'bg-[#005BAA] text-white border-[#005BAA]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#005BAA]'}`}
                          >
                             VNPAY QR
+                         </button>
+                         <button 
+                           onClick={() => setPaymentMethod('sepay')}
+                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'sepay' ? 'bg-[#8B5E3C] text-white border-[#8B5E3C]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#8B5E3C]'}`}
+                         >
+                            CHUYỂN KHOẢN
                          </button>
                       </div>
                    </div>
@@ -466,6 +482,16 @@ export default function AdminAppointments() {
           </div>
         </div>
       )}
+
+      <BankTransferModal
+        isOpen={showBankModal}
+        onClose={() => {
+          setShowBankModal(false);
+          fetchData();
+        }}
+        amount={createdResult?.totalBill || 0}
+        apptId={createdResult?.appointment?.id}
+      />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { voucherService } from '../../services/voucherService';
 import { addressService } from '../../services/addressService';
 import { formatPrice } from '../../utils/formatPrice';
 import AddressForm from '../../components/address/AddressForm';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ export default function Checkout() {
   const [discount, setDiscount] = useState(0);
   const [voucherApplied, setVoucherApplied] = useState(false);
   const [applyingVoucher, setApplyingVoucher] = useState(false);
+  
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState(null);
 
   const fetchAddresses = async () => {
     try {
@@ -121,6 +125,9 @@ export default function Checkout() {
 
       if (paymentMethod === 'vnpay' && data.paymentUrl) {
         window.location.href = data.paymentUrl;
+      } else if (paymentMethod === 'sepay') {
+        setCreatedOrder(data.order);
+        setShowBankModal(true);
       } else {
         toast.success('Đặt hàng thành công!');
         navigate('/my-orders');
@@ -289,6 +296,21 @@ export default function Checkout() {
                     <p className="text-sm text-gray-500">Thanh toán qua cổng thanh toán VNPay</p>
                   </div>
                 </label>
+                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'sepay' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="sepay"
+                    checked={paymentMethod === 'sepay'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="accent-[var(--primary)]"
+                  />
+                  <FiCheck className="text-[var(--primary)]" size={20} />
+                  <div>
+                    <p className="font-medium text-gray-800">Chuyển khoản ngân hàng (SePay)</p>
+                    <p className="text-sm text-gray-500">Quét mã QR để chuyển khoản nhanh</p>
+                  </div>
+                </label>
               </div>
             </div>
           </div>
@@ -347,6 +369,16 @@ export default function Checkout() {
           }}
         />
       )}
+
+      <BankTransferModal
+        isOpen={showBankModal}
+        onClose={() => {
+          setShowBankModal(false);
+          navigate('/my-orders');
+        }}
+        amount={createdOrder?.totalAmount || 0}
+        orderId={createdOrder?.id}
+      />
     </div>
   );
 }

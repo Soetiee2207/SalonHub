@@ -894,24 +894,27 @@ const checkoutAppointment = async (req, res, next) => {
       totalBill,
     };
 
-    if (paymentMethod === 'vnpay') {
+    if (paymentMethod === 'vnpay' || paymentMethod === 'sepay') {
       // Create pending payment record
       await Payment.create({
         appointmentId: appointment.id,
         orderId: order ? order.id : null,
         amount: totalBill,
-        method: 'vnpay',
+        method: paymentMethod,
         status: 'pending',
         userId: appointment.userId
       }, { transaction });
 
-      const vnpayUrl = generateVnpayUrl({
-        amount: totalBill,
-        txnRef: `APP_${appointment.id}`,
-        orderInfo: `Thanh toan lich hen #${appointment.id}`,
-        ipAddr: req.ip || '127.0.0.1'
-      });
-      responseData.paymentUrl = vnpayUrl;
+      if (paymentMethod === 'vnpay') {
+        const vnpayUrl = generateVnpayUrl({
+          amount: totalBill,
+          txnRef: `APP_${appointment.id}`,
+          orderInfo: `Thanh toan lich hen #${appointment.id}`,
+          ipAddr: req.ip || '127.0.0.1'
+        });
+        responseData.paymentUrl = vnpayUrl;
+      }
+      // For 'sepay', we just stay 'in_progress' and wait for webhook
     } else {
       // Success immediate for cash/cod
       await appointment.update({

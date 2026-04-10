@@ -28,10 +28,8 @@ export const CartProvider = ({ children }) => {
       const res = await cartService.getCart();
       const items = res.data?.items || res.items || [];
       
-      // Calculate total quantity across all items (e.g., 2 apples + 1 orange = 3)
-      const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-      
-      setCartCount(totalQuantity);
+      // Count distinct product items as requested (e.g., 2 pants + 1 shirt = 2 items)
+      setCartCount(items.length);
     } catch (error) {
       console.error('Failed to fetch cart:', error);
       setCartCount(0);

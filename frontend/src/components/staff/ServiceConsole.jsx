@@ -10,6 +10,7 @@ import { serviceService } from '../../services/serviceService';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useSocket } from '../../contexts/SocketContext';
 
 export default function ServiceConsole({ appointment, onClose, onSuccess }) {
   const [items, setItems] = useState([]); // Products added during service
@@ -21,6 +22,22 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showProductsMobile, setShowProductsMobile] = useState(false);
   const [search, setSearch] = useState('');
+  const socket = useSocket();
+
+  // Listen for payment success to close console automatically
+  useEffect(() => {
+    if (socket && checkoutMode && paymentMethod === 'sepay') {
+      const handlePaymentSuccess = (data) => {
+        if (data.type === 'APP' && Number(data.id) === Number(appointment.id)) {
+          toast.success('Khách đã thanh toán qua SePay thành công!');
+          onSuccess();
+        }
+      };
+
+      socket.on('payment_success', handlePaymentSuccess);
+      return () => socket.off('payment_success', handlePaymentSuccess);
+    }
+  }, [socket, checkoutMode, paymentMethod, appointment.id, onSuccess]);
 
   useEffect(() => {
     fetchProducts();
@@ -148,27 +165,32 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
                    </button>
 
                    <button 
-                     onClick={() => setPaymentMethod('vnpay')}
+                     onClick={() => setPaymentMethod('sepay')}
                      className={`p-8 rounded-[2.5rem] border-2 flex items-center gap-6 text-left transition-all border-0 cursor-pointer ${
-                       paymentMethod === 'vnpay' ? 'border-[#8B5E3C] bg-orange-50 shadow-xl shadow-orange-100' : 'border-slate-100 bg-white hover:border-orange-200'
+                       paymentMethod === 'sepay' ? 'border-[#8B5E3C] bg-orange-50 shadow-xl shadow-orange-100' : 'border-slate-100 bg-white hover:border-orange-200'
                      }`}
                    >
-                     <div className={`p-5 rounded-3xl ${paymentMethod === 'vnpay' ? 'bg-[#8B5E3C] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                     <div className={`p-5 rounded-3xl ${paymentMethod === 'sepay' ? 'bg-[#8B5E3C] text-white' : 'bg-slate-100 text-slate-400'}`}>
                         <FiCreditCard size={32} />
                      </div>
                      <div>
-                        <p className="text-xl font-black text-slate-800">CHUYỂN KHOẢN / CỔNG VNPAY</p>
-                        <p className="text-sm text-slate-400 font-medium">Quét mã QR hoặc quẹt thẻ POS</p>
+                        <p className="text-xl font-black text-slate-800">CHUYỂN KHOẢN (SEPAY)</p>
+                        <p className="text-sm text-slate-400 font-medium">Quét mã QR Realtime</p>
                      </div>
                    </button>
                 </div>
                 
-                {paymentMethod === 'vnpay' && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-8 bg-slate-50 rounded-[3rem] text-center border-2 border-dashed border-slate-200">
-                     <div className="w-40 h-40 bg-white rounded-3xl mx-auto mb-6 border border-slate-100 shadow-sm flex items-center justify-center">
-                        <span className="text-xs text-slate-300 italic font-medium px-4">Đang kết nối cổng thanh toán...</span>
+                {paymentMethod === 'sepay' && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 bg-slate-50 rounded-[3rem] text-center border-2 border-dashed border-slate-200">
+                     <div className="w-48 h-48 bg-white rounded-3xl mx-auto mb-4 border border-slate-100 shadow-sm flex items-center justify-center p-2">
+                        <img 
+                          src={`https://img.vietqr.io/image/TPB-88886352274-compact2.png?amount=${totalPrice}&addInfo=AP${appointment.id}&accountName=NGUYEN%20NHAT%20MINH`}
+                          alt="VietQR"
+                          className="w-full h-full object-contain"
+                        />
                      </div>
-                     <p className="text-sm text-slate-500 font-black uppercase tracking-tighter">Mời khách hàng quét mã QR trên</p>
+                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Quét mã VietQR để thanh toán</p>
+                     <p className="text-[11px] text-orange-600 font-bold">Nội dung: AP{appointment.id}</p>
                   </motion.div>
                 )}
 

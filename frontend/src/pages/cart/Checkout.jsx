@@ -123,9 +123,7 @@ export default function Checkout() {
       const res = await orderService.create(orderData);
       const data = res.data || res;
 
-      if (paymentMethod === 'vnpay' && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else if (paymentMethod === 'sepay') {
+      if (paymentMethod === 'sepay') {
         setCreatedOrder(data.order);
         setShowBankModal(true);
       } else {
@@ -281,21 +279,7 @@ export default function Checkout() {
                     <p className="text-sm text-gray-500">Trả tiền mặt khi nhận hàng</p>
                   </div>
                 </label>
-                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'vnpay' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="vnpay"
-                    checked={paymentMethod === 'vnpay'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="accent-[var(--primary)]"
-                  />
-                  <FiCreditCard className="text-[var(--primary)]" size={20} />
-                  <div>
-                    <p className="font-medium text-gray-800">Thanh toán trực tuyến (VNPay)</p>
-                    <p className="text-sm text-gray-500">Thanh toán qua cổng thanh toán VNPay</p>
-                  </div>
-                </label>
+
                 <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${paymentMethod === 'sepay' ? 'border-[var(--primary)] bg-[var(--bg-light)]' : 'border-gray-200 hover:border-gray-300'}`}>
                   <input
                     type="radio"

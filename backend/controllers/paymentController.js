@@ -439,7 +439,19 @@ const sepayWebhook = async (req, res, next) => {
       return res.status(200).json({ success: true, message: 'Ignoring outgoing transfer' });
     }
 
-    if (!code) {
+    // Determine the payment code (Priority: code field > manual extraction from nội_dung)
+    let paymentCode = code || '';
+    if (!paymentCode && nội_dung) {
+      const extractedOrder = nội_dung.match(/SH\d+/i);
+      const extractedApp = nội_dung.match(/AP\d+/i);
+      paymentCode = extractedOrder ? extractedOrder[0] : (extractedApp ? extractedApp[0] : '');
+      if (paymentCode) {
+        console.log(`[SePay Webhook] Manually extracted code from content: ${paymentCode}`);
+      }
+    }
+
+    if (!paymentCode) {
+      console.log(`[SePay Webhook] No payment code found in either 'code' or 'nội_dung'. Ignoring.`);
       return res.status(200).json({ success: true, message: 'No payment code found' });
     }
 
@@ -447,8 +459,8 @@ const sepayWebhook = async (req, res, next) => {
     let targetType = null;
     let targetId = null;
 
-    const orderMatch = code.match(sepayConfig.patterns.order);
-    const appointmentMatch = code.match(sepayConfig.patterns.appointment);
+    const orderMatch = paymentCode.match(sepayConfig.patterns.order);
+    const appointmentMatch = paymentCode.match(sepayConfig.patterns.appointment);
 
     if (orderMatch) {
       targetType = 'ORDER';

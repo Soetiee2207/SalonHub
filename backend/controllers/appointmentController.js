@@ -618,10 +618,10 @@ const cancelAppointment = async (req, res, next) => {
       });
     }
 
-    if (appointment.userId !== userId) {
+    if (appointment.userId !== userId && !['admin', 'staff', 'service_staff'].includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Bạn chỉ có thể hủy lịch hẹn của chính mình.',
+        message: 'Bạn không có quyền hủy lịch hẹn này.',
       });
     }
 
@@ -799,11 +799,14 @@ const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
   });
 
   if (!existingTx) {
+    // Map paymentMethod to DB compatible ENUM for CashFlowTransaction
+    const ledgerMethod = (paymentMethod === 'sepay' || paymentMethod === 'vnpay') ? 'bank' : paymentMethod;
+
     await CashFlowTransaction.create({
       type: 'receipt', 
       amount: totalAmount,
       category: 'other', 
-      method: paymentMethod, // Đồng bộ phương thức thanh toán
+      method: ledgerMethod, // map sepay/vnpay to bank for DB compatibility
       status: 'completed',
       referenceType: 'appointment',
       referenceId: appointment.id,

@@ -6,6 +6,7 @@ import { productService } from '../../services/productService';
 import { cartService } from '../../services/cartService';
 import { reviewService } from '../../services/reviewService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCart } from '../../contexts/CartContext';
 import { formatPrice } from '../../utils/formatPrice';
 
 const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f1064e3b3e?w=400&q=80';
@@ -38,6 +39,7 @@ function StarRating({ rating, onRate, interactive = false, size = 20 }) {
 export default function ProductDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { refreshCart } = useCart();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,7 @@ export default function ProductDetail() {
     setAddingToCart(true);
     try {
       await cartService.addToCart({ productId: Number(id), quantity });
+      refreshCart();
       toast.success('Đã thêm vào giỏ hàng');
     } catch (err) {
       toast.error(err.message || 'Không thể thêm vào giỏ hàng');

@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiUser, FiShoppingCart, FiBell, FiMenu, FiX, FiLogOut, FiSettings, FiCalendar, FiPackage, FiMapPin } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
-import { cartService } from '../../services/cartService';
+import { useCart } from '../../contexts/CartContext';
 import { notificationService } from '../../services/notificationService';
 
 export default function Header() {
@@ -12,8 +12,10 @@ export default function Header() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
+  const { cartCount } = useCart();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isCartPopping, setIsCartPopping] = useState(false);
+  const prevCartCount = useRef(cartCount);
   const dropdownRef = useRef(null);
   const socket = useSocket();
 
@@ -28,13 +30,6 @@ export default function Header() {
 
   useEffect(() => {
     if (user) {
-      cartService.getCart()
-        .then(res => {
-          const items = res.data?.items || res.items || [];
-          setCartCount(items.length);
-        })
-        .catch(() => {});
-
       notificationService.getUnreadCount()
         .then(res => {
           const count = res.data?.totalUnread || res.totalUnread || 0;
@@ -43,6 +38,16 @@ export default function Header() {
         .catch(() => {});
     }
   }, [user, location.pathname]);
+
+  // Luxury Cart Pop Animation Logic
+  useEffect(() => {
+    if (cartCount > prevCartCount.current) {
+      setIsCartPopping(true);
+      const timer = setTimeout(() => setIsCartPopping(false), 400);
+      return () => clearTimeout(timer);
+    }
+    prevCartCount.current = cartCount;
+  }, [cartCount]);
 
   // Listen for real-time notifications via socket
   useEffect(() => {
@@ -122,7 +127,7 @@ export default function Header() {
                 <Link to="/cart" className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors">
                   <FiShoppingCart size={20} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-[var(--error)] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                    <span className={`absolute -top-0.5 -right-0.5 bg-[var(--error)] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full ${isCartPopping ? 'animate-cart-pop shadow-lg' : ''} transition-all duration-300`}>
                       {cartCount}
                     </span>
                   )}

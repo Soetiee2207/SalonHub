@@ -110,3 +110,14 @@ h1, h2, h3 {
   background-color: var(--primary-light);
 }
 
+/* Luxury Cart Badge Animation */
+@keyframes cart-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.animate-cart-pop {
+  animation: cart-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+

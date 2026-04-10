@@ -4,6 +4,7 @@ import { FiSearch, FiShoppingCart, FiFilter } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { productService } from '../../services/productService';
 import { cartService } from '../../services/cartService';
+import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatPrice } from '../../utils/formatPrice';
 
@@ -11,6 +12,7 @@ const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f106
 
 export default function Products() {
   const { user } = useAuth();
+  const { refreshCart } = useCart();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -58,6 +60,7 @@ export default function Products() {
     setAddingToCart(product.id);
     try {
       await cartService.addToCart({ productId: product.id, quantity: 1 });
+      refreshCart();
       toast.success(`Đã thêm "${product.name}" vào giỏ hàng`);
     } catch (err) {
       toast.error(err.message || 'Không thể thêm vào giỏ hàng');

@@ -400,6 +400,63 @@ const getReferenceDetail = async (req, res, next) => {
     }
 };
 
+// ============================================================
+// AUTO-ACCOUNTING HELPERS (For Automated Payment Methods)
+// ============================================================
+
+/**
+ * Tự động hạch toán giao dịch vào sổ quỹ khi thanh toán thành công qua cổng (SePay/VNPay)
+ * Bỏ qua bước ĐỐI SOÁT thủ công.
+ */
+const syncTransactionToCashFlow = async (paymentId, transaction = null) => {
+  const t = transaction || await sequelize.transaction();
+  try {
+    const payment = await db.Payment.findByPk(paymentId, { transaction: t });
+    if (!payment || payment.status !== 'success') {
+      if (!transaction) await t.rollback();
+      return;
+    }
+
+    // Đánh dấu đối soát tự động luôn
+    await payment.update({
+      isReconciled: true,
+      reconciledAt: new Date(),
+    }, { transaction: t });
+
+    // Tạo phiếu thu ngay vào Sổ quỹ
+    await CashFlowTransaction.create({
+      type: 'receipt',
+      amount: payment.amount,
+      category: 'other',
+      method: payment.method === 'vnpay' || payment.method === 'sepay' ? 'bank' : 'cash',
+      status: 'completed',
+      referenceType: payment.orderId ? 'order' : 'appointment',
+      referenceId: payment.orderId || payment.appointmentId,
+      note: `[TỰ ĐỘNG] Ghi nhận doanh thu qua ${payment.method.toUpperCase()} cho ${payment.orderId ? 'đơn hàng' : 'lịch hẹn'} #${payment.orderId || payment.appointmentId}`,
+      createdBy: 1 // System User ID or a generic Admin ID
+    }, { transaction: t });
+
+    if (!transaction) await t.commit();
+  } catch (error) {
+    if (!transaction) await t.rollback();
+    console.error('Error in syncTransactionToCashFlow:', error);
+    throw error;
+  }
+};
+
+/**
+ * Hạch toán cho đơn hàng (Order)
+ */
+const syncOrderAccounting = async (orderId, transaction = null) => {
+  const payment = await db.Payment.findOne({ 
+    where: { orderId, status: 'success' },
+    transaction 
+  });
+  if (payment) {
+    await syncTransactionToCashFlow(payment.id, transaction);
+  }
+};
+
 module.exports = {
   getFinancialStats,
   getCashFlow,
@@ -408,5 +465,7 @@ module.exports = {
   reconcilePayment,
   getRefundRequests,
   processRefund,
-  getReferenceDetail
+  getReferenceDetail,
+  syncTransactionToCashFlow,
+  syncOrderAccounting
 };

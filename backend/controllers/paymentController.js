@@ -4,7 +4,9 @@ const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
 const sepayConfig = require('../config/sepay');
 const { syncAppointmentAccounting } = require('./appointmentController');
+const { syncOrderAccounting, syncTransactionToCashFlow } = require('./accountantController');
 const { createNotification, createRoleNotification } = require('./notificationController');
+const socketService = require('../services/socketService');
 
 // VNPay return handler
 const vnpayReturn = async (req, res, next) => {
@@ -51,6 +53,8 @@ const vnpayReturn = async (req, res, next) => {
             status: 'success',
             vnpayData: vnpParams,
           });
+          // Tự động hạch toán cho ORDER
+          await syncOrderAccounting(order.id);
         }
       } else if (refType === 'APP') {
         const appointment = await db.Appointment.findByPk(refId);
@@ -86,6 +90,15 @@ const vnpayReturn = async (req, res, next) => {
           title: 'Thanh toán thành công',
           message: `Giao dịch cho ${refType === 'ORDER' ? 'đơn hàng' : 'lịch hẹn'} #${refId} đã được xác nhận. Cảm ơn quý khách!`,
           type: 'payment'
+        });
+      }
+
+      // 3. Emit Socket event for instant redirect
+      if (targetUserId) {
+        socketService.sendToUser(targetUserId, 'payment_success', {
+          type: refType,
+          id: refId,
+          message: 'Thanh toán thành công!'
         });
       }
 
@@ -181,6 +194,8 @@ const vnpayIPN = async (req, res, next) => {
           status: 'success',
           vnpayData: vnpParams,
         });
+        // Tự động hạch toán cho ORDER
+        await syncOrderAccounting(order.id);
       }
     } else if (refType === 'APP') {
       const appointment = await db.Appointment.findByPk(refId);
@@ -204,6 +219,15 @@ const vnpayIPN = async (req, res, next) => {
           userId: appointment.userId
         });
         await syncAppointmentAccounting(appointment.id);
+      }
+      
+      // Emit Socket success for IPN as well (catch-all)
+      const targetUserId = refType === 'ORDER' ? (await db.Order.findByPk(refId))?.userId : (await db.Appointment.findByPk(refId))?.userId;
+      if (targetUserId) {
+        socketService.sendToUser(targetUserId, 'payment_success', {
+          type: refType,
+          id: refId
+        });
       }
     }
 
@@ -460,6 +484,8 @@ const sepayWebhook = async (req, res, next) => {
           vnpayData: req.body, // Reusing field for convenience
         }, { transaction: t });
 
+        // Tự động hạch toán cho ORDER (bỏ qua đối soát)
+        // We'll call this after commit to use standard helper or wrap it
       } else if (targetType === 'APP') {
         const appointment = await db.Appointment.findByPk(targetId, { transaction: t });
         if (!appointment) {
@@ -490,7 +516,15 @@ const sepayWebhook = async (req, res, next) => {
           vnpayData: req.body,
         }, { transaction: t });
 
-        await syncAppointmentAccounting(appointment.id);
+        await syncAppointmentAccounting(appointment.id, t);
+        // Tự động hạch toán bỏ qua đối soát (isReconciled=true)
+        // Note: appointment payments are already synced to accounting via syncAppointmentAccounting, 
+        // but we want to mark them as reconciled if they are from automated gateways
+        const p = await db.Payment.findOne({ where: { appointmentId: appointment.id, method: 'sepay' }, transaction: t });
+        if (p) await p.update({ isReconciled: true, reconciledAt: new Date() }, { transaction: t });
+        
+      } else if (targetType === 'ORDER') {
+         // Hanlde Order accounting sync already handled below or inside if
       }
 
       await t.commit();
@@ -509,6 +543,20 @@ const sepayWebhook = async (req, res, next) => {
           title: 'Thanh toán thành công',
           message: `Giao dịch chuyển khoản cho ${targetType === 'ORDER' ? 'đơn hàng' : 'lịch hẹn'} #${targetId} đã được xác nhận. Cảm ơn quý khách!`,
           type: 'payment'
+        });
+      }
+
+      // Hạch toán tự động sau khi commit thành công
+      if (targetType === 'ORDER') {
+        await syncOrderAccounting(targetId);
+      }
+
+      // 3. Emit Socket event for instant redirect
+      if (targetUserId) {
+        socketService.sendToUser(targetUserId, 'payment_success', {
+          type: targetType,
+          id: targetId,
+          message: 'Thanh toán qua SePay thành công!'
         });
       }
 

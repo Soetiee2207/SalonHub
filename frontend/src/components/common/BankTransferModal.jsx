@@ -1,10 +1,39 @@
-import { FiCopy, FiCheck, FiX } from 'react-icons/fi';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { formatPrice } from '../../utils/formatPrice';
+import { useSocket } from '../../contexts/SocketContext';
 
 export default function BankTransferModal({ isOpen, onClose, amount, orderId, apptId }) {
+  const navigate = useNavigate();
+  const socket = useSocket();
   const [copiedField, setCopiedField] = useState(null);
+
+  // Auto-redirect on payment success
+  useEffect(() => {
+    if (socket && isOpen) {
+      const handlePaymentSuccess = (data) => {
+        // Match either order or appointment
+        const isMatch = (orderId && data.type === 'ORDER' && Number(data.id) === Number(orderId)) ||
+                        (apptId && data.type === 'APP' && Number(data.id) === Number(apptId));
+
+        if (isMatch) {
+          toast.success('Thanh toán thành công! Đang chuyển hướng...');
+          setTimeout(() => {
+            onClose();
+            if (data.type === 'ORDER') {
+              navigate(`/my-orders/${data.id}`);
+            } else {
+              navigate('/my-appointments');
+            }
+          }, 2000);
+        }
+      };
+
+      socket.on('payment_success', handlePaymentSuccess);
+      return () => socket.off('payment_success', handlePaymentSuccess);
+    }
+  }, [socket, isOpen, orderId, apptId, navigate, onClose]);
 
   if (!isOpen) return null;
 
@@ -29,7 +58,7 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden animate-scale-up">
+      <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-scale-up">
         {/* Header */}
         <div className="p-6 bg-[#8B5E3C] text-white flex items-center justify-between">
           <h2 className="text-xl font-bold font-display">Thanh toán chuyển khoản</h2>

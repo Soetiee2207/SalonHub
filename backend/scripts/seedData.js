@@ -1,11 +1,11 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const db = require('./models');
+const db = require('../models');
 
 async function seed() {
   try {
-    await db.sequelize.sync({ force: true }); // Reset DB
-    console.log('Database synced.');
+    await db.sequelize.sync({ alter: true }); 
+    console.log('Database schema updated (alter: true).');
 
     const hash = await bcrypt.hash('123456', 10);
 

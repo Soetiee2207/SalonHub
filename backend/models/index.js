@@ -11,10 +11,14 @@ if (process.env.DATABASE_URL) {
     dialect: 'mysql',
     dialectOptions: {
       ssl: {
-        // Đây mới là cách truyền chuẩn để thư viện không bị nhầm lẫn
         require: true,
         rejectUnauthorized: true 
-      }
+      },
+      charset: 'utf8mb4'
+    },
+    define: {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci'
     },
     logging: false
   });
@@ -22,7 +26,15 @@ if (process.env.DATABASE_URL) {
   // Chạy local
   sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
     host: dbConfig.host,
+    port: dbConfig.port,
     dialect: dbConfig.dialect,
+    dialectOptions: {
+      charset: 'utf8mb4'
+    },
+    define: {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci'
+    },
     pool: dbConfig.pool,
     logging: dbConfig.logging,
   });

@@ -1,3 +1,4 @@
+import { FiCopy, FiCheck, FiX } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';

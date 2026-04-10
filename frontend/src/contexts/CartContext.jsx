@@ -27,8 +27,11 @@ export const CartProvider = ({ children }) => {
       setLoading(true);
       const res = await cartService.getCart();
       const items = res.data?.items || res.items || [];
-      // Immutability: Ensure we are setting a new value
-      setCartCount(items.length);
+      
+      // Calculate total quantity across all items (e.g., 2 apples + 1 orange = 3)
+      const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+      
+      setCartCount(totalQuantity);
     } catch (error) {
       console.error('Failed to fetch cart:', error);
       setCartCount(0);

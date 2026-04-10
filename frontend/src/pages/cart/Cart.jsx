@@ -4,27 +4,31 @@ import { FiTrash2, FiMinus, FiPlus, FiShoppingBag, FiArrowRight } from 'react-ic
 import toast from 'react-hot-toast';
 import { cartService } from '../../services/cartService';
 import { formatPrice } from '../../utils/formatPrice';
+import { useCart } from '../../contexts/CartContext';
 
 export default function Cart() {
   const navigate = useNavigate();
+  const { refreshCart } = useCart();
   const [cart, setCart] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
 
-  const fetchCart = () => {
-    setLoading(true);
+  const fetchCart = (silent = false) => {
+    if (!silent) setLoading(true);
     cartService.getCart()
       .then((res) => {
         const data = res.data || res;
         setCart(data);
         // Default to select all when first loading
-        if (data?.items) {
+        if (data?.items && !silent) {
           setSelectedIds(data.items.map(item => item.id));
         }
       })
       .catch(() => toast.error('Không thể tải giỏ hàng'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -36,7 +40,8 @@ export default function Cart() {
     setUpdating(itemId);
     try {
       await cartService.updateItem(itemId, { quantity: newQuantity });
-      fetchCart();
+      fetchCart(true); // Silent update
+      refreshCart(); // Sync Header badge count
     } catch (err) {
       toast.error(err.message || 'Không thể cập nhật số lượng');
     } finally {
@@ -48,7 +53,8 @@ export default function Cart() {
     try {
       await cartService.removeItem(itemId);
       toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
-      fetchCart();
+      fetchCart(true); // Silent update
+      refreshCart(); // Sync Header
     } catch (err) {
       toast.error(err.message || 'Không thể xóa sản phẩm');
     }
@@ -61,6 +67,7 @@ export default function Cart() {
       toast.success('Đã xóa tất cả sản phẩm');
       setCart(null);
       fetchCart();
+      refreshCart(); // Sync Header
     } catch (err) {
       toast.error(err.message || 'Không thể xóa giỏ hàng');
     }
@@ -195,7 +202,7 @@ export default function Cart() {
                       <FiPlus size={14} />
                     </button>
                   </div>
-                  <p className="font-bold text-[var(--primary)]">
+                  <p className="font-bold text-[var(--primary)] text-right min-w-[100px]">
                     {formatPrice((item.product?.price || 0) * item.quantity)}
                   </p>
                 </div>

@@ -608,7 +608,7 @@ const cancelAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { cancelReason } = req.body;
+    const { cancelReason } = req.body || {};
 
     const appointment = await Appointment.findByPk(id);
     if (!appointment) {

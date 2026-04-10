@@ -35,7 +35,7 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
           toast.success('Khách đã thanh toán qua SePay thành công!');
           setTimeout(() => {
             onSuccess();
-            navigate('/');
+            navigate('/admin');
           }, 1500);
         }
       };

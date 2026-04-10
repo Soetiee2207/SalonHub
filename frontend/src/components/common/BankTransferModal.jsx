@@ -22,11 +22,7 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
           toast.success('Thanh toán thành công! Đang chuyển hướng...');
           setTimeout(() => {
             onClose();
-            if (data.type === 'ORDER') {
-              navigate(`/my-orders/${data.id}`);
-            } else {
-              navigate('/my-appointments');
-            }
+            navigate('/');
           }, 2000);
         }
       };

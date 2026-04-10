@@ -768,12 +768,20 @@ const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
 
   if (totalAmount <= 0) return;
 
+  // 1. Kiểm tra xem đã có bản ghi thanh toán chưa (ví dụ SePay hoặc VNPay đã tạo)
+  const existingPayment = await Payment.findOne({
+    where: { appointmentId: appointment.id },
+    ...options
+  });
+
+  const paymentMethod = existingPayment ? existingPayment.method : 'cash';
+
   // 1. Tạo hoặc cập nhật bản ghi Payment (Ghi nhận đã thu tiền)
   const [payment, created] = await Payment.findOrCreate({
     where: { appointmentId: appointment.id },
     defaults: {
       amount: totalAmount,
-      method: 'cash', // Mặc định thu tiền mặt tại quầy khi thợ hoàn tất
+      method: paymentMethod, // Sử dụng phương thức thực tế
       status: 'success',
       orderId: appointment.orderId || null
     },
@@ -781,7 +789,7 @@ const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
   });
 
   if (!created) {
-    await payment.update({ amount: totalAmount, orderId: appointment.orderId || null }, options);
+    await payment.update({ amount: totalAmount, orderId: appointment.orderId || null, method: paymentMethod }, options);
   }
 
   // 2. Tạo Phiếu thu (CashFlowTransaction) cho Kế toán
@@ -795,7 +803,7 @@ const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
       type: 'receipt', 
       amount: totalAmount,
       category: 'other', 
-      method: 'cash',
+      method: paymentMethod, // Đồng bộ phương thức thanh toán
       status: 'completed',
       referenceType: 'appointment',
       referenceId: appointment.id,
@@ -823,8 +831,13 @@ const checkoutAppointment = async (req, res, next) => {
     }
 
     if (appointment.status === 'completed') {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'Lịch hẹn đã thanh toán trước đó.' });
+      await transaction.commit(); // Resolve gracefully since it's already done
+      const fullAppt = await Appointment.findByPk(id, { include: APPOINTMENT_INCLUDES });
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Lịch hẹn đã được thanh toán và hoàn thành trước đó.',
+        data: { appointment: fullAppt, totalBill: parseFloat(fullAppt.totalPrice) }
+      });
     }
 
     let totalProductAmount = 0;

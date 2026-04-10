@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FiX, FiPlus, FiTrash2, FiSave, FiCreditCard, 
   FiDollarSign, FiScissors, FiPackage, FiMessageSquare, 
@@ -24,20 +25,25 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
   const [search, setSearch] = useState('');
   const socket = useSocket();
 
+  const navigate = useNavigate();
+
   // Listen for payment success to close console automatically
   useEffect(() => {
     if (socket && checkoutMode && paymentMethod === 'sepay') {
       const handlePaymentSuccess = (data) => {
         if (data.type === 'APP' && Number(data.id) === Number(appointment.id)) {
           toast.success('Khách đã thanh toán qua SePay thành công!');
-          onSuccess();
+          setTimeout(() => {
+            onSuccess();
+            navigate('/');
+          }, 1500);
         }
       };
 
       socket.on('payment_success', handlePaymentSuccess);
       return () => socket.off('payment_success', handlePaymentSuccess);
     }
-  }, [socket, checkoutMode, paymentMethod, appointment.id, onSuccess]);
+  }, [socket, checkoutMode, paymentMethod, appointment.id, onSuccess, navigate]);
 
   useEffect(() => {
     fetchProducts();

@@ -14,7 +14,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       // Connect to the socket server
-      const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+      const socketUrl = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
       const newSocket = io(socketUrl, {
         withCredentials: true,
       });

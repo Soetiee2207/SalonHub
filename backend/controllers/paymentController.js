@@ -414,11 +414,18 @@ const sepayWebhook = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
+    console.log(`[SePay Webhook] Incoming request from IP: ${clientIp}`);
+    console.log(`[SePay Webhook] Auth Header: ${authHeader}`);
+    console.log(`[SePay Webhook] Configured Key: ${sepayConfig.apiKey.substring(0, 10)}...`);
+
     // 1. Authenticate with API Key
     if (!authHeader || authHeader !== `Apikey ${sepayConfig.apiKey}`) {
-      console.warn(`[SePay] Unauthorized access attempt from ${clientIp}`);
+      console.warn(`[SePay Webhook] Unauthorized: Auth Header mismatch.`);
       return res.status(401).json({ success: false, message: 'Invalid API Key' });
     }
+
+    const { id, code, transferAmount, transferType, transferDate, nội_dung } = req.body;
+    console.log(`[SePay Webhook] Transaction Details: ID=${id}, Code=${code}, Amount=${transferAmount}, Content=${nội_dung}`);
 
     // 2. IP Whitelist Check (Optional but recommended)
     // if (!sepayConfig.ipWhitelist.includes(clientIp)) {
@@ -426,7 +433,6 @@ const sepayWebhook = async (req, res, next) => {
     //   return res.status(401).json({ success: false, message: 'Untrusted IP source' });
     // }
 
-    const { id, code, transferAmount, transferType, transferDate, nội_dung } = req.body;
 
     // Only process incoming transfers
     if (transferType !== 'in') {
@@ -451,17 +457,22 @@ const sepayWebhook = async (req, res, next) => {
       targetType = 'APP';
       targetId = appointmentMatch[1];
     } else {
+      console.warn(`[SePay Webhook] No match for code: ${code}`);
       return res.status(200).json({ success: true, message: 'Code does not match any pattern' });
     }
+
+    console.log(`[SePay Webhook] Matched Target: ${targetType} #${targetId}`);
 
     const t = await db.sequelize.transaction();
     try {
       if (targetType === 'ORDER') {
         const order = await db.Order.findByPk(targetId, { transaction: t });
         if (!order) {
+          console.error(`[SePay Webhook] ORDER #${targetId} not found in Database.`);
           await t.rollback();
           return res.status(200).json({ success: true, message: 'Order not found' });
         }
+        console.log(`[SePay Webhook] Found Order #${order.id}, Status: ${order.paymentStatus}`);
 
         // Allow some tolerance in amount comparison if needed, but SePay sends raw bank numbers
         if (Math.abs(parseFloat(order.totalAmount) - parseFloat(transferAmount)) > 1) {
@@ -560,6 +571,7 @@ const sepayWebhook = async (req, res, next) => {
         });
       }
 
+      console.log(`[SePay Webhook] Successfully processed ${targetType} #${targetId}`);
       return res.status(201).json({ success: true, message: 'Payment processed successfully' });
 
     } catch (err) {

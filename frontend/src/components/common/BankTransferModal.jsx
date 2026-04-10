@@ -59,7 +59,7 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-      <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-scale-up">
+      <div className="bg-white rounded-[2rem] w-full max-w-[400px] shadow-2xl overflow-hidden animate-scale-up">
         {/* Header */}
         <div className="p-6 bg-[#8B5E3C] text-white flex items-center justify-between">
           <h2 className="text-xl font-bold font-display">Thanh toán chuyển khoản</h2>
@@ -68,13 +68,13 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-6 space-y-5">
           {/* QR Code */}
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className="p-3 bg-white border-4 border-slate-50 rounded-3xl shadow-sm">
-              <img src={qrUrl} alt="VietQR" className="w-64 h-64 object-contain" />
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="p-2.5 bg-white border-4 border-slate-50 rounded-3xl shadow-sm">
+              <img src={qrUrl} alt="VietQR" className="w-56 h-56 object-contain" />
             </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Quét mã để thanh toán nhanh</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Quét mã để thanh toán nhanh</p>
           </div>
 
           {/* Details */}
@@ -134,12 +134,12 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
-              <div className="text-blue-500 mt-1">
-                <FiCheck size={18} />
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 flex gap-3">
+              <div className="text-blue-500 mt-0.5">
+                <FiCheck size={16} />
               </div>
-              <p className="text-xs text-blue-700 leading-relaxed font-medium">
-                Hệ thống sẽ tự động xác nhận sau 1-3 phút kể từ khi nhận được tiền. Quý khách vui lòng <strong>giữ nguyên nội dung chuyển khoản</strong> để được xử lý tự động.
+              <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
+                Hệ thống xác nhận tự động sau 1-3 phút. Vui lòng <strong>giữ nguyên nội dung chuyển khoản</strong>.
               </p>
             </div>
           </div>

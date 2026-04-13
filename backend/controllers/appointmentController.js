@@ -221,16 +221,25 @@ const createAppointment = async (req, res, next) => {
     const [h, m] = cleanStartTime.split(':');
     const normalizedStartTime = `${h.padStart(2, '0')}:${m}`;
 
-    // --- Validation: Prevent booking in the past ---
+    // --- Validation: Prevent booking in the past (Timezone Aware) ---
     const now = new Date();
-    const apptDateTime = new Date(`${date}T${normalizedStartTime}`);
+    const vnDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const vnTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false });
     
-    // Allow 2 minutes leeway for slow servers/requests
-    if (apptDateTime.getTime() < now.getTime() - 2 * 60 * 1000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Không thể đặt lịch trong quá khứ.',
-      });
+    // Compare date first
+    if (date < vnDate) {
+      return res.status(400).json({ success: false, message: 'Không thể đặt lịch trong quá khứ.' });
+    }
+    
+    // If today, compare time (allow 2 mins leeway)
+    if (date === vnDate) {
+      const currentMin = (val) => {
+        const [h, m] = val.split(':').map(Number);
+        return h * 60 + m;
+      };
+      if (currentMin(normalizedStartTime) < currentMin(vnTime) - 2) {
+        return res.status(400).json({ success: false, message: 'Không thể đặt lịch trong quá khứ.' });
+      }
     }
 
     // --- Get service to calculate endTime and price ---
@@ -774,12 +783,15 @@ const getAvailableSlots = async (req, res, next) => {
     const scheduleStart = timeToMinutes(schedule.startTime);
     const scheduleEnd = timeToMinutes(schedule.endTime);
 
-    // Calculate current time in minutes if date is today
+    // Calculate current time in minutes if date is today (Timezone Aware)
     const now = new Date();
-    const todayString = now.toISOString().split('T')[0];
-    const isToday = date === todayString;
+    const vnDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const vnTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false });
+    const [vnH, vnM] = vnTime.split(':').map(Number);
+
+    const isToday = date === vnDate;
     const BUFFER_MINUTES = 15; // Give Salon 15 mins to prepare
-    const currentMinutes = isToday ? (now.getHours() * 60 + now.getMinutes() + BUFFER_MINUTES) : 0;
+    const currentMinutes = isToday ? (vnH * 60 + vnM + BUFFER_MINUTES) : 0;
 
     for (let time = scheduleStart; time + service.duration <= scheduleEnd; time += SLOT_INTERVAL_MINUTES) {
       // Filter out past slots for today

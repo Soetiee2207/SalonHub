@@ -66,6 +66,7 @@ const ProductBatch = require('./ProductBatch')(sequelize, DataTypes);
 const CashFlowTransaction = require('./CashFlowTransaction')(sequelize, DataTypes);
 const RefundRequest = require('./RefundRequest')(sequelize, DataTypes);
 const CustomerServiceNote = require('./CustomerServiceNote')(sequelize, DataTypes);
+const ReturnRequest = require('./ReturnRequest')(sequelize, DataTypes);
 
 
 // ===================== ASSOCIATIONS =====================
@@ -190,6 +191,12 @@ Appointment.hasMany(CustomerServiceNote, { as: 'notes', foreignKey: 'appointment
 User.hasMany(CustomerServiceNote, { as: 'notesAsCustomer', foreignKey: 'customerId' });
 User.hasMany(CustomerServiceNote, { as: 'notesAsStaff', foreignKey: 'staffId' });
 
+// ReturnRequest associations
+ReturnRequest.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+ReturnRequest.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Order.hasOne(ReturnRequest, { foreignKey: 'orderId', as: 'returnRequest' });
+User.hasMany(ReturnRequest, { foreignKey: 'userId', as: 'returnRequests' });
+
 // ===================== EXPORT =====================
 
 const db = {
@@ -218,6 +225,7 @@ const db = {
   CashFlowTransaction,
   RefundRequest,
   CustomerServiceNote,
+  ReturnRequest,
 };
 
 module.exports = db;

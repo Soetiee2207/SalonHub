@@ -6,6 +6,8 @@ import { orderService } from '../../services/orderService';
 import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
+import ReturnModal from '../../components/common/ReturnModal';
+import { returnService } from '../../services/returnService';
 
 const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f1064e3b3e?w=400&q=80';
 
@@ -30,6 +32,8 @@ export default function OrderDetail() {
   const [cancelling, setCancelling] = useState(false);
   const [reviewProduct, setReviewProduct] = useState(null); // { id, name }
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -77,6 +81,24 @@ export default function OrderDetail() {
       toast.error(err.message || 'Gửi đánh giá thất bại');
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleReturnSubmit = async ({ reason, images }) => {
+    setSubmittingReturn(true);
+    try {
+      await returnService.requestReturn({
+        orderId: id,
+        reason,
+        images
+      });
+      toast.success('Gửi yêu cầu trả hàng thành công');
+      setShowReturnModal(false);
+      await fetchOrder();
+    } catch (err) {
+      toast.error(err.message || 'Gửi yêu cầu thất bại');
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -130,6 +152,39 @@ export default function OrderDetail() {
           </span>
         </div>
       </div>
+
+      {order.returnRequest && (
+        <div className="mb-6 bg-orange-50 border border-orange-100 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-black text-orange-800">Thông tin đổi trả</h2>
+            <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase tracking-widest ${
+              order.returnRequest.status === 'pending' ? 'bg-orange-100 text-orange-600' :
+              order.returnRequest.status === 'approved' ? 'bg-blue-100 text-blue-600' :
+              order.returnRequest.status === 'receiving' ? 'bg-indigo-100 text-indigo-600' :
+              order.returnRequest.status === 'completed' ? 'bg-green-100 text-green-600' :
+              'bg-red-100 text-red-600'
+            }`}>
+              {order.returnRequest.status === 'pending' ? 'Đang chờ duyệt' :
+               order.returnRequest.status === 'approved' ? 'Đã chấp nhận' :
+               order.returnRequest.status === 'receiving' ? 'Đang nhận hàng' :
+               order.returnRequest.status === 'completed' ? 'Hoàn tất trả hàng' : 'Từ chối'}
+            </span>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-white/50 rounded-xl p-4">
+              <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">LÝ DO TRẢ HÀNG</p>
+              <p className="text-sm text-slate-700 font-medium">{order.returnRequest.reason}</p>
+            </div>
+            {order.returnRequest.adminNote && (
+              <div className="bg-white/50 rounded-xl p-4 border border-orange-200">
+                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">PHẢN HỒI CỬA HÀNG</p>
+                <p className="text-sm text-slate-800 font-bold">{order.returnRequest.adminNote}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Info & Items */}
@@ -271,6 +326,15 @@ export default function OrderDetail() {
                 {cancelling ? 'Đang hủy...' : 'Hủy đơn hàng'}
               </button>
             )}
+
+            {['delivered', 'completed'].includes(order.status) && !order.returnRequest && (
+              <button
+                onClick={() => setShowReturnModal(true)}
+                className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 border-2 border-orange-500 text-orange-500 rounded-lg hover:bg-orange-50 transition-colors font-bold uppercase tracking-widest text-xs"
+              >
+                Yêu cầu trả hàng
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -282,6 +346,14 @@ export default function OrderDetail() {
         onClose={() => setReviewProduct(null)}
         onSubmit={handleReviewSubmit}
         submitting={submittingReview}
+      />
+
+      <ReturnModal
+        isOpen={showReturnModal}
+        orderId={order.id}
+        onClose={() => setShowReturnModal(false)}
+        onSubmit={handleReturnSubmit}
+        submitting={submittingReturn}
       />
     </div>
   );

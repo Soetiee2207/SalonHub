@@ -3,6 +3,7 @@ import { FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
 import { formatPrice } from '../../utils/formatPrice';
+import { returnService } from '../../services/returnService';
 
 const statusTabs = [
   { value: '', label: 'Tất cả' },
@@ -13,6 +14,7 @@ const statusTabs = [
   { value: 'delivered', label: 'Đã giao' },
   { value: 'completed', label: 'Hoàn thành' },
   { value: 'cancelled', label: 'Đã hủy' },
+  { value: 'return_requested', label: 'Yêu cầu trả hàng' },
 ];
 
 const statusColors = {
@@ -52,7 +54,9 @@ export default function AdminOrders() {
     setLoading(true);
     try {
       const params = {};
-      if (statusFilter) params.status = statusFilter;
+      if (statusFilter && statusFilter !== 'return_requested') {
+        params.status = statusFilter;
+      }
       const res = await orderService.getAll(params);
       setOrders(res.data || res || []);
     } catch {
@@ -85,13 +89,32 @@ export default function AdminOrders() {
     }
   };
 
+  const handleReturnRequestAction = async (requestId, newStatus, adminNote = '') => {
+    try {
+      await returnService.updateReturnStatus(requestId, { status: newStatus, adminNote });
+      toast.success('Cập nhật trạng thái yêu cầu trả hàng thành công');
+      fetchData();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi xử lý yêu cầu trả hàng');
+    }
+  };
+
   const formatDate = (d) => d ? new Date(d).toLocaleString('vi-VN') : '---';
 
   const sorted = [...orders.filter(o => {
     const searchMatch = search === '' ||
       (String(o.id || '')).toLowerCase().includes(search.toLowerCase()) ||
       (o.customer?.fullName || o.customer?.name || '').toLowerCase().includes(search.toLowerCase());
-    return searchMatch;
+    
+    if (!searchMatch) return false;
+
+    if (statusFilter === 'return_requested') {
+      return !!o.returnRequest && o.returnRequest.status !== 'completed' && o.returnRequest.status !== 'rejected';
+    } else if (statusFilter) {
+      return o.status === statusFilter;
+    }
+    
+    return true;
   })].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
@@ -159,7 +182,20 @@ export default function AdminOrders() {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-600'}`}>
                           {statusLabels[order.status] || order.status || '---'}
                         </span>
+                        {order.returnRequest && (
+                          <div className="mt-1">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 uppercase">
+                              Trả hàng: {
+                                order.returnRequest.status === 'pending' ? 'Chờ duyệt' :
+                                order.returnRequest.status === 'approved' ? 'Đã duyệt' :
+                                order.returnRequest.status === 'receiving' ? 'Đang nhận' :
+                                order.returnRequest.status === 'completed' ? 'Xong' : 'Từ chối'
+                              }
+                            </span>
+                          </div>
+                        )}
                       </td>
+
                       <td className="hidden lg:table-cell px-4 py-3 text-center text-gray-600 text-xs">{formatDate(order.createdAt)}</td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <select
@@ -209,6 +245,57 @@ export default function AdminOrders() {
                           )}
                           {order.note && (
                             <p className="mt-1 text-xs text-gray-500"><strong>Ghi chú:</strong> {order.note}</p>
+                          )}
+
+                          {order.returnRequest && (
+                            <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                              <h3 className="text-sm font-bold text-orange-800 mb-2 uppercase tracking-wider">Thông tin yêu cầu trả hàng</h3>
+                              <div className="space-y-2 text-xs">
+                                <p><strong>Trạng thái:</strong> {order.returnRequest.status}</p>
+                                <p><strong>Lý do:</strong> {order.returnRequest.reason}</p>
+                                {order.returnRequest.adminNote && (
+                                  <p><strong>Phản hồi Admin:</strong> {order.returnRequest.adminNote}</p>
+                                )}
+                                
+                                <div className="flex gap-2 mt-4">
+                                  {order.returnRequest.status === 'pending' && (
+                                    <>
+                                      <button 
+                                        onClick={() => handleReturnRequestAction(order.returnRequest.id, 'approved')}
+                                        className="px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold"
+                                      >
+                                        Chấp nhận trả
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          const note = window.prompt('Lý do từ chối:');
+                                          if (note !== null) handleReturnRequestAction(order.returnRequest.id, 'rejected', note);
+                                        }}
+                                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 font-bold"
+                                      >
+                                        Từ chối
+                                      </button>
+                                    </>
+                                  )}
+                                  {order.returnRequest.status === 'approved' && (
+                                    <button 
+                                      onClick={() => handleReturnRequestAction(order.returnRequest.id, 'receiving')}
+                                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold"
+                                    >
+                                      Xác nhận đang nhận hàng
+                                    </button>
+                                  )}
+                                  {order.returnRequest.status === 'receiving' && (
+                                    <button 
+                                      onClick={() => handleReturnRequestAction(order.returnRequest.id, 'completed')}
+                                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 font-bold"
+                                    >
+                                      Hoàn tất (Đã nhận hàng & Nhập kho)
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </td>
                       </tr>

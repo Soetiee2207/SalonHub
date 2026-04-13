@@ -52,6 +52,7 @@ const WarehouseInventoryDocs = lazy(() => import('./pages/admin/WarehouseInvento
 const CashFlowLedger = lazy(() => import('./pages/admin/CashFlowLedger'));
 const PaymentReconciliation = lazy(() => import('./pages/admin/PaymentReconciliation'));
 const RefundHub = lazy(() => import('./pages/admin/RefundHub'));
+const WarehouseReturns = lazy(() => import('./pages/admin/WarehouseReturns'));
 const FinancialReports = lazy(() => import('./pages/admin/FinancialReports'));
 
 function RoleDashboard() {
@@ -122,6 +123,7 @@ function App() {
                     <Route path="cash-ledger" element={<CashFlowLedger />} />
                     <Route path="reconciliation" element={<PaymentReconciliation />} />
                     <Route path="refunds" element={<RefundHub />} />
+                    <Route path="returns" element={<WarehouseReturns />} />
                     <Route path="reports" element={<FinancialReports />} />
                   </Route>
                 </Routes>

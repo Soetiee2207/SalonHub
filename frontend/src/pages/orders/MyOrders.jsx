@@ -23,6 +23,14 @@ const paymentStatusConfig = {
   failed: { label: 'Thất bại', color: 'bg-red-100 text-red-700' },
 };
 
+const returnStatusConfig = {
+  pending: { label: 'Chờ duyệt trả hàng', color: 'bg-orange-100 text-orange-600' },
+  approved: { label: 'Đã duyệt trả hàng', color: 'bg-blue-100 text-blue-600' },
+  receiving: { label: 'Đang nhận hàng trả', color: 'bg-indigo-100 text-indigo-600' },
+  completed: { label: 'Trả hàng thành công', color: 'bg-green-100 text-green-600' },
+  rejected: { label: 'Từ chối trả hàng', color: 'bg-red-100 text-red-600' },
+};
+
 const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f1064e3b3e?w=400&q=80';
 
 const TABS = [
@@ -141,9 +149,9 @@ export default function MyOrders() {
       case 'completed':
         return order.status === 'delivered' || order.status === 'completed';
       case 'cancelled':
-        return order.status === 'cancelled' && order.paymentStatus !== 'paid';
+        return order.status === 'cancelled' && order.paymentStatus !== 'paid' && !order.returnRequest;
       case 'refund':
-        return order.status === 'cancelled' && order.paymentStatus === 'paid';
+        return (order.status === 'cancelled' && order.paymentStatus === 'paid') || !!order.returnRequest;
       case 'all':
       default:
         return true;
@@ -263,6 +271,11 @@ export default function MyOrders() {
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${paymentStatus.color}`}>
                             {paymentStatus.label}
                           </span>
+                          {order.returnRequest && (
+                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${returnStatusConfig[order.returnRequest.status]?.color || 'bg-gray-100'}`}>
+                              {returnStatusConfig[order.returnRequest.status]?.label}
+                            </span>
+                          )}
                         </div>
                       </div>
 

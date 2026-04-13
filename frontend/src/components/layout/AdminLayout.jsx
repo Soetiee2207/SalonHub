@@ -38,10 +38,10 @@ const linksByRole = {
     { to: '/admin/fulfillment', icon: FiTruck, label: 'Vận chuyển đơn hàng' },
     { to: '/admin/inventory', icon: FiBox, label: 'Kho & Vật phẩm' },
     { to: '/admin/inventory-docs', icon: FiClipboard, label: 'Phiếu Nhập/Xuất' },
+    { to: '/admin/returns', icon: FiRefreshCw, label: 'Đơn trả hàng' },
   ],
   accountant: [
     { to: '/admin', icon: FiGrid, label: 'Dashboard', exact: true },
-    { to: '/admin/orders', icon: FiShoppingBag, label: 'Đơn hàng' },
     { to: '/admin/reconciliation', icon: FiCreditCard, label: 'Đối soát VNPAY/COD' },
     { to: '/admin/cash-ledger', icon: FiDollarSign, label: 'Sổ quỹ Thu/Chi' },
     { to: '/admin/refunds', icon: FiRefreshCw, label: 'Xử lý Hoàn tiền' },

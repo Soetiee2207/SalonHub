@@ -115,7 +115,13 @@ export default function RefundHub() {
                              {r.type === 'order' ? <FiShoppingBag /> : <FiCalendar />}
                              {r.type === 'order' ? 'Đơn hàng' : 'Lịch hẹn'}
                            </span>
-                           <span className="text-[10px] font-bold text-slate-400">ID: #{r.targetId}</span>
+                           <span className="text-[10px] font-bold text-slate-400 mb-1">ID: #{r.targetId}</span>
+                           {(r.customerName || r.customerPhone) && (
+                             <div className="bg-slate-50 p-1.5 rounded text-[10px] border border-slate-100 flex flex-col items-center">
+                               <span className="font-bold text-slate-600 truncate max-w-[120px]">{r.customerName}</span>
+                               <span className="text-slate-500">{r.customerPhone}</span>
+                             </div>
+                           )}
                         </div>
                      </td>
                      <td className="px-8 py-6 text-right font-black text-lg text-rose-600">

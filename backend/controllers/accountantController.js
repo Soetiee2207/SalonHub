@@ -276,12 +276,35 @@ const reconcilePayment = async (req, res, next) => {
 // ============================================================
 const getRefundRequests = async (req, res, next) => {
   try {
-    const refunds = await RefundRequest.findAll({
+    const rawRefunds = await RefundRequest.findAll({
       order: [['createdAt', 'DESC']],
       include: [
           { model: User, as: 'processor', attributes: ['fullName'] }
       ]
     });
+
+    const refunds = await Promise.all(rawRefunds.map(async (r) => {
+      const refund = r.toJSON();
+      if (refund.type === 'order') {
+        const order = await Order.findByPk(refund.targetId, {
+          include: [{ model: User, as: 'customer', attributes: ['fullName', 'phone', 'email'] }]
+        });
+        if (order) {
+          refund.customerName = order.customer?.fullName || order.customer?.name || 'Khách vãng lai';
+          refund.customerPhone = order.customer?.phone || order.phone || 'Không có SĐT';
+        }
+      } else if (refund.type === 'appointment') {
+        const appt = await Appointment.findByPk(refund.targetId, {
+          include: [{ model: User, as: 'customer', attributes: ['fullName', 'phone', 'email'] }]
+        });
+        if (appt && appt.customer) {
+          refund.customerName = appt.customer.fullName || appt.customer.name;
+          refund.customerPhone = appt.customer.phone || appt.phone || 'Không có SĐT';
+        }
+      }
+      return refund;
+    }));
+
     res.json({ success: true, data: refunds });
   } catch (error) {
     next(error);

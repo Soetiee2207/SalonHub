@@ -4,7 +4,7 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const vnpayConfig = require('../config/vnpay');
 const { generateVnpayUrl } = require('../utils/vnpayHelper');
-const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, sequelize } = db;
+const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, ReturnRequest, sequelize } = db;
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
 const { createNotification, createRoleNotification } = require('./notificationController');
 
@@ -255,6 +255,7 @@ const getMyOrders = async (req, res, next) => {
           ],
         },
         { model: Voucher, as: 'voucher' },
+        { model: ReturnRequest, as: 'returnRequest' },
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -301,6 +302,7 @@ const getOrderById = async (req, res, next) => {
           ],
         },
         { model: Voucher, as: 'voucher' },
+        { model: ReturnRequest, as: 'returnRequest' },
         { model: User, as: 'customer', attributes: { exclude: ['password'] } },
       ],
     });
@@ -359,6 +361,7 @@ const getAllOrders = async (req, res, next) => {
         },
         { model: User, as: 'customer', attributes: { exclude: ['password'] } },
         { model: Voucher, as: 'voucher' },
+        { model: ReturnRequest, as: 'returnRequest' },
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -530,6 +533,7 @@ const updateOrderStatus = async (req, res, next) => {
           include: [{ model: Product, as: 'product' }],
         },
         { model: User, as: 'customer', attributes: { exclude: ['password'] } },
+        { model: ReturnRequest, as: 'returnRequest' },
       ],
     });
 

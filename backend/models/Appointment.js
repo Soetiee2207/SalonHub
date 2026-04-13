@@ -38,7 +38,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'confirmed', 'in_progress', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('awaiting_deposit', 'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'),
+      defaultValue: 'awaiting_deposit',
+    },
+    depositAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
+    depositStatus: {
+      type: DataTypes.ENUM('pending', 'paid', 'refunded'),
       defaultValue: 'pending',
     },
     note: {

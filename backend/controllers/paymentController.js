@@ -516,35 +516,91 @@ const sepayWebhook = async (req, res, next) => {
           return res.status(200).json({ success: true, message: 'Appointment not found' });
         }
 
-        // Match total price (including upsell order if any)
-        const totalAmount = await calculateTotalAppAmount(appointment);
-        if (Math.abs(totalAmount - parseFloat(transferAmount)) > 1) {
-          await t.rollback();
-          return res.status(200).json({ success: true, message: 'Amount mismatch for appointment' });
+        // --- CASE 1: Deposit payment (awaiting_deposit → pending) ---
+        if (appointment.status === 'awaiting_deposit') {
+          const depositAmount = parseFloat(appointment.depositAmount) || 0;
+          if (Math.abs(depositAmount - parseFloat(transferAmount)) > 1) {
+            await t.rollback();
+            return res.status(200).json({ success: true, message: 'Deposit amount mismatch' });
+          }
+
+          // Update appointment: activate it
+          await appointment.update({
+            status: 'pending',
+            depositStatus: 'paid',
+          }, { transaction: t });
+
+          // Update or create Payment record
+          const existingPayment = await db.Payment.findOne({
+            where: { appointmentId: appointment.id, method: 'sepay', status: 'pending' },
+            transaction: t,
+          });
+
+          if (existingPayment) {
+            await existingPayment.update({
+              transactionId: id.toString(),
+              status: 'success',
+              vnpayData: req.body,
+              isReconciled: true,
+              reconciledAt: new Date(),
+            }, { transaction: t });
+          } else {
+            await db.Payment.create({
+              appointmentId: appointment.id,
+              amount: transferAmount,
+              method: 'sepay',
+              transactionId: id.toString(),
+              status: 'success',
+              userId: appointment.userId,
+              vnpayData: req.body,
+              isReconciled: true,
+              reconciledAt: new Date(),
+            }, { transaction: t });
+          }
+
+          // Create CashFlow receipt (deposit category)
+          await db.CashFlowTransaction.create({
+            type: 'receipt',
+            amount: transferAmount,
+            category: 'deposit',
+            method: 'bank',
+            status: 'completed',
+            referenceType: 'appointment',
+            referenceId: appointment.id,
+            note: `Tiền đặt cọc lịch hẹn #${appointment.id}`,
+            createdBy: null,
+          }, { transaction: t });
+
+        // --- CASE 2: Full checkout payment (existing logic) ---
+        } else {
+          // Match total price (including upsell order if any)
+          const totalAmount = await calculateTotalAppAmount(appointment);
+          if (Math.abs(totalAmount - parseFloat(transferAmount)) > 1) {
+            await t.rollback();
+            return res.status(200).json({ success: true, message: 'Amount mismatch for appointment' });
+          }
+
+          if (appointment.status === 'completed') {
+            await t.rollback();
+            return res.status(200).json({ success: true, message: 'Appointment already completed' });
+          }
+
+          await appointment.update({ status: 'completed' }, { transaction: t });
+          await db.Payment.upsert({
+            appointmentId: appointment.id,
+            amount: transferAmount,
+            method: 'sepay',
+            transactionId: id.toString(),
+            status: 'success',
+            userId: appointment.userId,
+            vnpayData: req.body,
+          }, { transaction: t });
+
+          await syncAppointmentAccounting(appointment.id, t);
+          // Tự động hạch toán bỏ qua đối soát (isReconciled=true)
+          const p = await db.Payment.findOne({ where: { appointmentId: appointment.id, method: 'sepay' }, transaction: t });
+          if (p) await p.update({ isReconciled: true, reconciledAt: new Date() }, { transaction: t });
         }
-
-        if (appointment.status === 'completed') {
-          await t.rollback();
-          return res.status(200).json({ success: true, message: 'Appointment already completed' });
-        }
-
-        await appointment.update({ status: 'completed' }, { transaction: t });
-        await db.Payment.upsert({
-          appointmentId: appointment.id,
-          amount: transferAmount,
-          method: 'sepay',
-          transactionId: id.toString(),
-          status: 'success',
-          userId: appointment.userId,
-          vnpayData: req.body,
-        }, { transaction: t });
-
-        await syncAppointmentAccounting(appointment.id, t);
-        // Tự động hạch toán bỏ qua đối soát (isReconciled=true)
-        // Note: appointment payments are already synced to accounting via syncAppointmentAccounting, 
-        // but we want to mark them as reconciled if they are from automated gateways
-        const p = await db.Payment.findOne({ where: { appointmentId: appointment.id, method: 'sepay' }, transaction: t });
-        if (p) await p.update({ isReconciled: true, reconciledAt: new Date() }, { transaction: t });
         
       } else if (targetType === 'ORDER') {
          // Hanlde Order accounting sync already handled below or inside if

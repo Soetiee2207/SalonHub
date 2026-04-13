@@ -3,6 +3,7 @@ import { FiUser, FiClock, FiCheck } from 'react-icons/fi';
 
 const AppointmentRow = ({ appt }) => {
   const statusColors = {
+    awaiting_deposit: 'bg-violet-100 text-violet-800',
     pending: 'bg-amber-100 text-amber-800',
     confirmed: 'bg-blue-100 text-blue-800',
     in_progress: 'bg-purple-100 text-purple-800',

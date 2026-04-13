@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiCheck, FiChevronLeft, FiChevronRight, FiImage,
-  FiClock, FiMapPin, FiUser, FiCalendar, FiFileText
+  FiClock, FiMapPin, FiUser, FiCalendar, FiFileText, FiDollarSign
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { serviceService } from '../../services/serviceService';
 import { branchService } from '../../services/branchService';
 import { staffService } from '../../services/staffService';
 import { appointmentService } from '../../services/appointmentService';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 import { formatPrice } from '../../utils/formatPrice';
 
@@ -17,7 +18,7 @@ const STEPS = [
   { label: 'Chọn chi nhánh', icon: FiMapPin },
   { label: 'Chọn thợ', icon: FiUser },
   { label: 'Chọn ngày & giờ', icon: FiCalendar },
-  { label: 'Xác nhận', icon: FiCheck },
+  { label: 'Đặt cọc & Xác nhận', icon: FiDollarSign },
 ];
 
 function getNext7Days() {
@@ -62,6 +63,11 @@ export default function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [note, setNote] = useState('');
+
+  // Deposit state
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [createdAppointment, setCreatedAppointment] = useState(null);
+  const [depositInfo, setDepositInfo] = useState(null);
 
   const next7Days = getNext7Days();
 
@@ -143,10 +149,10 @@ export default function BookAppointment() {
     if (currentStep > 0) setCurrentStep((s) => s - 1);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitDeposit = async () => {
     setSubmitting(true);
     try {
-      await appointmentService.create({
+      const res = await appointmentService.create({
         serviceId: selectedService.id,
         branchId: selectedBranch.id,
         staffId: selectedStaff.id,
@@ -154,13 +160,25 @@ export default function BookAppointment() {
         startTime: selectedTime,
         note,
       });
-      toast.success('Đặt lịch thành công!');
-      navigate('/my-appointments');
+
+      const data = res.data || res;
+      setCreatedAppointment(data);
+      setDepositInfo(data.depositInfo);
+
+      // Show QR modal for deposit payment
+      setShowBankModal(true);
+      toast.success('Lịch hẹn đã được tạo! Vui lòng đặt cọc để xác nhận.');
     } catch (err) {
-      toast.error(err.message || 'Đặt lịch thất bại. Vui lòng thử lại.');
+      toast.error(err.response?.data?.message || err.message || 'Đặt lịch thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDepositModalClose = () => {
+    setShowBankModal(false);
+    // Navigate to my-appointments so they can track deposit status
+    navigate('/my-appointments');
   };
 
   // Step indicator
@@ -422,10 +440,31 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 4: Confirmation
+  // Step 4: Confirmation + Deposit
   const renderStepConfirm = () => (
     <div>
-      <h2 className="text-xl font-bold text-gray-800 mb-6">Xác nhận đặt lịch</h2>
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Đặt cọc & Xác nhận</h2>
+      
+      {/* Deposit notice banner */}
+      <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-6 max-w-lg">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-amber-100 rounded-xl flex-shrink-0">
+            <FiDollarSign className="text-amber-600 text-xl" />
+          </div>
+          <div>
+            <h3 className="font-bold text-amber-800 text-base">Yêu cầu đặt cọc</h3>
+            <p className="text-amber-700 text-sm mt-1">
+              Để xác nhận lịch hẹn, Quý khách vui lòng đặt cọc <strong>100% giá dịch vụ</strong> qua chuyển khoản ngân hàng (SePay). 
+              Hệ thống sẽ tự động xác nhận trong 1-3 phút.
+            </p>
+            <p className="text-amber-600 text-xs mt-2 font-semibold">
+              ⏰ Thời hạn thanh toán: 30 phút kể từ khi đặt lịch
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Booking summary */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4 max-w-lg">
         <div className="flex justify-between">
           <span className="text-gray-500">Dịch vụ</span>
@@ -450,9 +489,9 @@ export default function BookAppointment() {
           <span className="font-semibold text-gray-800">{selectedTime}</span>
         </div>
         <hr className="border-gray-100" />
-        <div className="flex justify-between">
-          <span className="text-gray-500">Giá</span>
-          <span className="font-bold text-[var(--primary)] text-lg">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500">Tiền đặt cọc (100%)</span>
+          <span className="font-bold text-[var(--primary)] text-xl">
             {formatPrice(selectedService?.price)}
           </span>
         </div>
@@ -471,11 +510,12 @@ export default function BookAppointment() {
       </div>
 
       <button
-        onClick={handleSubmit}
+        onClick={handleSubmitDeposit}
         disabled={submitting}
-        className="mt-6 w-full max-w-lg py-3 bg-[var(--primary)] text-white font-semibold rounded-lg hover:bg-[var(--primary-light)] transition-colors text-lg disabled:opacity-50"
+        className="mt-6 w-full max-w-lg py-3.5 bg-[#8B5E3C] text-white font-bold rounded-xl hover:bg-[#6D492E] transition-colors text-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#8B5E3C]/20"
       >
-        {submitting ? 'Đang xử lý...' : 'Xác nhận đặt lịch'}
+        <FiDollarSign />
+        {submitting ? 'Đang xử lý...' : `Đặt cọc ${formatPrice(selectedService?.price)}`}
       </button>
     </div>
   );
@@ -513,6 +553,14 @@ export default function BookAppointment() {
           </div>
         )}
       </div>
+
+      {/* Bank Transfer Modal for deposit */}
+      <BankTransferModal
+        isOpen={showBankModal}
+        onClose={handleDepositModalClose}
+        amount={depositInfo?.amount || selectedService?.price || 0}
+        apptId={createdAppointment?.id}
+      />
     </div>
   );
 }

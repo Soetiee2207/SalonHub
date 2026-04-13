@@ -12,6 +12,7 @@ import AppointmentCalendar from '../../components/dashboard/AppointmentCalendar'
 import BankTransferModal from '../../components/common/BankTransferModal';
 
 const statusColors = {
+  awaiting_deposit: 'bg-violet-100 text-violet-700 border-violet-200',
   pending: 'bg-amber-100 text-amber-700 border-amber-200',
   confirmed: 'bg-blue-100 text-blue-700 border-blue-200',
   in_progress: 'bg-purple-100 text-purple-700 border-purple-200',
@@ -20,6 +21,7 @@ const statusColors = {
 };
 
 const statusLabels = {
+  awaiting_deposit: 'Chờ đặt cọc',
   pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', in_progress: 'Đang thực hiện',
   completed: 'Hoàn thành', cancelled: 'Đã hủy',
 };

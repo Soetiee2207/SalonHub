@@ -16,12 +16,18 @@ const { generateVnpayUrl } = require('../utils/vnpayHelper');
 const SLOT_INTERVAL_MINUTES = 30;
 
 const STATUS_TRANSITIONS = {
+  awaiting_deposit: ['pending', 'cancelled'],
   pending: ['confirmed', 'cancelled'],
   confirmed: ['in_progress', 'cancelled'],
   in_progress: ['completed', 'cancelled'],
   completed: [],
   cancelled: [],
 };
+
+// Deposit is 100% of service price
+const DEPOSIT_RATE = 1.0;
+// Auto-cancel appointments if deposit not paid within 30 minutes
+const DEPOSIT_TIMEOUT_MINUTES = 30;
 
 const APPOINTMENT_INCLUDES = [
   { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },
@@ -87,6 +93,7 @@ const buildPaginatedResponse = (rows, count, page, limit) => ({
 // ============================================================
 
 const STATUS_LABELS = {
+  awaiting_deposit: 'Chờ đặt cọc',
   pending: 'Chờ xác nhận',
   confirmed: 'Đã xác nhận',
   in_progress: 'Đang thực hiện',
@@ -156,12 +163,12 @@ const createAppointment = async (req, res, next) => {
   try {
     const { branchId, staffId, serviceId, date, startTime, note, phone, fullName: walkInName } = req.body;
     let userId = req.user.id;
-    let initialStatus = 'pending';
+    let isWalkIn = false;
 
     // --- Special Logic: Walk-in (Khách tạt vào) ---
     // If requester is staff/admin and provides phone, we handle walk-in creation
     if (['admin', 'staff', 'service_staff'].includes(req.user.role) && phone) {
-      initialStatus = 'in_progress'; // Khách tạt vào thì làm luôn
+      isWalkIn = true;
       
       let customer = await User.findOne({ where: { phone } });
       
@@ -278,6 +285,12 @@ const createAppointment = async (req, res, next) => {
       }
     }
 
+    // --- Determine initial status ---
+    // Walk-in: skip deposit, go directly to in_progress
+    // Normal booking: require deposit via SePay
+    const initialStatus = isWalkIn ? 'in_progress' : 'awaiting_deposit';
+    const depositAmount = isWalkIn ? null : parseFloat(totalPrice) * DEPOSIT_RATE;
+
     // --- Create appointment ---
     const appointment = await Appointment.create({
       userId,
@@ -290,7 +303,19 @@ const createAppointment = async (req, res, next) => {
       note: note || null,
       totalPrice,
       status: initialStatus,
+      depositAmount,
+      depositStatus: isWalkIn ? null : 'pending',
     });
+
+    // --- For normal bookings: create pending Payment record for deposit ---
+    if (!isWalkIn) {
+      await Payment.create({
+        appointmentId: appointment.id,
+        amount: depositAmount,
+        method: 'sepay',
+        status: 'pending',
+      });
+    }
 
     const fullAppointment = await Appointment.findByPk(appointment.id, {
       include: APPOINTMENT_INCLUDES,
@@ -299,9 +324,27 @@ const createAppointment = async (req, res, next) => {
     // --- Send notifications ---
     await notifyAppointmentCreated(fullAppointment);
 
+    // --- Build response ---
+    const responseData = {
+      ...fullAppointment.toJSON(),
+    };
+
+    // Include deposit info for normal bookings
+    if (!isWalkIn) {
+      responseData.depositInfo = {
+        amount: depositAmount,
+        bankName: 'TPBank (Ngân hàng Tiên Phong)',
+        accountNumber: '88886352274',
+        accountName: 'NGUYEN NHAT MINH',
+        bankId: 'TPB',
+        content: `AP${appointment.id}`,
+        timeoutMinutes: DEPOSIT_TIMEOUT_MINUTES,
+      };
+    }
+
     return res.status(201).json({
       success: true,
-      data: fullAppointment,
+      data: responseData,
     });
   } catch (error) {
     next(error);
@@ -467,7 +510,7 @@ const updateAppointmentStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status, cancelReason } = req.body;
 
-    const validStatuses = ['confirmed', 'in_progress', 'completed', 'cancelled'];
+    const validStatuses = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -625,10 +668,10 @@ const cancelAppointment = async (req, res, next) => {
       });
     }
 
-    if (!['pending', 'confirmed'].includes(appointment.status)) {
+    if (!['awaiting_deposit', 'pending', 'confirmed'].includes(appointment.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Chỉ có thể hủy lịch hẹn đang chờ xác nhận hoặc đã xác nhận.',
+        message: 'Chỉ có thể hủy lịch hẹn đang chờ đặt cọc, chờ xác nhận hoặc đã xác nhận.',
       });
     }
 

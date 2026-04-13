@@ -36,6 +36,7 @@ const AppointmentCalendar = ({ appointments = [], currentDate, onDateChange, onA
   };
 
   const statusColors = {
+    awaiting_deposit: 'bg-violet-100 border-violet-300 text-violet-800',
     pending: 'bg-amber-100 border-amber-300 text-amber-800',
     confirmed: 'bg-blue-100 border-blue-300 text-blue-800',
     in_progress: 'bg-purple-100 border-purple-300 text-purple-800',

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { FiCalendar, FiClock, FiMapPin, FiUser, FiX, FiStar } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiMapPin, FiUser, FiX, FiStar, FiDollarSign } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { appointmentService } from '../../services/appointmentService';
 import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 const STATUS_MAP = {
+  awaiting_deposit: { label: 'Chờ đặt cọc', color: 'bg-purple-100 text-purple-700 border-purple-200' },
   pending: { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   confirmed: { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700 border-blue-200' },
   in_progress: { label: 'Đang thực hiện', color: 'bg-orange-100 text-orange-700 border-orange-200' },
@@ -16,6 +18,7 @@ const STATUS_MAP = {
 
 const FILTER_TABS = [
   { key: null, label: 'Tất cả' },
+  { key: 'awaiting_deposit', label: 'Chờ đặt cọc' },
   { key: 'pending', label: 'Chờ xác nhận' },
   { key: 'confirmed', label: 'Đã xác nhận' },
   { key: 'in_progress', label: 'Đang thực hiện' },
@@ -29,6 +32,7 @@ export default function MyAppointments() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [reviewModal, setReviewModal] = useState(null); // appointment object
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [depositPayAppt, setDepositPayAppt] = useState(null); // appointment to pay deposit
 
   const fetchAppointments = async () => {
     setLoading(true);
@@ -127,7 +131,8 @@ export default function MyAppointments() {
           <div className="space-y-4">
             {filtered.map((appt) => {
               const statusInfo = STATUS_MAP[appt.status] || STATUS_MAP.pending;
-              const canCancel = appt.status === 'pending' || appt.status === 'confirmed';
+              const canCancel = ['awaiting_deposit', 'pending', 'confirmed'].includes(appt.status);
+              const canPayDeposit = appt.status === 'awaiting_deposit' && appt.depositStatus === 'pending';
               const canReview = appt.status === 'completed' && !appt.reviewed;
 
               return (
@@ -173,6 +178,15 @@ export default function MyAppointments() {
                       <span className="text-[var(--primary)] font-bold text-lg">
                         {formatPrice(getPrice(appt))}
                       </span>
+                      {canPayDeposit && (
+                        <button
+                          onClick={() => setDepositPayAppt(appt)}
+                          className="px-4 py-2 text-sm font-bold text-white bg-[#8B5E3C] rounded-lg hover:bg-[#6D492E] transition-colors flex items-center gap-1.5 shadow-md"
+                        >
+                          <FiDollarSign className="text-sm" />
+                          Đặt cọc
+                        </button>
+                      )}
                       {canCancel && (
                         <button
                           onClick={() => handleCancel(appt.id)}
@@ -206,6 +220,14 @@ export default function MyAppointments() {
         onClose={() => setReviewModal(null)}
         onSubmit={handleReviewSubmit}
         submitting={submittingReview}
+      />
+
+      {/* Bank Transfer Modal for deposit */}
+      <BankTransferModal
+        isOpen={!!depositPayAppt}
+        onClose={() => { setDepositPayAppt(null); fetchAppointments(); }}
+        amount={depositPayAppt?.depositAmount || depositPayAppt?.totalPrice || 0}
+        apptId={depositPayAppt?.id}
       />
     </div>
   );

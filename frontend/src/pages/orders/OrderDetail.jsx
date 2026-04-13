@@ -7,6 +7,8 @@ import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
 
+const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f1064e3b3e?w=400&q=80';
+
 const statusConfig = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
   confirmed: { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700' },
@@ -191,12 +193,19 @@ export default function OrderDetail() {
                   {items.map((item, index) => (
                     <tr key={index} className="border-b border-gray-50">
                       <td className="px-6 py-4 text-sm">
-                        <Link 
-                          to={`/products/${item.productId}`}
-                          className="font-medium text-gray-800 hover:text-[var(--primary)] hover:underline transition-colors"
-                        >
-                          {item.product?.name || item.name || 'Sản phẩm'}
-                        </Link>
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={item.product?.image || PRODUCT_FALLBACK} 
+                            alt={item.product?.name || item.name} 
+                            className="w-10 h-10 object-cover rounded-md border border-gray-100 shrink-0"
+                          />
+                          <Link 
+                            to={`/products/${item.productId}`}
+                            className="font-medium text-gray-800 hover:text-[var(--primary)] hover:underline transition-colors line-clamp-2"
+                          >
+                            {item.product?.name || item.name || 'Sản phẩm'}
+                          </Link>
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-center text-gray-600">
                         {item.quantity}

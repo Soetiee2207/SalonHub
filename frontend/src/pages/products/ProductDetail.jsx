@@ -46,10 +46,6 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [reviews, setReviews] = useState([]);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
-
   useEffect(() => {
     setLoading(true);
     productService.getById(id)
@@ -83,29 +79,7 @@ export default function ProductDetail() {
     }
   };
 
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    if (!reviewComment.trim()) {
-      toast.error('Vui lòng nhập nội dung đánh giá');
-      return;
-    }
-    setSubmittingReview(true);
-    try {
-      const res = await reviewService.createProductReview({
-        productId: id,
-        rating: reviewRating,
-        comment: reviewComment,
-      });
-      setReviews((prev) => [res.data || res, ...prev]);
-      setReviewComment('');
-      setReviewRating(5);
-      toast.success('Đã gửi đánh giá thành công');
-    } catch (err) {
-      toast.error(err.message || 'Không thể gửi đánh giá');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
+
 
   if (loading) {
     return (
@@ -275,58 +249,13 @@ export default function ProductDetail() {
             Đánh giá sản phẩm
           </h2>
 
-          {/* Write Review Form */}
-          {user ? (
-            <form
-              onSubmit={handleSubmitReview}
-              className="bg-white rounded-2xl p-6 md:p-8 mb-10 border border-[var(--bg-warm)]"
-            >
-              <h3
-                style={{ fontFamily: 'var(--font-display)' }}
-                className="font-semibold text-gray-800 mb-5 text-lg"
-              >
-                Viết đánh giá
-              </h3>
-              <div className="mb-5">
-                <label
-                  style={{ fontFamily: 'var(--font-body)' }}
-                  className="block text-sm text-gray-500 mb-2"
-                >
-                  Đánh giá của bạn
-                </label>
-                <StarRating rating={reviewRating} onRate={setReviewRating} interactive />
-              </div>
-              <div className="mb-5">
-                <textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-                  rows={3}
-                  style={{ fontFamily: 'var(--font-body)' }}
-                  className="w-full px-4 py-3 border border-[var(--bg-warm)] rounded-xl focus:outline-none focus:border-[var(--primary-light)] resize-none bg-[var(--bg-light)] placeholder-gray-400"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={submittingReview}
-                style={{ fontFamily: 'var(--font-body)' }}
-                className="flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-xl hover:bg-[var(--primary-light)] transition-colors disabled:opacity-50 font-medium"
-              >
-                <FiSend size={16} />
-                Gửi đánh giá
-              </button>
-            </form>
-          ) : (
-            <div className="bg-white rounded-2xl p-8 mb-10 text-center border border-[var(--bg-warm)]">
-              <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-400">
-                Vui lòng{' '}
-                <Link to="/login" className="text-[var(--primary)] hover:text-[var(--primary-light)] font-medium transition-colors">
-                  đăng nhập
-                </Link>{' '}
-                để viết đánh giá
-              </p>
-            </div>
-          )}
+          {/* Write Review Info */}
+          <div className="bg-white rounded-2xl p-8 mb-10 text-center border border-[var(--bg-warm)]">
+            <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-500">
+              Chỉ khách hàng đã mua và nhận sản phẩm thành công mới có thể đánh giá.<br />
+              Vui lòng truy cập <Link to="/my-orders" className="text-[var(--primary)] font-medium hover:underline">Quản lý đơn hàng</Link> để thực hiện đánh giá.
+            </p>
+          </div>
 
           {/* Reviews List */}
           {reviews.length === 0 ? (

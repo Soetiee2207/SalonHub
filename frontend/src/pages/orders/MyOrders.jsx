@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPackage, FiChevronRight, FiXCircle } from 'react-icons/fi';
+import { FiPackage, FiChevronRight, FiXCircle, FiStar } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
+import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
+import ReviewModal from '../../components/common/ReviewModal';
 
 const statusConfig = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
@@ -26,6 +28,8 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
   const [confirming, setConfirming] = useState(null);
+  const [reviewProduct, setReviewProduct] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -67,6 +71,40 @@ export default function MyOrders() {
     }
   };
 
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    if (!reviewProduct) return;
+    setSubmittingReview(true);
+    try {
+      await reviewService.createProductReview({
+        productId: reviewProduct.id,
+        rating,
+        comment,
+      });
+      toast.success('Cảm ơn bạn đã đánh giá sản phẩm!');
+      setReviewProduct(null);
+      fetchOrders();
+    } catch (err) {
+      toast.error(err.message || 'Gửi đánh giá thất bại');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const unreviewedItems = orders.reduce((acc, order) => {
+    if (['completed', 'delivered'].includes(order.status)) {
+      order.items?.forEach(item => {
+        if (!item.isReviewed) {
+          acc.push({
+            ...item,
+            orderId: order.id,
+            orderDate: order.createdAt
+          });
+        }
+      });
+    }
+    return acc;
+  }, []);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -78,6 +116,33 @@ export default function MyOrders() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-[var(--primary)] mb-8">Đơn hàng của tôi</h1>
+
+      {unreviewedItems.length > 0 && (
+        <div className="mb-10 bg-orange-50 border border-orange-100 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <FiStar className="text-orange-500 fill-orange-500" size={24} />
+            <h2 className="text-xl font-bold text-gray-800">Sản phẩm chờ đánh giá</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {unreviewedItems.map((item, idx) => (
+              <div key={`${item.orderId}-${item.productId}-${idx}`} className="bg-white p-4 rounded-xl shadow-sm border border-orange-100 flex items-center justify-between hover:border-orange-200 transition-colors">
+                <div className="flex-1 pr-4 min-w-0">
+                  <Link to={`/products/${item.productId}`} className="font-medium text-gray-800 hover:text-[var(--primary)] text-sm truncate block">
+                    {item.product?.name || item.name || 'Sản phẩm'}
+                  </Link>
+                  <p className="text-xs text-gray-500 mt-1">Đơn hàng #{String(item.orderId).padStart(6, '0')}</p>
+                </div>
+                <button
+                  onClick={() => setReviewProduct({ id: item.productId, name: item.product?.name || item.name })}
+                  className="shrink-0 px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white text-xs font-bold rounded-lg hover:from-orange-500 hover:to-orange-600 transition-all shadow-sm"
+                >
+                  Đánh giá ngay
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {orders.length === 0 ? (
         <div className="text-center py-16">
@@ -176,6 +241,15 @@ export default function MyOrders() {
           })}
         </div>
       )}
+
+      <ReviewModal
+        isOpen={!!reviewProduct}
+        title="Đánh giá sản phẩm"
+        subtitle={reviewProduct?.name}
+        onClose={() => setReviewProduct(null)}
+        onSubmit={handleReviewSubmit}
+        submitting={submittingReview}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   FiX, FiCalendar, FiClock, FiMapPin, 
   FiUser, FiDollarSign, FiInfo, FiHash,
-  FiShoppingBag, FiCheckCircle, FiAlertCircle
+  FiShoppingBag, FiCheckCircle, FiAlertCircle, FiStar
 } from 'react-icons/fi';
 import { formatPrice } from '../../utils/formatPrice';
 

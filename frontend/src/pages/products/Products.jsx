@@ -30,7 +30,7 @@ export default function Products() {
 
   const fetchProducts = (params = {}) => {
     setLoading(true);
-    if (selectedCategory) params.category = selectedCategory;
+    if (selectedCategory) params.categoryId = selectedCategory;
     if (search) params.search = search;
     if (sort) params.sort = sort;
 

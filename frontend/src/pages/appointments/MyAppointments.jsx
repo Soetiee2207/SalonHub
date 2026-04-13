@@ -24,6 +24,7 @@ const FILTER_TABS = [
   { key: 'confirmed', label: 'Đã xác nhận' },
   { key: 'in_progress', label: 'Đang thực hiện' },
   { key: 'completed', label: 'Hoàn thành' },
+  { key: 'awaiting_review', label: 'Chờ đánh giá' },
   { key: 'cancelled', label: 'Đã hủy' },
 ];
 
@@ -84,7 +85,12 @@ export default function MyAppointments() {
   };
 
   const filtered = statusFilter
-    ? appointments.filter((a) => a.status === statusFilter)
+    ? appointments.filter((a) => {
+        if (statusFilter === 'awaiting_review') {
+          return a.status === 'completed' && !a.reviewed;
+        }
+        return a.status === statusFilter;
+      })
     : appointments;
 
   const getServiceName = (a) => a.service?.name || a.serviceId?.name || 'Dịch vụ';

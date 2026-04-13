@@ -4,6 +4,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const {
   createReview,
   getStaffReviews,
+  getServiceReviews,
   getProductReviews,
   createProductReview,
   getAllReviewsAdmin,
@@ -13,6 +14,7 @@ const {
 
 // Public routes
 router.get('/staff/:staffId', getStaffReviews);
+router.get('/service/:serviceId', getServiceReviews);
 router.get('/product/:productId', getProductReviews);
 
 // Protected routes (require authentication)

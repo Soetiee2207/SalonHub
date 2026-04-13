@@ -4,6 +4,7 @@ export const reviewService = {
   createServiceReview: (data) => api.post('/reviews/service', data),
   createProductReview: (data) => api.post('/reviews/product', data),
   getStaffReviews: (staffId) => api.get(`/reviews/staff/${staffId}`),
+  getServiceReviews: (serviceId) => api.get(`/reviews/service/${serviceId}`),
   getProductReviews: (productId) => api.get(`/reviews/product/${productId}`),
   getAll: () => api.get('/reviews'),
   update: (id, data) => api.put(`/reviews/${id}`, data),

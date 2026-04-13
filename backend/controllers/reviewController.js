@@ -117,6 +117,44 @@ const getStaffReviews = async (req, res, next) => {
   }
 };
 
+// GET /service/:serviceId - Public. Get all reviews for a service
+const getServiceReviews = async (req, res, next) => {
+  try {
+    const { serviceId } = req.params;
+
+    const reviews = await Review.findAll({
+        where: { isHidden: false },
+        include: [
+            { model: User, as: 'customer', attributes: ['id', 'fullName'] },
+            {
+              model: Appointment,
+              as: 'appointment',
+              where: { serviceId },
+              include: [{ model: User, as: 'staff', attributes: ['fullName'] }]
+            }
+        ],
+        order: [['createdAt', 'DESC']],
+    });
+
+    let averageRating = 0;
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      averageRating = parseFloat((totalRating / reviews.length).toFixed(2));
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        reviews,
+        averageRating,
+        totalReviews: reviews.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /product/:productId - Public. Get all reviews for a product
 const getProductReviews = async (req, res, next) => {
   try {
@@ -362,6 +400,7 @@ const deleteReview = async (req, res, next) => {
 module.exports = {
   createReview,
   getStaffReviews,
+  getServiceReviews,
   getProductReviews,
   createProductReview,
   getAllReviewsAdmin,

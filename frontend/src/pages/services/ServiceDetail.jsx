@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiClock, FiTag, FiChevronRight } from 'react-icons/fi';
+import { FiClock, FiTag, FiChevronRight, FiStar } from 'react-icons/fi';
 import { serviceService } from '../../services/serviceService';
+import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
 
 const CATEGORY_IMAGES = {
@@ -23,11 +24,31 @@ function getServiceImage(service) {
   return FALLBACK_IMAGE;
 }
 
+function StarRating({ rating, size = 20 }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FiStar
+          key={star}
+          size={size}
+          className={
+            star <= rating
+              ? 'fill-yellow-400 text-yellow-400'
+              : 'text-gray-300'
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ServiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [service, setService] = useState(null);
   const [relatedServices, setRelatedServices] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +66,15 @@ export default function ServiceDetail() {
           (s) => s.id !== data.id && (s.categoryId === categoryId || s.category?.id === categoryId)
         );
         setRelatedServices(related.slice(0, 4));
+
+        try {
+          const revRes = await reviewService.getServiceReviews(id);
+          const revData = revRes.data || {};
+          setReviews(revData.reviews || []);
+          setAverageRating(revData.averageRating || 0);
+        } catch (revDataErr) {
+          console.error('Không tải được đánh giá', revDataErr);
+        }
       } catch (err) {
         console.error('Lỗi khi tải dịch vụ:', err);
       } finally {
@@ -178,6 +208,77 @@ export default function ServiceDetail() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-16 bg-white p-8 md:p-10 rounded-2xl border border-[var(--bg-warm)]">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4 border-b border-[var(--bg-warm)] pb-8">
+            <div>
+              <h2
+                style={{ fontFamily: 'var(--font-display)' }}
+                className="text-2xl md:text-3xl font-bold text-gray-800"
+              >
+                Đánh giá dịch vụ
+              </h2>
+              <p className="text-gray-500 mt-2">
+                Những chia sẻ từ khách hàng đã trải nghiệm
+              </p>
+            </div>
+            {reviews.length > 0 && (
+              <div className="flex flex-col items-end">
+                <div className="text-4xl font-bold text-[var(--primary)] mb-1">
+                  {averageRating}<span className="text-xl text-gray-400">/5</span>
+                </div>
+                <StarRating rating={Math.round(averageRating)} size={20} />
+                <p className="text-sm text-gray-500 mt-2">Dựa trên {reviews.length} đánh giá</p>
+              </div>
+            )}
+          </div>
+
+          {/* Reviews List */}
+          {reviews.length === 0 ? (
+            <div className="text-center py-10">
+              <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-500 mb-4">
+                Chưa có đánh giá nào cho dịch vụ này
+              </p>
+              <p className="text-sm text-gray-400">
+                Hãy là người đầu tiên trải nghiệm và chia sẻ cảm nhận của bạn! <br/>
+                Bạn chỉ có thể đánh giá sau khi hoàn tất Lịch hẹn.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="p-6 rounded-2xl bg-[var(--bg-light)]">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--primary)] font-bold text-lg shadow-sm">
+                        {(review.customer?.fullName || 'A').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p style={{ fontFamily: 'var(--font-body)' }} className="font-bold text-gray-800">
+                          {review.customer?.fullName || 'Khách hàng'}
+                        </p>
+                        <p className="text-xs text-gray-400 flex items-center gap-2">
+                          <span>{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                          {review.appointment?.staff?.fullName && (
+                            <>
+                              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                              <span>Thực hiện bởi: {review.appointment.staff.fullName}</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <StarRating rating={review.rating} size={16} />
+                  </div>
+                  <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-600 leading-relaxed">
+                    {review.comment || 'Khách hàng không để lại bình luận.'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Related Services */}

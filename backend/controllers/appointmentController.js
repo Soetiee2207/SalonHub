@@ -160,20 +160,18 @@ const notifyStatusChanged = async (appointment, newStatus, cancelReason) => {
 // POST / — Customer creates appointment
 // ============================================================
 const createAppointment = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
   try {
     const { branchId, staffId, serviceId, date, startTime, note, phone, fullName: walkInName } = req.body;
     let userId = req.user.id;
     let isWalkIn = false;
 
     // --- Special Logic: Walk-in (Khách tạt vào) ---
-    // If requester is staff/admin and provides phone, we handle walk-in creation
     if (['admin', 'staff', 'service_staff'].includes(req.user.role) && phone) {
       isWalkIn = true;
-      
-      let customer = await User.findOne({ where: { phone } });
+      let customer = await User.findOne({ where: { phone }, transaction });
       
       if (!customer) {
-        // Create new customer account on the fly
         const salt = await bcrypt.genSalt(10);
         const password = await bcrypt.hash('123456', salt);
         const email = `${phone}@khach.salonhub.com`;
@@ -184,40 +182,29 @@ const createAppointment = async (req, res, next) => {
           email,
           password,
           role: 'customer'
-        });
+        }, { transaction });
       }
       userId = customer.id;
     }
 
     // --- Input validation ---
     if (!branchId || !serviceId || !date || !startTime) {
-      return res.status(400).json({
-        success: false,
-        message: 'branchId, serviceId, date, and startTime are required.',
-      });
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'branchId, serviceId, date, and startTime are required.' });
     }
 
-    // Validate date format and ensure it's in the future
     const appointmentDate = new Date(date);
     if (isNaN(appointmentDate.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid date format.',
-      });
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'Invalid date format.' });
     }
 
-    // Normalize startTime (remove SA/CH or AM/PM and trim)
     const cleanStartTime = startTime.replace(/[SA|CH|AM|PM]/gi, '').trim();
-    
-    // Validate time format H:M or HH:MM
     if (!/^\d{1,2}:\d{2}$/.test(cleanStartTime)) {
-      return res.status(400).json({
-        success: false,
-        message: 'startTime must be in HH:MM format.',
-      });
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'startTime must be in HH:MM format.' });
     }
 
-    // Ensure 2 digits for startTime internally
     const [h, m] = cleanStartTime.split(':');
     const normalizedStartTime = `${h.padStart(2, '0')}:${m}`;
 
@@ -226,65 +213,52 @@ const createAppointment = async (req, res, next) => {
     const vnDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
     const vnTime = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false });
     
-    // Compare date first
     if (date < vnDate) {
+      await transaction.rollback();
       return res.status(400).json({ success: false, message: 'Không thể đặt lịch trong quá khứ.' });
     }
     
-    // If today, compare time (allow 2 mins leeway)
     if (date === vnDate) {
       const currentMin = (val) => {
         const [h, m] = val.split(':').map(Number);
         return h * 60 + m;
       };
       if (currentMin(normalizedStartTime) < currentMin(vnTime) - 2) {
+        await transaction.rollback();
         return res.status(400).json({ success: false, message: 'Không thể đặt lịch trong quá khứ.' });
       }
     }
 
-    // --- Get service to calculate endTime and price ---
-    const service = await Service.findByPk(serviceId);
+    // --- Get service (within transaction) ---
+    const service = await Service.findByPk(serviceId, { transaction });
     if (!service) {
-      return res.status(404).json({
-        success: false,
-        message: 'Service not found.',
-      });
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Service not found.' });
     }
 
     const endTime = addMinutes(normalizedStartTime, service.duration);
     const totalPrice = service.price;
 
-    // --- If staffId provided, validate staff availability (SKIP working hours check for Walk-in) ---
+    // --- Validate staff availability with LOCK to prevent race conditions ---
     if (staffId && !phone) {
       const dayOfWeek = appointmentDate.getDay();
-
       const schedule = await StaffSchedule.findOne({
-        where: {
-          userId: staffId,
-          branchId,
-          dayOfWeek,
-        },
+        where: { userId: staffId, branchId, dayOfWeek },
+        transaction
       });
 
       if (!schedule) {
-        return res.status(400).json({
-          success: false,
-          message: 'Thợ không làm việc vào ngày này tại chi nhánh này.',
-        });
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Thợ không làm việc vào ngày này tại chi nhánh này.' });
       }
 
-      // Check if appointment time falls within staff working hours
-      if (
-        timeToMinutes(normalizedStartTime) < timeToMinutes(schedule.startTime)
-        || timeToMinutes(endTime) > timeToMinutes(schedule.endTime)
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: `Thợ làm việc từ ${schedule.startTime} đến ${schedule.endTime} trong ngày này.`,
-        });
+      if (timeToMinutes(normalizedStartTime) < timeToMinutes(schedule.startTime) || 
+          timeToMinutes(endTime) > timeToMinutes(schedule.endTime)) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: `Thợ làm việc từ ${schedule.startTime} đến ${schedule.endTime} trong ngày này.` });
       }
 
-      // Check for conflicting appointments
+      // Check for conflicting appointments - LOCKING relevant rows
       const existingAppointments = await Appointment.findAll({
         where: {
           staffId,
@@ -292,6 +266,8 @@ const createAppointment = async (req, res, next) => {
           status: { [db.Sequelize.Op.notIn]: ['cancelled'] },
         },
         attributes: ['id', 'startTime', 'endTime'],
+        lock: transaction.LOCK.UPDATE, // IMPORTANT: Prevent concurrent bookings for same staff/day
+        transaction
       });
 
       const hasConflict = existingAppointments.some(
@@ -299,20 +275,14 @@ const createAppointment = async (req, res, next) => {
       );
 
       if (hasConflict) {
-        return res.status(400).json({
-          success: false,
-          message: 'Khung giờ này đã có người đặt. Vui lòng chọn khung giờ khác.',
-        });
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Khung giờ này đã có người đặt. Vui lòng chọn khung giờ khác.' });
       }
     }
 
-    // --- Determine initial status ---
-    // Walk-in: skip deposit, go directly to in_progress
-    // Normal booking: require deposit via SePay
     const initialStatus = isWalkIn ? 'in_progress' : 'awaiting_deposit';
     const depositAmount = isWalkIn ? null : parseFloat(totalPrice) * DEPOSIT_RATE;
 
-    // --- Create appointment ---
     const appointment = await Appointment.create({
       userId,
       staffId: staffId || null,
@@ -326,31 +296,28 @@ const createAppointment = async (req, res, next) => {
       status: initialStatus,
       depositAmount,
       depositStatus: isWalkIn ? null : 'pending',
-    });
+    }, { transaction });
 
-    // --- For normal bookings: create pending Payment record for deposit ---
     if (!isWalkIn) {
       await Payment.create({
         appointmentId: appointment.id,
         amount: depositAmount,
         method: 'sepay',
         status: 'pending',
-      });
+      }, { transaction });
     }
 
+    // --- Finalize database changes ---
+    await transaction.commit();
+
+    // --- Post-creation logic (outside transaction for speed) ---
     const fullAppointment = await Appointment.findByPk(appointment.id, {
       include: APPOINTMENT_INCLUDES,
     });
 
-    // --- Send notifications ---
     await notifyAppointmentCreated(fullAppointment);
 
-    // --- Build response ---
-    const responseData = {
-      ...fullAppointment.toJSON(),
-    };
-
-    // Include deposit info for normal bookings
+    const responseData = { ...fullAppointment.toJSON() };
     if (!isWalkIn) {
       responseData.depositInfo = {
         amount: depositAmount,
@@ -363,11 +330,9 @@ const createAppointment = async (req, res, next) => {
       };
     }
 
-    return res.status(201).json({
-      success: true,
-      data: responseData,
-    });
+    return res.status(201).json({ success: true, data: responseData });
   } catch (error) {
+    if (transaction) await transaction.rollback();
     next(error);
   }
 };

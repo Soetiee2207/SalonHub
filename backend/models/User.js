@@ -55,6 +55,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('Silver', 'Gold', 'Diamond'),
       defaultValue: 'Silver',
     },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   }, {
     timestamps: true,
     tableName: 'users',

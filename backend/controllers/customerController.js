@@ -143,8 +143,35 @@ const updateCustomer = async (req, res, next) => {
   }
 };
 
+// Toggle customer status (Lock/Unlock)
+const toggleCustomerStatus = async (req, res, next) => {
+  try {
+    const customer = await db.User.findOne({
+      where: { id: req.params.id, role: 'customer' },
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found.',
+      });
+    }
+
+    await customer.update({ isActive: !customer.isActive });
+
+    res.status(200).json({
+      success: true,
+      message: customer.isActive ? 'Tài khoản đã được mở khóa' : 'Tài khoản đã bị khóa',
+      data: customer,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllCustomers,
   getCustomerDetails,
   updateCustomer,
+  toggleCustomerStatus,
 };

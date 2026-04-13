@@ -221,14 +221,6 @@ export default function Staff() {
                     <td className="hidden sm:table-cell px-4 py-3">
                       {s.role === 'staff' || s.role === 'service_staff' ? (
                         <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-blue-600">
-                              {s.completedCount || 0} lần xong
-                            </span>
-                            <span className="text-xs font-bold text-green-600">
-                              {formatPrice(s.totalCommission || 0)}
-                            </span>
-                          </div>
                           <div className="flex flex-wrap gap-1">
                             {getSkills(s)
                               .slice(0, 2)

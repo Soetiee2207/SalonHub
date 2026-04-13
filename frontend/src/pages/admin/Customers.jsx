@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiEye, FiEdit3, FiAward, FiCalendar, FiPackage, FiX } from 'react-icons/fi';
+import { FiSearch, FiEye, FiEdit3, FiAward, FiCalendar, FiPackage, FiX, FiLock, FiUnlock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { customerService } from '../../services/customerService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -42,6 +42,17 @@ export default function Customers() {
       setShowHistoryModal(false);
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  const handleToggleLock = async (customer) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn ${customer.isActive === false ? 'mở khóa' : 'khóa'} tài khoản của ${customer.fullName}?`)) return;
+    try {
+      await customerService.toggleStatus(customer.id);
+      toast.success('Cập nhật trạng thái thành công');
+      fetchCustomers(search);
+    } catch {
+      toast.error('Lỗi cập nhật trạng thái');
     }
   };
 
@@ -97,7 +108,12 @@ export default function Customers() {
                     <p className="text-xs text-gray-500">{c.phone || 'Hưa cập nhật'}</p>
                   </div>
                 </div>
-                {getRankBadge(c.rank)}
+                <div className="flex flex-col items-end gap-2">
+                  {getRankBadge(c.rank)}
+                  {c.isActive === false && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">Bị khóa</span>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
@@ -111,12 +127,23 @@ export default function Customers() {
                 </div>
               </div>
 
-              <button
-                onClick={() => viewHistory(c)}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-800 text-white text-sm font-medium hover:bg-black transition-colors"
-              >
-                <FiEye /> Lịch sử chi tiết
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleToggleLock(c)}
+                  className={`flex items-center justify-center p-2 rounded-xl text-white transition-colors ${
+                    c.isActive === false ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'
+                  }`}
+                  title={c.isActive === false ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+                >
+                  {c.isActive === false ? <FiUnlock /> : <FiLock />}
+                </button>
+                <button
+                  onClick={() => viewHistory(c)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-800 text-white text-sm font-medium hover:bg-black transition-colors"
+                >
+                  <FiEye /> Lịch sử chi tiết
+                </button>
+              </div>
             </div>
           ))}
           {customers.length === 0 && (

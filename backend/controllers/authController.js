@@ -103,6 +103,13 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.',
+      });
+    }
+
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -302,9 +309,17 @@ const googleLogin = async (req, res) => {
         role: 'customer',
         password: null, // No password for Google users
       });
-    } else if (!user.googleId) {
-      // Link Google account to existing email account
-      await user.update({ googleId, avatar: user.avatar || avatar });
+    } else {
+      if (user.isActive === false) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.',
+        });
+      }
+      if (!user.googleId) {
+        // Link Google account to existing email account
+        await user.update({ googleId, avatar: user.avatar || avatar });
+      }
     }
 
     // Generate SalonHub token

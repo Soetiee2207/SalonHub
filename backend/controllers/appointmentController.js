@@ -221,6 +221,18 @@ const createAppointment = async (req, res, next) => {
     const [h, m] = cleanStartTime.split(':');
     const normalizedStartTime = `${h.padStart(2, '0')}:${m}`;
 
+    // --- Validation: Prevent booking in the past ---
+    const now = new Date();
+    const apptDateTime = new Date(`${date}T${normalizedStartTime}`);
+    
+    // Allow 2 minutes leeway for slow servers/requests
+    if (apptDateTime.getTime() < now.getTime() - 2 * 60 * 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không thể đặt lịch trong quá khứ.',
+      });
+    }
+
     // --- Get service to calculate endTime and price ---
     const service = await Service.findByPk(serviceId);
     if (!service) {
@@ -762,7 +774,17 @@ const getAvailableSlots = async (req, res, next) => {
     const scheduleStart = timeToMinutes(schedule.startTime);
     const scheduleEnd = timeToMinutes(schedule.endTime);
 
+    // Calculate current time in minutes if date is today
+    const now = new Date();
+    const todayString = now.toISOString().split('T')[0];
+    const isToday = date === todayString;
+    const BUFFER_MINUTES = 15; // Give Salon 15 mins to prepare
+    const currentMinutes = isToday ? (now.getHours() * 60 + now.getMinutes() + BUFFER_MINUTES) : 0;
+
     for (let time = scheduleStart; time + service.duration <= scheduleEnd; time += SLOT_INTERVAL_MINUTES) {
+      // Filter out past slots for today
+      if (isToday && time < currentMinutes) continue;
+
       const slotStart = `${String(Math.floor(time / 60)).padStart(2, '0')}:${String(time % 60).padStart(2, '0')}`;
       const slotEnd = addMinutes(slotStart, service.duration);
 

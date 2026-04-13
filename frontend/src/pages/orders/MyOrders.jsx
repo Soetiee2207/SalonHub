@@ -155,14 +155,14 @@ export default function MyOrders() {
       <h1 className="text-3xl font-bold text-[var(--primary)] mb-8">Đơn hàng của tôi</h1>
 
       {/* Tabs */}
-      <div className="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-none border-b border-gray-100" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+      <div className="flex flex-wrap gap-2 mb-6 pb-2 border-b border-gray-100">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 rounded-t-lg ${
               activeTab === tab.id
-                ? 'border-[var(--primary)] text-[var(--primary)]'
+                ? 'border-[var(--primary)] text-[var(--primary)] bg-[var(--bg-warm)]'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -231,82 +231,6 @@ export default function MyOrders() {
           ) : (
             <div className="space-y-4">
           {filteredOrders.map((order) => {
-            const status = statusConfig[order.status] || statusConfig.pending;
-            const paymentStatus = paymentStatusConfig[order.paymentStatus] || paymentStatusConfig.pending;
-            const itemCount = order.items?.length || 0;
-
-            return (
-              <div
-                key={order.id}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
-              >
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Mã đơn: <span className="font-mono font-medium text-gray-700">#{String(order.id).padStart(6, '0')}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(order.createdAt).toLocaleDateString('vi-VN', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${status.color}`}>
-                        {status.label}
-                      </span>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${paymentStatus.color}`}>
-                        {paymentStatus.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>{itemCount} sản phẩm</span>
-                      <span className="text-gray-300">|</span>
-                      <span>
-                        {order.paymentMethod === 'vnpay' ? 'VNPay' : 'COD'}
-                      </span>
-                    </div>
-                    <p className="text-lg font-bold text-[var(--primary)]">
-                      {formatPrice(order.totalAmount || 0)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
-                    {order.status === 'pending' && (
-                      <button
-                        onClick={() => handleCancelOrder(order.id)}
-                        disabled={cancelling === order.id}
-                        className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                      >
-                        <FiXCircle size={16} />
-                        {cancelling === order.id ? 'Đang hủy...' : 'Hủy đơn'}
-                      </button>
-                    )}
-                    {['shipping', 'delivered'].includes(order.status) && (
-                      <button
-                        onClick={() => handleConfirmReceipt(order.id)}
-                        disabled={confirming === order.id}
-                        className="flex items-center gap-1.5 text-sm bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 font-bold"
-                      >
-                        {confirming === order.id ? 'Đang xác nhận...' : 'Đã nhận hàng'}
-                      </button>
-                    )}
-                    <div className="flex-1" />
-                    <Link
-                      to={`/my-orders/${order.id}`}
-                      className="flex items-center gap-1 text-sm text-[var(--primary)] hover:underline font-medium"
-                    >
-                      Xem chi tiết
-                      <FiChevronRight size={16} />
-              {filteredOrders.map((order) => {
                 const status = statusConfig[order.status] || statusConfig.pending;
                 const paymentStatus = paymentStatusConfig[order.paymentStatus] || paymentStatusConfig.pending;
                 const itemCount = order.items?.length || 0;

@@ -23,8 +23,20 @@ const paymentStatusConfig = {
   failed: { label: 'Thất bại', color: 'bg-red-100 text-red-700' },
 };
 
+const TABS = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'wait_payment', label: 'Chờ thanh toán' },
+  { id: 'wait_confirm', label: 'Chờ xác nhận' },
+  { id: 'packing', label: 'Đóng gói' },
+  { id: 'shipping', label: 'Vận chuyển' },
+  { id: 'completed', label: 'Hoàn thành' },
+  { id: 'cancelled', label: 'Đã hủy' },
+  { id: 'refund', label: 'Trả hàng/Hoàn tiền' }
+];
+
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
   const [confirming, setConfirming] = useState(null);
@@ -113,6 +125,28 @@ export default function MyOrders() {
     );
   }
 
+  const filteredOrders = orders.filter(order => {
+    switch (activeTab) {
+      case 'wait_payment':
+        return order.paymentStatus === 'pending' && order.paymentMethod !== 'cod' && order.status !== 'cancelled';
+      case 'wait_confirm':
+        return (order.status === 'pending' || order.status === 'confirmed') && !(order.paymentStatus === 'pending' && order.paymentMethod !== 'cod');
+      case 'packing':
+        return order.status === 'packing';
+      case 'shipping':
+        return order.status === 'shipping';
+      case 'completed':
+        return order.status === 'delivered' || order.status === 'completed';
+      case 'cancelled':
+        return order.status === 'cancelled' && order.paymentStatus !== 'paid';
+      case 'refund':
+        return order.status === 'cancelled' && order.paymentStatus === 'paid';
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-[var(--primary)] mb-8">Đơn hàng của tôi</h1>
@@ -144,20 +178,41 @@ export default function MyOrders() {
         </div>
       )}
 
-      {orders.length === 0 ? (
+      {/* Tabs */}
+      <div className="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-none border-b border-gray-100" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+              activeTab === tab.id
+                ? 'border-[var(--primary)] text-[var(--primary)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredOrders.length === 0 ? (
         <div className="text-center py-16">
           <FiPackage className="mx-auto text-gray-300 mb-4" size={64} />
-          <p className="text-lg text-gray-500 mb-4">Bạn chưa có đơn hàng nào</p>
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-light)] transition-colors"
-          >
-            Mua sắm ngay
-          </Link>
+          <p className="text-lg text-gray-500 mb-4">
+            {activeTab === 'all' ? 'Bạn chưa có đơn hàng nào' : 'Không có đơn hàng nào trong phân loại này'}
+          </p>
+          {activeTab === 'all' && (
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-light)] transition-colors"
+            >
+              Mua sắm ngay
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const status = statusConfig[order.status] || statusConfig.pending;
             const paymentStatus = paymentStatusConfig[order.paymentStatus] || paymentStatusConfig.pending;
             const itemCount = order.items?.length || 0;

@@ -3,7 +3,10 @@ const jwt = require('jsonwebtoken');
 const db = require('../models');
 const { OAuth2Client } = require('google-auth-library');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET
+);
 
 const generateToken = (user) => {
   return jwt.sign(

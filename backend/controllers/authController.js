@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../models');
 const { OAuth2Client } = require('google-auth-library');
+const emailService = require('../services/emailService');
+const crypto = require('crypto');
 
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -16,7 +18,7 @@ const generateToken = (user) => {
   );
 };
 
-// @desc    Register new customer account
+// @desc    Register new customer account (Phase 1: Send OTP)
 // @route   POST /api/auth/register
 const register = async (req, res) => {
   try {
@@ -26,7 +28,7 @@ const register = async (req, res) => {
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide fullName, email and password.',
+        message: 'Vui lòng cung cấp đầy đủ Họ tên, Email và Mật khẩu.',
       });
     }
 
@@ -39,15 +41,81 @@ const register = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: existingUser.email === email ? 'Email already registered.' : 'Số điện thoại đã tồn tại trên hệ thống.',
+        message: existingUser.email === email ? 'Email đã được đăng ký.' : 'Số điện thoại đã tồn tại trên hệ thống.',
       });
     }
 
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store OTP in database
+    await db.OtpCode.create({
+      email,
+      code: otpCode,
+      type: 'registration',
+      expiresAt,
+    });
+
+    // Send email via OAuth2
+    await emailService.sendOtpEmail(email, otpCode);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mã xác thực đã được gửi về email của bạn. Vui lòng kiểm tra.',
+      data: { email }
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error.',
+    });
+  }
+};
+
+// @desc    Verify OTP and complete registration
+// @route   POST /api/auth/verify-otp
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp, registrationData } = req.body;
+
+    if (!email || !otp || !registrationData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin xác thực.',
+      });
+    }
+
+    // Find the OTP
+    const otpRecord = await db.OtpCode.findOne({
+      where: {
+        email,
+        code: otp,
+        type: 'registration',
+        isUsed: false,
+        expiresAt: { [db.Sequelize.Op.gt]: new Date() }
+      },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã xác thực không đúng hoặc đã hết hạn.',
+      });
+    }
+
+    // Mark OTP as used
+    await otpRecord.update({ isUsed: true });
+
+    // Create User
+    const { fullName, password, phone } = registrationData;
+    
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
     const user = await db.User.create({
       fullName,
       email,
@@ -59,19 +127,70 @@ const register = async (req, res) => {
     // Generate token
     const token = generateToken(user);
 
-    // Return user info without password
     const userData = user.toJSON();
     delete userData.password;
 
     return res.status(201).json({
       success: true,
+      message: 'Đăng ký tài khoản thành công.',
       data: {
         user: userData,
         token,
       },
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Verify OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error.',
+    });
+  }
+};
+
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-otp
+const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp email.',
+      });
+    }
+
+    // Cooldown check (60 seconds)
+    const lastOtp = await db.OtpCode.findOne({
+      where: { email, type: 'registration' },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
+      return res.status(429).json({
+        success: false,
+        message: 'Vui lòng đợi 60 giây trước khi yêu cầu mã mới.',
+      });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await db.OtpCode.create({
+      email,
+      code: otpCode,
+      type: 'registration',
+      expiresAt,
+    });
+
+    await emailService.sendOtpEmail(email, otpCode);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Mã xác thực mới đã được gửi.',
+    });
+  } catch (error) {
+    console.error('Resend OTP error:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error.',
@@ -379,4 +498,6 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
+  verifyOtp,
+  resendOtp,
 };

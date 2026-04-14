@@ -54,6 +54,11 @@ export function AuthProvider({ children }) {
 
   const register = async (data) => {
     const res = await authService.register(data);
+    return res;
+  };
+
+  const verifyOtp = async (data) => {
+    const res = await authService.verifyOtp(data);
     const payload = res.data || res;
     const token = payload.token || res.token;
     const userData = payload.user || payload;
@@ -75,7 +80,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser, verifyOtp }}>
       {children}
     </AuthContext.Provider>
   );

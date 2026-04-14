@@ -7,4 +7,6 @@ export const authService = {
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (formData) => api.put('/auth/profile', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   changePassword: (data) => api.put('/auth/change-password', data),
+  verifyOtp: (data) => api.post('/auth/verify-otp', data),
+  resendOtp: (data) => api.post('/auth/resend-otp', data),
 };

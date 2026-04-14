@@ -3,7 +3,7 @@ const db = require('../models');
 const { 
   Appointment, Service, User, Branch, StaffSchedule, 
   Order, OrderItem, Product, Payment, RefundRequest,
-  InventoryTransaction, CashFlowTransaction 
+  InventoryTransaction, CashFlowTransaction, Review 
 } = db;
 const { createNotification } = require('./notificationController');
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
@@ -363,8 +363,22 @@ const getMyAppointments = async (req, res, next) => {
       offset,
     });
 
+    // Lấy danh sách appointmentId đã được review bởi user
+    const reviewedAppointments = await Review.findAll({
+      where: { userId },
+      attributes: ['appointmentId'],
+      raw: true,
+    });
+    const reviewedSet = new Set(reviewedAppointments.map(r => r.appointmentId));
+
+    // Gắn cờ reviewed vào mỗi appointment
+    const data = rows.map(row => ({
+      ...row.toJSON(),
+      reviewed: reviewedSet.has(row.id),
+    }));
+
     return res.status(200).json(
-      buildPaginatedResponse(rows, count, page, limit),
+      buildPaginatedResponse(data, count, page, limit),
     );
   } catch (error) {
     next(error);

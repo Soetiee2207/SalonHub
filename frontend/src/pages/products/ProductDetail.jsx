@@ -300,6 +300,23 @@ export default function ProductDetail() {
                   >
                     {review.comment}
                   </p>
+
+                  {/* Salon Reply */}
+                  {review.reply && (
+                    <div className="mt-4 ml-4 pl-4 border-l-2 border-[var(--primary)]/30 bg-[var(--bg-light)]/60 rounded-r-xl p-4">
+                      <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1.5 font-['var(--font-body)']">
+                        Phản hồi từ SalonHub
+                      </p>
+                      <p className="text-sm text-gray-500 leading-relaxed font-['var(--font-body)']">
+                        {review.reply}
+                      </p>
+                      {review.replyAt && (
+                        <p className="text-[10px] text-gray-400 mt-2 font-['var(--font-body)']">
+                          {new Date(review.replyAt).toLocaleDateString('vi-VN')}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -275,6 +275,23 @@ export default function ServiceDetail() {
                   <p style={{ fontFamily: 'var(--font-body)' }} className="text-gray-600 leading-relaxed">
                     {review.comment || 'Khách hàng không để lại bình luận.'}
                   </p>
+
+                  {/* Salon Reply */}
+                  {review.reply && (
+                    <div className="mt-4 ml-4 pl-4 border-l-2 border-[var(--primary)]/30 bg-white/60 rounded-r-xl p-4">
+                      <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1.5">
+                        Phản hồi từ SalonHub
+                      </p>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {review.reply}
+                      </p>
+                      {review.replyAt && (
+                        <p className="text-[10px] text-gray-400 mt-2">
+                          {new Date(review.replyAt).toLocaleDateString('vi-VN')}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

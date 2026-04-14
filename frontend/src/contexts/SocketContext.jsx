@@ -17,6 +17,10 @@ export const SocketProvider = ({ children }) => {
       const socketUrl = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
       const newSocket = io(socketUrl, {
         withCredentials: true,
+        transports: ['polling', 'websocket'], // Polling trước để vượt qua cold-start, sau đó tự upgrade
+        reconnectionAttempts: 10,              // Thử lại tối đa 10 lần
+        reconnectionDelay: 2000,               // Chờ 2 giây giữa mỗi lần thử
+        timeout: 20000,                         // Tăng timeout cho cold-start của Render
       });
 
       setSocket(newSocket);

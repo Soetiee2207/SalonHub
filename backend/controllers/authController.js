@@ -275,7 +275,7 @@ const changePassword = async (req, res) => {
 // @route   POST /api/auth/google-login
 const googleLogin = async (req, res) => {
   try {
-    const { tokenId, code } = req.body;
+    const { tokenId, code, redirect_uri } = req.body;
 
     if (!tokenId && !code) {
       return res.status(400).json({
@@ -288,9 +288,11 @@ const googleLogin = async (req, res) => {
 
     if (code) {
       // Redirect flow: Exchange code for tokens
+      const clientRedirectUri = redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://salonhub-soe.vercel.app/login';
+      
       const { tokens } = await client.getToken({
         code,
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI || 'https://salonhub-soe.vercel.app/login',
+        redirect_uri: clientRedirectUri,
       });
       
       const ticket = await client.verifyIdToken({

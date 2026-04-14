@@ -35,7 +35,10 @@ export default function Login() {
       const processGoogleLogin = async () => {
         setLoading(true);
         try {
-          await googleLogin({ code });
+          await googleLogin({ 
+            code, 
+            redirect_uri: window.location.origin + '/login' 
+          });
           toast.success('Đăng nhập Google thành công!');
         } catch (err) {
           toast.error(err.message || 'Đăng nhập Google thất bại');

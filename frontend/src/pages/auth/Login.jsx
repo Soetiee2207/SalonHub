@@ -10,6 +10,10 @@ export default function Login() {
   const { user, login, googleLogin } = useAuth();
   const navigate = useNavigate();
 
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       if (user.role !== 'customer') {
@@ -50,10 +54,7 @@ export default function Login() {
     redirect_uri: window.location.origin + '/login',
   });
 
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-
+  // Form submit handler
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };

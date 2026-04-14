@@ -275,22 +275,45 @@ const changePassword = async (req, res) => {
 // @route   POST /api/auth/google-login
 const googleLogin = async (req, res) => {
   try {
-    const { tokenId } = req.body;
+    const { tokenId, code } = req.body;
 
-    if (!tokenId) {
+    if (!tokenId && !code) {
       return res.status(400).json({
         success: false,
-        message: 'Google Token is required.',
+        message: 'Google Token or Code is required.',
       });
     }
 
-    // Verify Google Token
-    const ticket = await client.verifyIdToken({
-      idToken: tokenId,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let email, fullName, avatar, googleId;
 
-    const { sub: googleId, email, name: fullName, picture: avatar } = ticket.getPayload();
+    if (code) {
+      // Redirect flow: Exchange code for tokens
+      const { tokens } = await client.getToken({
+        code,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI || 'https://salonhub-soe.vercel.app/login',
+      });
+      
+      const ticket = await client.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      googleId = payload.sub;
+      email = payload.email;
+      fullName = payload.name;
+      avatar = payload.picture;
+    } else {
+      // Legacy popup flow
+      const ticket = await client.verifyIdToken({
+        idToken: tokenId,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      googleId = payload.sub;
+      email = payload.email;
+      fullName = payload.name;
+      avatar = payload.picture;
+    }
 
     // Find or create user
     let user = await db.User.findOne({

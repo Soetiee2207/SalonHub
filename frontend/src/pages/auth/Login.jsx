@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
-import { GoogleLogin } from '@react-oauth/google';
+import { FcGoogle } from 'react-icons/fc';
+import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -18,6 +19,36 @@ export default function Login() {
       }
     }
   }, [user, navigate]);
+
+  // Handle Google Redirect callback (code in URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      // Clear code from URL to keep it clean
+      window.history.replaceState({}, '', '/login');
+      
+      const processGoogleLogin = async () => {
+        setLoading(true);
+        try {
+          await googleLogin({ code });
+          toast.success('Đăng nhập Google thành công!');
+        } catch (err) {
+          toast.error(err.message || 'Đăng nhập Google thất bại');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      processGoogleLogin();
+    }
+  }, [googleLogin]);
+
+  const googleLoginRedirect = useGoogleLogin({
+    flow: 'auth-code',
+    ux_mode: 'redirect',
+    redirect_uri: window.location.origin + '/login',
+  });
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -203,16 +234,16 @@ export default function Login() {
               </div>
 
               <div className="flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => toast.error('Đăng nhập Google thất bại')}
-                  theme="outline"
-                  shape="pill"
-                  size="large"
-                  text="continue_with"
-                  locale="vi"
-                  width="320"
-                />
+                <button
+                  type="button"
+                  onClick={() => googleLoginRedirect()}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 py-3 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-sm text-gray-700"
+                  style={{ fontFamily: 'var(--font-body)' }}
+                >
+                  <FcGoogle size={22} />
+                  Tiếp tục với Google
+                </button>
               </div>
             </form>
 

@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService } from '../../services/authService';
+import RegisterOtpModal from '../../components/auth/RegisterOtpModal';
 
 export default function Register() {
   const { user, register, verifyOtp } = useAuth();
@@ -15,8 +15,6 @@ export default function Register() {
     }
   }, [user, navigate]);
 
-  // Step 1: Form, Step 2: OTP
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -27,21 +25,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // OTP State
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(0);
-  const otpInputs = useRef([]);
-
-  useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [timer]);
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -89,8 +73,7 @@ export default function Register() {
       const { confirmPassword, ...data } = form;
       await register(data);
       toast.success('Mã xác thực đã được gửi đến email của bạn');
-      setStep(2);
-      setTimer(60);
+      setShowOtpModal(true);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -98,58 +81,13 @@ export default function Register() {
     }
   };
 
-  const handleOtpChange = (index, value) => {
-    if (isNaN(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.substring(value.length - 1);
-    setOtp(newOtp);
-
-    // Focus next
-    if (value && index < 5) {
-      otpInputs.current[index + 1].focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpInputs.current[index - 1].focus();
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    const otpValue = otp.join('');
-    if (otpValue.length < 6) {
-      toast.error('Vui lòng nhập đầy đủ mã xác thực 6 số');
-      return;
-    }
-
-    setLoading(true);
+  const handleVerifySuccess = async (otpData) => {
     try {
-      await verifyOtp({
-        email: form.email,
-        otp: otpValue,
-        registrationData: form
-      });
+      await verifyOtp(otpData);
       toast.success('Xác thực thành công! Chào mừng bạn.');
+      setShowOtpModal(false);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Mã xác thực không đúng hoặc đã hết hạn');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (timer > 0) return;
-    setLoading(true);
-    try {
-      await authService.resendOtp({ email: form.email });
-      setTimer(60);
-      toast.success('Mã xác thực mới đã được gửi');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể gửi lại mã');
-    } finally {
-      setLoading(false);
+      throw err; // Re-throw to be handled by modal's loading state
     }
   };
 
@@ -234,180 +172,103 @@ export default function Register() {
           </div>
 
           <div className="bg-white rounded-2xl p-8 sm:p-10 border shadow-sm" style={{ borderColor: 'var(--border)' }}>
-            
-            {step === 1 ? (
-              <>
-                <div className="mb-8">
-                  <h1
-                    className="text-2xl font-bold mb-2"
-                    style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
-                  >
-                    Tạo tài khoản
-                  </h1>
-                  <p className="text-sm" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
-                    Đăng ký để trải nghiệm dịch vụ đẳng cấp
-                  </p>
-                </div>
+            <div className="mb-8">
+              <h1
+                className="text-2xl font-bold mb-2"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+              >
+                Tạo tài khoản
+              </h1>
+              <p className="text-sm" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
+                Đăng ký để trải nghiệm dịch vụ đẳng cấp
+              </p>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {renderInput({
-                    label: 'Họ và tên',
-                    name: 'fullName',
-                    icon: FiUser,
-                    placeholder: 'Nguyễn Văn A',
-                  })}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {renderInput({
+                label: 'Họ và tên',
+                name: 'fullName',
+                icon: FiUser,
+                placeholder: 'Nguyễn Văn A',
+              })}
 
-                  {renderInput({
-                    label: 'Email',
-                    name: 'email',
-                    type: 'email',
-                    icon: FiMail,
-                    placeholder: 'email@example.com',
-                  })}
+              {renderInput({
+                label: 'Email',
+                name: 'email',
+                type: 'email',
+                icon: FiMail,
+                placeholder: 'email@example.com',
+              })}
 
-                  {renderInput({
-                    label: 'Số điện thoại',
-                    name: 'phone',
-                    type: 'tel',
-                    icon: FiPhone,
-                    placeholder: '0912 345 678',
-                  })}
+              {renderInput({
+                label: 'Số điện thoại',
+                name: 'phone',
+                type: 'tel',
+                icon: FiPhone,
+                placeholder: '0912 345 678',
+              })}
 
-                  {renderInput({
-                    label: 'Mật khẩu',
-                    name: 'password',
-                    icon: FiLock,
-                    placeholder: 'Ít nhất 6 ký tự',
-                    isPassword: true,
-                    showState: showPassword,
-                    toggleShow: () => setShowPassword(!showPassword),
-                  })}
+              {renderInput({
+                label: 'Mật khẩu',
+                name: 'password',
+                icon: FiLock,
+                placeholder: 'Ít nhất 6 ký tự',
+                isPassword: true,
+                showState: showPassword,
+                toggleShow: () => setShowPassword(!showPassword),
+              })}
 
-                  {renderInput({
-                    label: 'Xác nhận mật khẩu',
-                    name: 'confirmPassword',
-                    icon: FiLock,
-                    placeholder: 'Nhập lại mật khẩu',
-                    isPassword: true,
-                    showState: showConfirm,
-                    toggleShow: () => setShowConfirm(!showConfirm),
-                  })}
+              {renderInput({
+                label: 'Xác nhận mật khẩu',
+                name: 'confirmPassword',
+                icon: FiLock,
+                placeholder: 'Nhập lại mật khẩu',
+                isPassword: true,
+                showState: showConfirm,
+                toggleShow: () => setShowConfirm(!showConfirm),
+              })}
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer mt-2"
-                    style={{
-                      backgroundColor: 'var(--primary)',
-                      fontFamily: 'var(--font-body)',
-                      transition: 'opacity 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => { if (!loading) e.target.style.opacity = '0.9'; }}
-                    onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
-                  >
-                    {loading ? 'Đang xử lý...' : 'Đăng ký'}
-                  </button>
-                </form>
-              </>
-            ) : (
-              // STEP 2: OTP VERIFICATION
-              <div className="animate-in fade-in duration-500">
-                <button 
-                  onClick={() => setStep(1)}
-                  className="flex items-center gap-1 text-sm mb-6 hover:opacity-70 transition-opacity"
-                  style={{ color: 'var(--text-gray)' }}
-                >
-                  <FiArrowLeft /> Quay lại sửa thông tin
-                </button>
-
-                <div className="mb-8">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(90, 58, 36, 0.1)', color: 'var(--primary)' }}>
-                    <FiMail size={32} />
-                  </div>
-                  <h1
-                    className="text-2xl font-bold mb-2"
-                    style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
-                  >
-                    Xác thực Email
-                  </h1>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}>
-                    Chúng tôi đã gửi mã OTP 6 số đến <span className="font-bold text-slate-700">{form.email}</span>. Vui lòng nhập mã để hoàn tất.
-                  </p>
-                </div>
-
-                <form onSubmit={handleVerifyOtp} className="space-y-6">
-                  <div className="flex justify-between gap-2">
-                    {otp.map((digit, index) => (
-                      <input
-                        key={index}
-                        ref={(el) => (otpInputs.current[index] = el)}
-                        type="text"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className="w-12 h-14 text-center text-xl font-bold rounded-xl border outline-none transition-all"
-                        style={{
-                          borderColor: otp[index] ? 'var(--primary)' : 'var(--border)',
-                          backgroundColor: otp[index] ? 'rgba(90, 58, 36, 0.05)' : 'white'
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || otp.join('').length < 6}
-                    className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer"
-                    style={{
-                      backgroundColor: 'var(--primary)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {loading ? 'Đang xác thực...' : 'Xác thực ngay'}
-                  </button>
-
-                  <div className="text-center">
-                    <p className="text-sm" style={{ color: 'var(--text-gray)' }}>
-                      Không nhận được mã?{' '}
-                      {timer > 0 ? (
-                        <span className="font-medium">Gửi lại sau {timer}s</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          className="font-bold hover:underline"
-                          style={{ color: 'var(--primary)' }}
-                        >
-                          Gửi lại mã
-                        </button>
-                      )}
-                    </p>
-                  </div>
-                </form>
-              </div>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer mt-2"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  fontFamily: 'var(--font-body)',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => { if (!loading) e.target.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
+              >
+                {loading ? 'Đang xử lý...' : 'Đăng ký'}
+              </button>
+            </form>
 
             <p
               className="text-center text-sm mt-8"
               style={{ color: 'var(--text-gray)', fontFamily: 'var(--font-body)' }}
             >
-              {step === 1 ? (
-                <>
-                  Đã có tài khoản?{' '}
-                  <Link
-                    to="/login"
-                    className="font-semibold hover:underline"
-                    style={{ color: 'var(--primary)' }}
-                  >
-                    Đăng nhập
-                  </Link>
-                </>
-              ) : null}
+              Đã có tài khoản?{' '}
+              <Link
+                to="/login"
+                className="font-semibold hover:underline"
+                style={{ color: 'var(--primary)' }}
+              >
+                Đăng nhập
+              </Link>
             </p>
           </div>
         </div>
       </div>
+
+      {/* OTP Modal */}
+      <RegisterOtpModal 
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        email={form.email}
+        onVerify={handleVerifySuccess}
+        registrationData={form}
+      />
     </div>
   );
 }

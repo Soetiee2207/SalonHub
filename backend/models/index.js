@@ -67,6 +67,7 @@ const CashFlowTransaction = require('./CashFlowTransaction')(sequelize, DataType
 const RefundRequest = require('./RefundRequest')(sequelize, DataTypes);
 const CustomerServiceNote = require('./CustomerServiceNote')(sequelize, DataTypes);
 const ReturnRequest = require('./ReturnRequest')(sequelize, DataTypes);
+const OtpCode = require('./OtpCode')(sequelize, DataTypes);
 
 
 // ===================== ASSOCIATIONS =====================
@@ -226,6 +227,7 @@ const db = {
   RefundRequest,
   CustomerServiceNote,
   ReturnRequest,
+  OtpCode,
 };
 
 module.exports = db;

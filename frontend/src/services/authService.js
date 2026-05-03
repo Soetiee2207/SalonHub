@@ -9,4 +9,5 @@ export const authService = {
   changePassword: (data) => api.put('/auth/change-password', data),
   verifyOtp: (data) => api.post('/auth/verify-otp', data),
   resendOtp: (data) => api.post('/auth/resend-otp', data),
+  sendVerifyEmail: () => api.post('/auth/send-verify-email'),
 };

@@ -4,7 +4,7 @@ import { FiMail, FiX, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { authService } from '../../services/authService';
 
-export default function RegisterOtpModal({ isOpen, onClose, email, onVerify, registrationData }) {
+export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [loading, setLoading] = useState(false);

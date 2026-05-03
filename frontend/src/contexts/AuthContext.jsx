@@ -54,17 +54,21 @@ export function AuthProvider({ children }) {
 
   const register = async (data) => {
     const res = await authService.register(data);
-    return res;
-  };
-
-  const verifyOtp = async (data) => {
-    const res = await authService.verifyOtp(data);
     const payload = res.data || res;
     const token = payload.token || res.token;
     const userData = payload.user || payload;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    return res;
+  };
+
+  const verifyOtp = async (data) => {
+    const res = await authService.verifyOtp(data);
+    // After verification, update the user state locally
+    const updatedUser = { ...user, isEmailVerified: true };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
     return res;
   };
 

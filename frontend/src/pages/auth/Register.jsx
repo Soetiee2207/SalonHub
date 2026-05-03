@@ -260,15 +260,6 @@ export default function Register() {
           </div>
         </div>
       </div>
-
-      {/* OTP Modal */}
-      <RegisterOtpModal 
-        isOpen={showOtpModal}
-        onClose={() => setShowOtpModal(false)}
-        email={form.email}
-        onVerify={handleVerifySuccess}
-        registrationData={form}
-      />
     </div>
   );
 }

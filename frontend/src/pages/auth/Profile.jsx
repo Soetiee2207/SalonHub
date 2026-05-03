@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight, FiAward, FiImage } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight, FiAward, FiImage, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
+import EmailVerifyModal from '../../components/auth/EmailVerifyModal';
 import { appointmentService } from '../../services/appointmentService';
 import { orderService } from '../../services/orderService';
 import OrderTimeline from '../../components/profile/OrderTimeline';
@@ -18,8 +19,10 @@ const roleBadgeMap = {
 };
 
 export default function Profile() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, verifyOtp } = useAuth();
   const fileInputRef = useRef(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const [form, setForm] = useState({
     fullName: user?.fullName || '',
@@ -132,6 +135,29 @@ export default function Profile() {
       toast.error(err.message || 'Đổi mật khẩu thất bại. Vui lòng thử lại.');
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  const handleVerifyClick = async () => {
+    setVerifying(true);
+    try {
+      await authService.sendVerifyEmail();
+      setShowVerifyModal(true);
+      toast.success('Mã xác thực đã được gửi đến email của bạn');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Không thể gửi mã xác thực');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleVerifySuccess = async (otpData) => {
+    try {
+      await verifyOtp(otpData);
+      setShowVerifyModal(false);
+      toast.success('Xác thực email thành công!');
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -292,12 +318,28 @@ export default function Profile() {
             <form onSubmit={handleProfileSubmit} className="space-y-5">
               {/* Email (read-only) */}
               <div>
-                <label
-                  className="block text-sm font-medium mb-1.5"
-                  style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
-                >
-                  Email
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    className="block text-sm font-medium"
+                    style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
+                  >
+                    Email
+                  </label>
+                  {user?.isEmailVerified ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                      <FiCheckCircle size={12} /> Đã xác thực
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleVerifyClick}
+                      disabled={verifying}
+                      className="text-[10px] font-bold text-amber-600 uppercase tracking-wider hover:underline disabled:opacity-50"
+                    >
+                      {verifying ? 'Đang gửi...' : 'Xác thực ngay'}
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
                     <FiMail size={18} />
@@ -661,6 +703,15 @@ export default function Profile() {
           </>
         )}
         </div>
+      </div>
+
+      {/* Email Verification Modal */}
+      <EmailVerifyModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={user?.email}
+        onVerify={handleVerifySuccess}
+      />
     </div>
   );
 }

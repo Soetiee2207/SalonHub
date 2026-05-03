@@ -55,6 +55,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('Silver', 'Gold', 'Diamond'),
       defaultValue: 'Silver',
     },
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

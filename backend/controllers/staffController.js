@@ -247,10 +247,49 @@ const updateStaff = async (req, res, next) => {
 // Xóa nhân viên (Admin only)
 // ============================================================
 const deleteStaff = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
   try {
-    await User.destroy({ where: { id: req.params.id } });
-    res.json({ success: true, message: 'Xóa nhân viên thành công' });
+    const { id } = req.params;
+
+    const staff = await User.findByPk(id);
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Nhân viên không tồn tại' });
+    }
+
+    // 1. Vô hiệu hóa khóa ngoại để dọn dẹp
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+
+    try {
+      const queries = [
+        `DELETE FROM staff_schedules WHERE userId = ${id}`,
+        `DELETE FROM staff_skills WHERE userId = ${id}`,
+        `DELETE FROM reviews WHERE staffId = ${id}`,
+        `DELETE FROM appointments WHERE staffId = ${id}`,
+        `DELETE FROM customer_service_notes WHERE staffId = ${id}`,
+        `DELETE FROM inventory_transactions WHERE createdBy = ${id}`,
+        `DELETE FROM cash_flow_transactions WHERE createdBy = ${id}`,
+        `DELETE FROM refund_requests WHERE processedBy = ${id}`,
+        `DELETE FROM notifications WHERE userId = ${id}`,
+        `DELETE FROM users WHERE id = ${id}`
+      ];
+
+      for (const q of queries) {
+        await db.sequelize.query(q, { transaction });
+      }
+
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      await transaction.commit();
+
+      res.status(200).json({
+        success: true,
+        message: 'Đã xóa vĩnh viễn nhân viên và mọi dữ liệu liên quan thành công.',
+      });
+    } catch (innerError) {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      throw innerError;
+    }
   } catch (error) {
+    if (transaction) await transaction.rollback();
     next(error);
   }
 };

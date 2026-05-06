@@ -213,9 +213,16 @@ const deleteCustomer = async (req, res, next) => {
 const bulkDeleteCustomers = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
+    console.log('Bulk Delete Request Body:', req.body);
     const { ids } = req.body;
+    
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ.' });
+      console.error('Invalid IDs received:', ids);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Danh sách ID không hợp lệ.',
+        received: ids 
+      });
     }
 
     // Lấy thông tin email của các khách hàng để xóa OTP
@@ -228,14 +235,60 @@ const bulkDeleteCustomers = async (req, res, next) => {
     const emails = customers.map(c => c.email);
     const foundIds = customers.map(c => c.id);
 
-    // Xóa dữ liệu liên quan cho tất cả IDs tìm thấy
+    // 1. Xóa dữ liệu phụ (Không phụ thuộc FK phức tạp)
     await db.Address.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
     await db.Review.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.ProductReview?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
     await db.OtpCode.destroy({ where: { email: { [Op.in]: emails } }, transaction });
-    await db.Appointment.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.Order.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.Notification.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.Cart?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
     
-    // Xóa User
+    // Lưu ý: CustomerServiceNote dùng cột 'customerId'
+    await db.CustomerServiceNote?.destroy({ where: { customerId: { [Op.in]: foundIds } }, transaction });
+
+    // 2. Xóa dữ liệu giao dịch (Cần xóa theo thứ tự)
+    // Xóa Payment liên quan đến Appointment/Order của các User này
+    // Sử dụng tiểu truy vấn để tìm IDs
+    const appointmentIds = await db.Appointment.findAll({
+      where: { userId: { [Op.in]: foundIds } },
+      attributes: ['id'],
+      transaction
+    }).then(items => items.map(i => i.id));
+
+    const orderIds = await db.Order.findAll({ 
+      where: { userId: { [Op.in]: foundIds } }, 
+      attributes: ['id'],
+      transaction 
+    }).then(orders => orders.map(o => o.id));
+
+    // Xóa Payments
+    await db.Payment.destroy({ 
+      where: { 
+        [Op.or]: [
+          { userId: { [Op.in]: foundIds } },
+          { appointmentId: { [Op.in]: appointmentIds } },
+          { orderId: { [Op.in]: orderIds } }
+        ]
+      }, 
+      transaction 
+    });
+
+    // Xóa Requests
+    await db.RefundRequest?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.ReturnRequest?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+
+    // Xóa Appointments
+    if (appointmentIds.length > 0) {
+        await db.Appointment.destroy({ where: { id: { [Op.in]: appointmentIds } }, transaction });
+    }
+    
+    // Xóa Order Items và Orders
+    if (orderIds.length > 0) {
+      await db.OrderItem.destroy({ where: { orderId: { [Op.in]: orderIds } }, transaction });
+      await db.Order.destroy({ where: { id: { [Op.in]: orderIds } }, transaction });
+    }
+    
+    // 3. Cuối cùng mới xóa User
     await db.User.destroy({ where: { id: { [Op.in]: foundIds } }, transaction });
 
     await transaction.commit();

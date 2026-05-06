@@ -395,7 +395,7 @@ export default function AdminServices() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Delete Service Confirmation */}
       {deleteId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-xs text-center animate-scale-up">
@@ -403,10 +403,27 @@ export default function AdminServices() {
                <FiTrash2 size={24} />
             </div>
             <h3 className="text-lg font-bold mb-2">Xác nhận xóa?</h3>
-            <p className="text-xs text-gray-500 mb-6">Hành động này không thể hoàn tác. Toàn bộ dịch vụ bên trong danh mục này cũng sẽ bị xóa sạch.</p>
+            <p className="text-xs text-gray-500 mb-6">Hành động này không thể hoàn tác. Dịch vụ sẽ bị gỡ khỏi menu.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteId(null)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
+              <button onClick={handleDelete} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA BỎ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Category Confirmation */}
+      {deleteCatId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-xs text-center animate-scale-up">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-red-100">
+               <FiTrash2 size={24} />
+            </div>
+            <h3 className="text-lg font-bold mb-2">Xóa danh mục?</h3>
+            <p className="text-xs text-gray-500 mb-6">CẢNH BÁO: Toàn bộ dịch vụ thuộc danh mục này sẽ bị xóa vĩnh viễn khỏi hệ thống!</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteCatId(null)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
-              <button onClick={handleDeleteCat} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA BỎ</button>
+              <button onClick={handleDeleteCat} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA VĨNH VIỄN</button>
             </div>
           </div>
         </div>

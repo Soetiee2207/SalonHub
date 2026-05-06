@@ -73,13 +73,9 @@ const createService = async (req, res, next) => {
 
     const service = await db.Service.create(serviceData);
 
-    const serviceWithCategory = await db.Service.findByPk(service.id, {
-      include: [{ model: db.ServiceCategory, as: 'category' }],
-    });
-
     res.status(201).json({
       success: true,
-      data: serviceWithCategory,
+      data: service,
     });
   } catch (error) {
     next(error);

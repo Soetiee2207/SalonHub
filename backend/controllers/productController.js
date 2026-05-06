@@ -104,13 +104,9 @@ const createProduct = async (req, res, next) => {
       image,
     });
 
-    const result = await Product.findByPk(product.id, {
-      include: [{ model: ProductCategory, as: 'category' }],
-    });
-
     res.status(201).json({
       success: true,
-      data: result,
+      data: product,
     });
   } catch (error) {
     next(error);

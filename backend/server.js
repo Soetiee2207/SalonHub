@@ -49,9 +49,25 @@ io.on('connection', (socket) => {
   });
 });
 
+// Manual migration: Add missing columns that TiDB can't handle via sync({ alter: true })
+async function runMigrations() {
+  const qi = db.sequelize.getQueryInterface();
+  const tableDesc = await qi.describeTable('users');
+
+  if (!tableDesc.isEmailVerified) {
+    await db.sequelize.query('ALTER TABLE `users` ADD COLUMN `isEmailVerified` TINYINT(1) DEFAULT 0;');
+    console.log('🔧 Migration: Added column isEmailVerified to users');
+  }
+  if (!tableDesc.isActive) {
+    await db.sequelize.query('ALTER TABLE `users` ADD COLUMN `isActive` TINYINT(1) DEFAULT 1;');
+    console.log('🔧 Migration: Added column isActive to users');
+  }
+}
+
 // Chỉ chạy server sau khi đã kết nối Database thành công
 db.sequelize
-  .sync({ alter: true })
+  .sync()
+  .then(() => runMigrations())
   .then(() => {
     console.log('✅ Success: Database synced successfully.');
     console.log(`📡 Connecting to: ${process.env.DB_HOST || 'local TiDB/MySQL'}`);

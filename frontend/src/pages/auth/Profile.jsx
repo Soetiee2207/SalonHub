@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight, FiAward, FiImage, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiCamera, FiLock, FiEye, FiEyeOff, FiCalendar, FiShoppingBag, FiClock, FiChevronRight, FiAward, FiImage, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';

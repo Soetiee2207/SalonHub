@@ -235,62 +235,42 @@ const bulkDeleteCustomers = async (req, res, next) => {
     const emails = customers.map(c => c.email);
     const foundIds = customers.map(c => c.id);
 
-    // 1. Xóa dữ liệu phụ (Không phụ thuộc FK phức tạp)
-    await db.Address.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.Review.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.ProductReview?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.OtpCode.destroy({ where: { email: { [Op.in]: emails } }, transaction });
-    await db.Notification.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.Cart?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    
-    // Lưu ý: CustomerServiceNote dùng cột 'customerId'
-    await db.CustomerServiceNote?.destroy({ where: { customerId: { [Op.in]: foundIds } }, transaction });
+    // Dùng RAW SQL để ép xóa sạch không lo khóa ngoại
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
-    // 2. Xóa dữ liệu giao dịch (Cần xóa theo thứ tự)
-    // Xóa Payment liên quan đến Appointment/Order của các User này
-    // Sử dụng tiểu truy vấn để tìm IDs
-    const appointmentIds = await db.Appointment.findAll({
-      where: { userId: { [Op.in]: foundIds } },
-      attributes: ['id'],
-      transaction
-    }).then(items => items.map(i => i.id));
+    try {
+      // Xóa ở tất cả các bảng có thể liên quan
+      const queries = [
+        `DELETE FROM addresses WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM reviews WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM product_reviews WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM notifications WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM carts WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM customer_service_notes WHERE customerId IN (${foundIds.join(',')})`,
+        `DELETE FROM refund_requests WHERE (type = 'order' AND targetId IN (SELECT id FROM orders WHERE userId IN (${foundIds.join(',')}))) OR (type = 'appointment' AND targetId IN (SELECT id FROM appointments WHERE userId IN (${foundIds.join(',')})))`,
+        `DELETE FROM return_requests WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM payments WHERE orderId IN (SELECT id FROM orders WHERE userId IN (${foundIds.join(',')})) OR appointmentId IN (SELECT id FROM appointments WHERE userId IN (${foundIds.join(',')}))`,
+        `DELETE FROM order_items WHERE orderId IN (SELECT id FROM orders WHERE userId IN (${foundIds.join(',')}))`,
+        `DELETE FROM orders WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM appointments WHERE userId IN (${foundIds.join(',')})`,
+        `DELETE FROM users WHERE id IN (${foundIds.join(',')})`
+      ];
 
-    const orderIds = await db.Order.findAll({ 
-      where: { userId: { [Op.in]: foundIds } }, 
-      attributes: ['id'],
-      transaction 
-    }).then(orders => orders.map(o => o.id));
+      for (const q of queries) {
+        await db.sequelize.query(q, { transaction });
+      }
 
-    // Xóa Payments
-    await db.Payment.destroy({ 
-      where: { 
-        [Op.or]: [
-          { appointmentId: { [Op.in]: appointmentIds } },
-          { orderId: { [Op.in]: orderIds } }
-        ]
-      }, 
-      transaction 
-    });
-
-    // Xóa Requests
-    await db.RefundRequest?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-    await db.ReturnRequest?.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
-
-    // Xóa Appointments
-    if (appointmentIds.length > 0) {
-        await db.Appointment.destroy({ where: { id: { [Op.in]: appointmentIds } }, transaction });
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      await transaction.commit();
+      
+      res.status(200).json({
+        success: true,
+        message: `Hệ thống đã dọn dẹp sạch sẽ ${foundIds.length} khách hàng.`,
+      });
+    } catch (innerError) {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      throw innerError;
     }
-    
-    // Xóa Order Items và Orders
-    if (orderIds.length > 0) {
-      await db.OrderItem.destroy({ where: { orderId: { [Op.in]: orderIds } }, transaction });
-      await db.Order.destroy({ where: { id: { [Op.in]: orderIds } }, transaction });
-    }
-    
-    // 3. Cuối cùng mới xóa User
-    await db.User.destroy({ where: { id: { [Op.in]: foundIds } }, transaction });
-
-    await transaction.commit();
     res.status(200).json({
       success: true,
       message: `Đã xóa thành công ${foundIds.length} khách hàng.`,

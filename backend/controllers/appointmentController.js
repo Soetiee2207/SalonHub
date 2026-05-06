@@ -832,45 +832,58 @@ const syncAppointmentAccounting = async (appointmentId, transaction = null) => {
 
   const paymentMethod = existingPayment ? existingPayment.method : 'cash';
 
+  const isCashOrCod = paymentMethod === 'cash' || paymentMethod === 'cod';
+
   // 1. Tạo hoặc cập nhật bản ghi Payment (Ghi nhận đã thu tiền)
   const [payment, created] = await Payment.findOrCreate({
     where: { appointmentId: appointment.id },
     defaults: {
       amount: totalAmount,
       method: paymentMethod, // Sử dụng phương thức thực tế
-      status: 'success',
-      orderId: appointment.orderId || null
+      status: isCashOrCod ? 'pending' : 'success',
+      orderId: appointment.orderId || null,
+      isReconciled: !isCashOrCod // Cash/Cod need manual reconciliation
     },
     ...options
   });
 
   if (!created) {
-    await payment.update({ amount: totalAmount, orderId: appointment.orderId || null, method: paymentMethod }, options);
+    await payment.update({ 
+      amount: totalAmount, 
+      orderId: appointment.orderId || null, 
+      method: paymentMethod,
+      status: isCashOrCod ? 'pending' : payment.status,
+      isReconciled: isCashOrCod ? false : payment.isReconciled
+    }, options);
   }
 
   // 2. Tạo Phiếu thu (CashFlowTransaction) cho Kế toán
-  const existingTx = await CashFlowTransaction.findOne({
-    where: { referenceType: 'appointment', referenceId: appointment.id },
-    ...options
-  });
+  // Chỉ tạo TỰ ĐỘNG cho Bank (SePay/VNPay). 
+  // Tiền mặt/COD sẽ được tạo khi Kế toán bấm XÁC NHẬN (reconcile)
+  if (!isCashOrCod) {
+    const existingTx = await CashFlowTransaction.findOne({
+      where: { referenceType: 'appointment', referenceId: appointment.id },
+      ...options
+    });
 
-  if (!existingTx) {
-    // Map paymentMethod to DB compatible ENUM for CashFlowTransaction
-    const ledgerMethod = (paymentMethod === 'sepay' || paymentMethod === 'vnpay') ? 'bank' : paymentMethod;
+    if (!existingTx) {
+      // Map paymentMethod to DB compatible ENUM for CashFlowTransaction
+      const ledgerMethod = (paymentMethod === 'sepay' || paymentMethod === 'vnpay') ? 'bank' : paymentMethod;
 
-    await CashFlowTransaction.create({
-      type: 'receipt', 
-      amount: totalAmount,
-      category: 'other', 
-      method: ledgerMethod, // map sepay/vnpay to bank for DB compatibility
-      status: 'completed',
-      referenceType: 'appointment',
-      referenceId: appointment.id,
-      note: `Thu tiền dịch vụ: ${appointment.service?.name} + Bán lẻ - Lịch hẹn #${appointment.id}`,
-      createdBy: appointment.staffId
-    }, options);
-  } else {
-    await existingTx.update({ amount: totalAmount }, options);
+      await CashFlowTransaction.create({
+        type: 'receipt', 
+        amount: totalAmount,
+        category: 'other', 
+        method: ledgerMethod, // map sepay/vnpay to bank for DB compatibility
+        status: 'completed',
+        referenceType: 'appointment',
+        referenceId: appointment.id,
+        note: `[TỰ ĐỘNG] Thu tiền dịch vụ: ${appointment.service?.name} + Bán lẻ - Lịch hẹn #${appointment.id}`,
+        createdBy: appointment.staffId || 1
+      }, options);
+    } else {
+      await existingTx.update({ amount: totalAmount }, options);
+    }
   }
 };
 

@@ -200,7 +200,8 @@ const getReconciliation = async (req, res, next) => {
         isReconciled: false,
         [Op.or]: [
           { method: 'vnpay', status: 'success' },
-          { method: 'cod' }
+          { method: 'cod' },
+          { method: 'cash' }
         ]
       },
       include: [
@@ -229,7 +230,7 @@ const reconcilePayment = async (req, res, next) => {
     }
 
     await payment.update({
-      status: payment.method === 'cod' ? 'success' : payment.status,
+      status: (payment.method === 'cod' || payment.method === 'cash') ? 'success' : payment.status,
       isReconciled: true,
       reconciledAt: new Date(),
       reconciledBy: req.user.id

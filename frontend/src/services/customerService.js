@@ -5,4 +5,5 @@ export const customerService = {
   getById: (id) => api.get(`/customers/${id}`),
   update: (id, data) => api.put(`/customers/${id}`, data),
   toggleStatus: (id) => api.patch(`/customers/${id}/toggle-status`),
+  delete: (id) => api.delete(`/customers/${id}`),
 };

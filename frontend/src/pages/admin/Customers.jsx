@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiSearch, FiEye, FiEdit3, FiAward, FiCalendar, FiPackage, FiX, FiLock, FiUnlock } from 'react-icons/fi';
+import { FiSearch, FiEye, FiEdit3, FiAward, FiCalendar, FiPackage, FiX, FiLock, FiUnlock, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { customerService } from '../../services/customerService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -53,6 +53,17 @@ export default function Customers() {
       fetchCustomers(search);
     } catch {
       toast.error('Lỗi cập nhật trạng thái');
+    }
+  };
+
+  const handleDelete = async (customer) => {
+    if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của ${customer.fullName}? Mọi dữ liệu lịch sử liên quan cũng sẽ bị xóa sạch!`)) return;
+    try {
+      await customerService.delete(customer.id);
+      toast.success('Đã xóa khách hàng thành công');
+      fetchCustomers(search);
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi xóa khách hàng');
     }
   };
 
@@ -141,7 +152,14 @@ export default function Customers() {
                   onClick={() => viewHistory(c)}
                   className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-800 text-white text-sm font-medium hover:bg-black transition-colors"
                 >
-                  <FiEye /> Lịch sử chi tiết
+                  <FiEye /> Lịch sử
+                </button>
+                <button
+                  onClick={() => handleDelete(c)}
+                  className="flex items-center justify-center p-2 rounded-xl bg-gray-100 text-red-500 hover:bg-red-50 transition-colors border border-gray-200"
+                  title="Xóa vĩnh viễn"
+                >
+                  <FiTrash2 />
                 </button>
               </div>
             </div>

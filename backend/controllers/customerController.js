@@ -210,10 +210,50 @@ const deleteCustomer = async (req, res, next) => {
   }
 };
 
+const bulkDeleteCustomers = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ.' });
+    }
+
+    // Lấy thông tin email của các khách hàng để xóa OTP
+    const customers = await db.User.findAll({
+      where: { id: { [Op.in]: ids }, role: 'customer' },
+      attributes: ['id', 'email'],
+      transaction
+    });
+
+    const emails = customers.map(c => c.email);
+    const foundIds = customers.map(c => c.id);
+
+    // Xóa dữ liệu liên quan cho tất cả IDs tìm thấy
+    await db.Address.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.Review.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.OtpCode.destroy({ where: { email: { [Op.in]: emails } }, transaction });
+    await db.Appointment.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    await db.Order.destroy({ where: { userId: { [Op.in]: foundIds } }, transaction });
+    
+    // Xóa User
+    await db.User.destroy({ where: { id: { [Op.in]: foundIds } }, transaction });
+
+    await transaction.commit();
+    res.status(200).json({
+      success: true,
+      message: `Đã xóa thành công ${foundIds.length} khách hàng.`,
+    });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
   getAllCustomers,
   getCustomerDetails,
   updateCustomer,
   toggleCustomerStatus,
   deleteCustomer,
+  bulkDeleteCustomers,
 };

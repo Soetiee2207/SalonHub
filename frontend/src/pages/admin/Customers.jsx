@@ -13,6 +13,7 @@ export default function Customers() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [customerHistory, setCustomerHistory] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchCustomers = async (query = '') => {
     setLoading(true);
@@ -67,6 +68,34 @@ export default function Customers() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${selectedIds.length} khách hàng đã chọn? Hành động này không thể hoàn tác!`)) return;
+    
+    try {
+      await customerService.bulkDelete(selectedIds);
+      toast.success(`Đã xóa thành công ${selectedIds.length} khách hàng`);
+      setSelectedIds([]);
+      fetchCustomers(search);
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi xóa hàng loạt');
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === customers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(customers.map(c => c.id));
+    }
+  };
+
   const getRankBadge = (rank) => {
     const ranks = {
       'Diamond': { color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
@@ -90,15 +119,34 @@ export default function Customers() {
         </div>
       </div>
 
-      <div className="relative mb-6 max-w-md">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Tìm tên, email hoặc số điện thoại..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 ring-orange-200 transition-all shadow-sm"
-        />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Tìm tên, email hoặc số điện thoại..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 ring-orange-200 transition-all shadow-sm"
+          />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl hover:bg-red-100 transition-all font-bold text-sm"
+            >
+              <FiTrash2 /> Xóa {selectedIds.length} mục đã chọn
+            </button>
+          )}
+          <button
+            onClick={handleSelectAll}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all"
+          >
+            {selectedIds.length === customers.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -108,8 +156,16 @@ export default function Customers() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {customers.map((c) => (
-            <div key={c.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-              <div className="flex items-start justify-between mb-4">
+            <div key={c.id} className={`bg-white p-5 rounded-2xl border transition-all group relative ${selectedIds.includes(c.id) ? 'border-orange-500 ring-1 ring-orange-500 shadow-md' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
+              <div className="absolute top-4 left-4 z-10">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(c.id)}
+                  onChange={() => toggleSelect(c.id)}
+                  className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
+                />
+              </div>
+              <div className="flex items-start justify-between mb-4 pl-7">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-lg border border-orange-100">
                     {c.fullName?.charAt(0) || '?'}

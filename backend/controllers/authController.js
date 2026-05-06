@@ -266,29 +266,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Check email verification
-    if (!user.isEmailVerified) {
-      // Auto-send OTP for unverified accounts
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-      await db.OtpCode.create({
-        email: user.email,
-        code: otpCode,
-        type: 'registration',
-        expiresAt,
-      });
-
-      await emailService.sendOtpEmail(user.email, otpCode);
-
-      return res.status(403).json({
-        success: false,
-        requireVerification: true,
-        email: user.email,
-        message: 'Email chưa được xác thực. Mã OTP đã được gửi đến email của bạn.',
-      });
-    }
-
     // Generate token
     const token = generateToken(user);
 

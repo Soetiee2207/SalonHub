@@ -6,7 +6,6 @@ import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/authService';
-import RegisterOtpModal from '../../components/auth/RegisterOtpModal';
 
 export default function Login() {
   const { user, login, googleLogin, loginWithToken } = useAuth();
@@ -15,8 +14,6 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [verifyEmail, setVerifyEmail] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -77,28 +74,12 @@ export default function Login() {
       await login(form);
       toast.success('Đăng nhập thành công!');
     } catch (err) {
-      // Check if email requires verification
-      if (err.requireVerification) {
-        setVerifyEmail(err.email);
-        setShowOtpModal(true);
-        toast('Vui lòng xác thực email để tiếp tục', { icon: '📧' });
-      } else {
-        toast.error(err.message || 'Email, Số điện thoại hoặc mật khẩu không đúng');
-      }
+      toast.error(err.message || 'Email, Số điện thoại hoặc mật khẩu không đúng');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifySuccess = async ({ email, otp }) => {
-    const res = await authService.verifyRegistrationOtp({ email, otp });
-    const payload = res.data || res;
-    const token = payload.token || res.token;
-    const userData = payload.user || payload;
-    loginWithToken(token, userData);
-    toast.success('Xác thực thành công! Chào mừng bạn.');
-    setShowOtpModal(false);
-  };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
@@ -288,14 +269,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-
-      {/* Email Verification Modal (for unverified accounts trying to login) */}
-      <RegisterOtpModal
-        isOpen={showOtpModal}
-        onClose={() => setShowOtpModal(false)}
-        email={verifyEmail}
-        onVerify={handleVerifySuccess}
-      />
     </div>
   );
 }

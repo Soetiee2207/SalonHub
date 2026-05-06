@@ -51,7 +51,7 @@ io.on('connection', (socket) => {
 
 // Chỉ chạy server sau khi đã kết nối Database thành công
 db.sequelize
-  .sync()
+  .sync({ alter: true })
   .then(() => {
     console.log('✅ Success: Database synced successfully.');
     console.log(`📡 Connecting to: ${process.env.DB_HOST || 'local TiDB/MySQL'}`);

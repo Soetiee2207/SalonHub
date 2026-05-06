@@ -2,7 +2,9 @@ const nodemailer = require('nodemailer');
 
 // ⚠️ Sử dụng OAuth2 cho Gmail chuyên nghiệp và bảo mật
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Use STARTTLS
   auth: {
     type: 'OAuth2',
     user: process.env.SMTP_USER,
@@ -10,6 +12,9 @@ const transporter = nodemailer.createTransport({
     clientSecret: process.env.GOOGLE_MAIL_CLIENT_SECRET,
     refreshToken: process.env.GOOGLE_MAIL_REFRESH_TOKEN,
   },
+  connectionTimeout: 10000, // 10s timeout
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
 /**

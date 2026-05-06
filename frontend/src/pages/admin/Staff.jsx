@@ -146,10 +146,15 @@ export default function Staff() {
   };
 
   const getSkills = (s) => {
-    const skills = s.skilledServices || s.skills || s.services || [];
-    return skills.map(sk => {
-      const svc = services.find(sv => (sv.id) === (sk.id || sk.serviceId?.id || sk.serviceId || sk));
-      return svc?.name || sk?.name || sk?.serviceId?.name || '';
+    // Ưu tiên dùng skilledServices nếu có (thường là mảng các object Service)
+    const skillsData = s.skilledServices || s.skills || s.services || [];
+    if (!Array.isArray(skillsData)) return [];
+    
+    return skillsData.map(sk => {
+      // Nếu sk là object Service (có name), dùng luôn. Nếu không thì tìm trong danh sách services
+      if (sk.name) return sk.name;
+      const svc = services.find(sv => sv.id === (sk.id || sk.serviceId?.id || sk.serviceId || sk));
+      return svc?.name || '';
     }).filter(Boolean);
   };
 
@@ -204,13 +209,17 @@ export default function Staff() {
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
                         <span className="font-medium">{s.fullName || s.name}</span>
-                        <span className="text-[10px] w-fit px-1.5 rounded-full bg-gray-100 text-gray-500 uppercase font-bold border border-gray-200">
-                          {s.role === 'staff'
+                        <span className={`text-[10px] w-fit px-1.5 rounded-full uppercase font-bold border ${
+                          s.role === 'admin' ? 'bg-purple-50 text-purple-600 border-purple-100' : 'bg-gray-100 text-gray-500 border-gray-200'
+                        }`}>
+                          {s.role === 'staff' || s.role === 'service_staff'
                             ? 'Thợ cắt'
-                            : s.role === 'receptionist'
+                            : s.role === 'accountant'
                             ? 'Kế toán'
                             : s.role === 'warehouse_staff'
                             ? 'Kho'
+                            : s.role === 'admin'
+                            ? 'Quản trị viên'
                             : s.role}
                         </span>
                       </div>
@@ -261,8 +270,16 @@ export default function Staff() {
                           <FiEdit2 size={16} />
                         </button>
                         <button
-                          onClick={() => setDeleteId(s.id)}
+                          onClick={() => {
+                            const currentUser = JSON.parse(localStorage.getItem('user'));
+                            if (s.id === currentUser?.id) {
+                              toast.error('Bạn không thể tự xóa chính mình!');
+                              return;
+                            }
+                            setDeleteId(s.id);
+                          }}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                          title="Xóa nhân viên"
                         >
                           <FiTrash2 size={16} />
                         </button>

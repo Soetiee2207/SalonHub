@@ -4,7 +4,7 @@ import { FiMail, FiX, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { authService } from '../../services/authService';
 
-export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
+export default function RegisterOtpModal({ isOpen, onClose, email, onVerify }) {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [loading, setLoading] = useState(false);
@@ -71,13 +71,9 @@ export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
 
     setLoading(true);
     try {
-      await onVerify({
-        email,
-        otp: otpValue,
-      });
-      // Toast and navigation are handled by the parent/onVerify
+      await onVerify({ email, otp: otpValue });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Mã xác thực không đúng hoặc đã hết hạn');
+      toast.error(err.response?.data?.message || err.message || 'Mã xác thực không đúng hoặc đã hết hạn');
     } finally {
       setLoading(false);
     }
@@ -93,7 +89,7 @@ export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
       otpInputs.current[0]?.focus();
       toast.success('Mã xác thực mới đã được gửi');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể gửi lại mã');
+      toast.error(err.response?.data?.message || err.message || 'Không thể gửi lại mã');
     } finally {
       setLoading(false);
     }

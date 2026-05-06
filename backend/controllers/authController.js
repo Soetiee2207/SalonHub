@@ -56,22 +56,26 @@ const register = async (req, res) => {
       password: hashedPassword,
       phone: phone || null,
       role: 'customer',
-      isEmailVerified: false, // Must verify later in profile
+      isEmailVerified: false,
     });
 
-    // Generate token
-    const token = generateToken(user);
+    // Generate OTP and send verification email
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    const userData = user.toJSON();
-    delete userData.password;
+    await db.OtpCode.create({
+      email,
+      code: otpCode,
+      type: 'registration',
+      expiresAt,
+    });
+
+    await emailService.sendOtpEmail(email, otpCode);
 
     return res.status(201).json({
       success: true,
-      message: 'Đăng ký tài khoản thành công.',
-      data: {
-        user: userData,
-        token,
-      },
+      message: 'Mã xác thực đã được gửi đến email của bạn.',
+      data: { email },
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -259,6 +263,29 @@ const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Email, Số điện thoại hoặc mật khẩu không đúng',
+      });
+    }
+
+    // Check email verification
+    if (!user.isEmailVerified) {
+      // Auto-send OTP for unverified accounts
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await db.OtpCode.create({
+        email: user.email,
+        code: otpCode,
+        type: 'registration',
+        expiresAt,
+      });
+
+      await emailService.sendOtpEmail(user.email, otpCode);
+
+      return res.status(403).json({
+        success: false,
+        requireVerification: true,
+        email: user.email,
+        message: 'Email chưa được xác thực. Mã OTP đã được gửi đến email của bạn.',
       });
     }
 
@@ -517,6 +544,74 @@ const googleLogin = async (req, res) => {
   }
 };
 
+// @desc    Verify OTP for registration (PUBLIC - no auth required)
+// @route   POST /api/auth/verify-registration-otp
+const verifyRegistrationOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp email và mã xác thực.',
+      });
+    }
+
+    // Find valid OTP
+    const otpRecord = await db.OtpCode.findOne({
+      where: {
+        email,
+        code: otp,
+        type: 'registration',
+        isUsed: false,
+        expiresAt: { [db.Sequelize.Op.gt]: new Date() },
+      },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã xác thực không đúng hoặc đã hết hạn.',
+      });
+    }
+
+    // Mark OTP as used
+    await otpRecord.update({ isUsed: true });
+
+    // Update user verification status
+    const user = await db.User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản.',
+      });
+    }
+
+    await user.update({ isEmailVerified: true });
+
+    // Generate token and return (same as successful login)
+    const token = generateToken(user);
+    const userData = user.toJSON();
+    delete userData.password;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Xác thực email thành công.',
+      data: {
+        user: userData,
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Verify registration OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error.',
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -527,4 +622,5 @@ module.exports = {
   verifyOtp,
   resendOtp,
   sendVerifyEmail,
+  verifyRegistrationOtp,
 };

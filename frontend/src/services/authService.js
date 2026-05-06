@@ -10,4 +10,5 @@ export const authService = {
   verifyOtp: (data) => api.post('/auth/verify-otp', data),
   resendOtp: (data) => api.post('/auth/resend-otp', data),
   sendVerifyEmail: () => api.post('/auth/send-verify-email'),
+  verifyRegistrationOtp: (data) => api.post('/auth/verify-registration-otp', data),
 };

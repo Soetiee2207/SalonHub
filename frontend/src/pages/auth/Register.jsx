@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/authService';
 import RegisterOtpModal from '../../components/auth/RegisterOtpModal';
 
 export default function Register() {
-  const { user, register, verifyOtp } = useAuth();
+  const { user, loginWithToken } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -71,7 +73,8 @@ export default function Register() {
     setLoading(true);
     try {
       const { confirmPassword, ...data } = form;
-      await register(data);
+      await authService.register(data);
+      setRegisteredEmail(form.email);
       toast.success('Mã xác thực đã được gửi đến email của bạn');
       setShowOtpModal(true);
     } catch (err) {
@@ -81,14 +84,14 @@ export default function Register() {
     }
   };
 
-  const handleVerifySuccess = async (otpData) => {
-    try {
-      await verifyOtp(otpData);
-      toast.success('Xác thực thành công! Chào mừng bạn.');
-      setShowOtpModal(false);
-    } catch (err) {
-      throw err; // Re-throw to be handled by modal's loading state
-    }
+  const handleVerifySuccess = async ({ email, otp }) => {
+    const res = await authService.verifyRegistrationOtp({ email, otp });
+    const payload = res.data || res;
+    const token = payload.token || res.token;
+    const userData = payload.user || payload;
+    loginWithToken(token, userData);
+    toast.success('Xác thực thành công! Chào mừng bạn.');
+    setShowOtpModal(false);
   };
 
   const renderInput = ({ label, name, type = 'text', icon: Icon, placeholder, isPassword, showState, toggleShow }) => (
@@ -259,7 +262,15 @@ export default function Register() {
             </p>
           </div>
         </div>
-      </div>
+    </div>
+
+      {/* Registration OTP Verification Modal */}
+      <RegisterOtpModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        email={registeredEmail}
+        onVerify={handleVerifySuccess}
+      />
     </div>
   );
 }

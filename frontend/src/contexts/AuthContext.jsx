@@ -53,14 +53,15 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (data) => {
+    // Backend now sends OTP instead of token — don't save anything
     const res = await authService.register(data);
-    const payload = res.data || res;
-    const token = payload.token || res.token;
-    const userData = payload.user || payload;
+    return res;
+  };
+
+  const loginWithToken = (token, userData) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
-    return res;
   };
 
   const verifyOtp = async (data) => {
@@ -84,7 +85,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser, verifyOtp }}>
+    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, updateUser, verifyOtp, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   );

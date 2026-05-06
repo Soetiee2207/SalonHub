@@ -403,10 +403,10 @@ export default function AdminServices() {
                <FiTrash2 size={24} />
             </div>
             <h3 className="text-lg font-bold mb-2">Xác nhận xóa?</h3>
-            <p className="text-xs text-gray-500 mb-6">Hành động này không thể hoàn tác. Dịch vụ sẽ bị gỡ khỏi menu.</p>
+            <p className="text-xs text-gray-500 mb-6">Hành động này không thể hoàn tác. Toàn bộ dịch vụ bên trong danh mục này cũng sẽ bị xóa sạch.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
-              <button onClick={handleDelete} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA BỎ</button>
+              <button onClick={() => setDeleteCatId(null)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border-0 cursor-pointer">HUỶ</button>
+              <button onClick={handleDeleteCat} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl border-0 cursor-pointer shadow-lg shadow-red-100">XÓA BỎ</button>
             </div>
           </div>
         </div>

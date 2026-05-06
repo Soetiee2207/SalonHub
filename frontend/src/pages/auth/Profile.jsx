@@ -700,16 +700,17 @@ export default function Profile() {
               </h2>
               <TransformationGallery items={user?.transformations || []} />
             </div>
-          </div>
-        </div>
-
-        {/* Email Verification Modal */}
-        <EmailVerifyModal
-          isOpen={showVerifyModal}
-          onClose={() => setShowVerifyModal(false)}
-          email={user?.email}
-          onVerify={handleVerifySuccess}
-        />
+          </>
+        )}
       </div>
-    );
+
+      {/* Email Verification Modal */}
+      <EmailVerifyModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        email={user?.email}
+        onVerify={handleVerifySuccess}
+      />
+    </div>
+  );
 }

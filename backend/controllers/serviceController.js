@@ -62,8 +62,8 @@ const createService = async (req, res, next) => {
     const serviceData = { 
       name, 
       description, 
-      price, 
-      duration, 
+      price: Number(price), 
+      duration: Number(duration), 
       categoryId: categoryId === '' ? null : categoryId 
     };
 
@@ -78,7 +78,8 @@ const createService = async (req, res, next) => {
       data: service,
     });
   } catch (error) {
-    next(error);
+    console.error('LỖI TẠO DỊCH VỤ:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

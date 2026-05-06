@@ -98,7 +98,7 @@ const createProduct = async (req, res, next) => {
     const product = await Product.create({
       name,
       description,
-      price,
+      price: Number(price),
       stock: 0,
       categoryId: categoryId === '' ? null : categoryId,
       image,
@@ -109,7 +109,8 @@ const createProduct = async (req, res, next) => {
       data: product,
     });
   } catch (error) {
-    next(error);
+    console.error('LỖI TẠO SẢN PHẨM:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

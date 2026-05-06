@@ -242,24 +242,53 @@ const updateCategory = async (req, res, next) => {
 
 // Delete product category (admin only)
 const deleteCategory = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
   try {
     const { id } = req.params;
 
     const category = await ProductCategory.findByPk(id);
     if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found.',
-      });
+      return res.status(404).json({ success: false, message: 'Category not found.' });
     }
 
-    await category.destroy();
+    // 1. Tìm tất cả sản phẩm thuộc danh mục này
+    const products = await Product.findAll({ where: { categoryId: id }, attributes: ['id'], transaction });
+    const productIds = products.map(p => p.id);
 
-    res.json({
-      success: true,
-      message: 'Category deleted successfully.',
-    });
+    // 2. Vô hiệu hóa khóa ngoại để dọn dẹp
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+
+    try {
+      if (productIds.length > 0) {
+        const queries = [
+          `DELETE FROM order_items WHERE productId IN (${productIds.join(',')})`,
+          `DELETE FROM carts WHERE productId IN (${productIds.join(',')})`,
+          `DELETE FROM product_reviews WHERE productId IN (${productIds.join(',')})`,
+          `DELETE FROM inventory_transactions WHERE productId IN (${productIds.join(',')})`,
+          `DELETE FROM product_batches WHERE productId IN (${productIds.join(',')})`,
+          `DELETE FROM products WHERE id IN (${productIds.join(',')})`
+        ];
+        for (const q of queries) {
+          await db.sequelize.query(q, { transaction });
+        }
+      }
+
+      // 3. Xóa chính danh mục
+      await db.sequelize.query(`DELETE FROM product_categories WHERE id = ${id}`, { transaction });
+
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      await transaction.commit();
+
+      res.json({
+        success: true,
+        message: `Đã xóa danh mục và ${productIds.length} sản phẩm liên quan thành công.`,
+      });
+    } catch (innerError) {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      throw innerError;
+    }
   } catch (error) {
+    if (transaction) await transaction.rollback();
     next(error);
   }
 };

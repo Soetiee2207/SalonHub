@@ -207,23 +207,53 @@ const updateCategory = async (req, res, next) => {
 
 // Delete service category (admin only)
 const deleteCategory = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
   try {
-    const category = await db.ServiceCategory.findByPk(req.params.id);
+    const { id } = req.params;
 
+    const category = await db.ServiceCategory.findByPk(id);
     if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found.',
-      });
+      return res.status(404).json({ success: false, message: 'Category not found.' });
     }
 
-    await category.destroy();
+    // 1. Tìm các dịch vụ thuộc danh mục này
+    const services = await db.Service.findAll({ where: { categoryId: id }, attributes: ['id'], transaction });
+    const serviceIds = services.map(s => s.id);
 
-    res.status(200).json({
-      success: true,
-      data: { message: 'Category deleted successfully.' },
-    });
+    // 2. Vô hiệu hóa khóa ngoại
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+
+    try {
+      if (serviceIds.length > 0) {
+        const queries = [
+          `DELETE FROM payments WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${serviceIds.join(',')}))`,
+          `DELETE FROM customer_service_notes WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${serviceIds.join(',')}))`,
+          `DELETE FROM reviews WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${serviceIds.join(',')}))`,
+          `DELETE FROM appointments WHERE serviceId IN (${serviceIds.join(',')})`,
+          `DELETE FROM staff_skills WHERE serviceId IN (${serviceIds.join(',')})`,
+          `DELETE FROM services WHERE id IN (${serviceIds.join(',')})`
+        ];
+        for (const q of queries) {
+          await db.sequelize.query(q, { transaction });
+        }
+      }
+
+      // 3. Xóa danh mục
+      await db.sequelize.query(`DELETE FROM service_categories WHERE id = ${id}`, { transaction });
+
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      await transaction.commit();
+
+      res.status(200).json({
+        success: true,
+        message: `Đã xóa danh mục và ${serviceIds.length} dịch vụ liên quan thành công.`,
+      });
+    } catch (innerError) {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      throw innerError;
+    }
   } catch (error) {
+    if (transaction) await transaction.rollback();
     next(error);
   }
 };

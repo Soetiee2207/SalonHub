@@ -16,6 +16,7 @@ export default function AdminProducts() {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', price: '', stock: '', categoryId: '', image: null });
   const [imagePreview, setImagePreview] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const [showCatModal, setShowCatModal] = useState(false);
   const [editingCat, setEditingCat] = useState(null);
@@ -101,6 +102,34 @@ export default function AdminProducts() {
       fetchData();
     } catch (err) {
       toast.error(err.message || 'Lỗi xóa sản phẩm');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedIds.length} sản phẩm đã chọn cùng toàn bộ dữ liệu kho, đánh giá liên quan? Hành động này không thể hoàn tác!`)) return;
+
+    try {
+      await productService.bulkDelete(selectedIds);
+      toast.success(`Đã xóa thành công ${selectedIds.length} sản phẩm`);
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi xóa hàng loạt');
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === sorted.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(sorted.map(p => p.id));
     }
   };
 
@@ -194,10 +223,29 @@ export default function AdminProducts() {
         </div>
       </div>
 
-      <div className="relative mb-4 max-w-md">
-        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input type="text" placeholder="Tìm kiếm sản phẩm..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div className="relative flex-1 max-w-md">
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" placeholder="Tìm kiếm sản phẩm..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2" style={{ '--tw-ring-color': 'var(--primary-light)' }} />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-all font-bold text-sm"
+            >
+              <FiTrash2 /> Xóa {selectedIds.length} đã chọn
+            </button>
+          )}
+          <button
+            onClick={handleSelectAll}
+            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all"
+          >
+            {selectedIds.length === sorted.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -209,6 +257,14 @@ export default function AdminProducts() {
           <table className="w-full text-sm min-w-[600px] md:min-w-full">
             <thead>
               <tr className="border-b" style={{ backgroundColor: 'var(--bg-light)' }}>
+                <th className="px-4 py-3 text-center w-10">
+                   <input
+                    type="checkbox"
+                    checked={selectedIds.length === sorted.length && sorted.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
+                  />
+                </th>
                 <th className="hidden sm:table-cell text-left px-4 py-3 font-semibold text-gray-700">Hình ảnh</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-700">Tên sản phẩm</th>
                 <th className="hidden md:table-cell text-left px-4 py-3 font-semibold text-gray-700">Danh mục</th>
@@ -220,9 +276,17 @@ export default function AdminProducts() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {sorted.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
+                <tr><td colSpan={8} className="text-center py-8 text-gray-500">Không có dữ liệu</td></tr>
               ) : sorted.map(p => (
-                <tr key={p.id} className="border-b hover:bg-gray-50">
+                <tr key={p.id} className={`border-b hover:bg-gray-50 transition-colors ${selectedIds.includes(p.id) ? 'bg-orange-50/50' : ''}`}>
+                  <td className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(p.id)}
+                      onChange={() => toggleSelect(p.id)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="hidden sm:table-cell px-4 py-3">
                     {p.image ? <img src={p.image} alt="" className="w-12 h-12 object-cover rounded" /> : <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center"><FiImage className="text-gray-400" /></div>}
                   </td>

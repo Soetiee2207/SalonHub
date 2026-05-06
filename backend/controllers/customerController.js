@@ -265,7 +265,6 @@ const bulkDeleteCustomers = async (req, res, next) => {
     await db.Payment.destroy({ 
       where: { 
         [Op.or]: [
-          { userId: { [Op.in]: foundIds } },
           { appointmentId: { [Op.in]: appointmentIds } },
           { orderId: { [Op.in]: orderIds } }
         ]

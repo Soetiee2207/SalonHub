@@ -169,9 +169,51 @@ const toggleCustomerStatus = async (req, res, next) => {
   }
 };
 
+// Delete customer (Data Cleanup)
+const deleteCustomer = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const customer = await db.User.findOne({
+      where: { id, role: 'customer' },
+      transaction
+    });
+
+    if (!customer) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Customer not found.',
+      });
+    }
+
+    // Delete associated data first to avoid FK constraints
+    await db.Address.destroy({ where: { userId: id }, transaction });
+    await db.Review.destroy({ where: { userId: id }, transaction });
+    await db.OtpCode.destroy({ where: { email: customer.email }, transaction });
+    
+    // Also delete appointments and orders if cleaning up
+    await db.Appointment.destroy({ where: { userId: id }, transaction });
+    await db.Order.destroy({ where: { userId: id }, transaction });
+    
+    // Finally delete the user
+    await customer.destroy({ transaction });
+
+    await transaction.commit();
+    res.status(200).json({
+      success: true,
+      message: 'Đã xóa tài khoản khách hàng và các dữ liệu liên quan thành công.',
+    });
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
   getAllCustomers,
   getCustomerDetails,
   updateCustomer,
   toggleCustomerStatus,
+  deleteCustomer,
 };

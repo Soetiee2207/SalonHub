@@ -228,12 +228,55 @@ const deleteCategory = async (req, res, next) => {
   }
 };
 
+const bulkDeleteServices = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ.' });
+    }
+
+    // Dùng RAW SQL để ép xóa sạch không lo khóa ngoại
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+
+    try {
+      const queries = [
+        `DELETE FROM payments WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${ids.join(',')}))`,
+        `DELETE FROM customer_service_notes WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${ids.join(',')}))`,
+        `DELETE FROM reviews WHERE appointmentId IN (SELECT id FROM appointments WHERE serviceId IN (${ids.join(',')}))`,
+        `DELETE FROM appointments WHERE serviceId IN (${ids.join(',')})`,
+        `DELETE FROM staff_skills WHERE serviceId IN (${ids.join(',')})`,
+        `DELETE FROM services WHERE id IN (${ids.join(',')})`
+      ];
+
+      for (const q of queries) {
+        await db.sequelize.query(q, { transaction });
+      }
+
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      await transaction.commit();
+
+      res.status(200).json({
+        success: true,
+        message: `Đã xóa vĩnh viễn ${ids.length} dịch vụ thành công.`,
+      });
+    } catch (innerError) {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+      throw innerError;
+    }
+  } catch (error) {
+    if (transaction) await transaction.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
   getAllServices,
   getServiceById,
   createService,
   updateService,
   deleteService,
+  bulkDeleteServices,
   getAllCategories,
   createCategory,
   updateCategory,

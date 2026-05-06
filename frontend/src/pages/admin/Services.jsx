@@ -25,6 +25,7 @@ export default function AdminServices() {
   const [form, setForm] = useState({ name: '', description: '', price: '', duration: '', categoryId: '', image: null });
   const [imagePreview, setImagePreview] = useState(null);
   const [catForm, setCatForm] = useState({ name: '' });
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -102,6 +103,34 @@ export default function AdminServices() {
       fetchData();
     } catch (err) {
       toast.error(err.message || 'Lỗi xóa dịch vụ');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedIds.length} dịch vụ đã chọn cùng toàn bộ lịch hẹn, đánh giá và thanh toán liên quan? Hành động này không thể hoàn tác!`)) return;
+
+    try {
+      await serviceService.bulkDelete(selectedIds);
+      toast.success(`Đã xóa thành công ${selectedIds.length} dịch vụ`);
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast.error(err.message || 'Lỗi khi xóa hàng loạt');
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filtered.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map(s => s.id));
     }
   };
 
@@ -199,15 +228,32 @@ export default function AdminServices() {
            </div>
         </div>
 
-        <div className="lg:col-span-4 relative">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Tìm tên dịch vụ..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm shadow-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]" 
-            />
+        <div className="lg:col-span-4 flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Tìm tên dịch vụ..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-sm shadow-sm outline-none focus:ring-2 focus:ring-[#8B5E3C]" 
+              />
+            </div>
+            {selectedIds.length > 0 ? (
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white font-bold rounded-2xl shadow-lg shadow-red-100 hover:scale-105 active:scale-95 transition-all border-0 cursor-pointer text-xs"
+              >
+                XÓA {selectedIds.length} MỤC
+              </button>
+            ) : (
+              <button
+                onClick={handleSelectAll}
+                className="px-4 py-2 bg-white text-gray-500 font-bold rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-all cursor-pointer text-xs"
+              >
+                {selectedIds.length === filtered.length && filtered.length > 0 ? 'BỎ CHỌN' : 'CHỌN HẾT'}
+              </button>
+            )}
         </div>
       </div>
 
@@ -221,7 +267,15 @@ export default function AdminServices() {
           {filtered.length === 0 ? (
             <div className="col-span-full text-center py-20 text-gray-400">Không tìm thấy dịch vụ nào</div>
           ) : filtered.map(svc => (
-            <div key={svc.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative">
+            <div key={svc.id} className={`bg-white rounded-3xl overflow-hidden border transition-all group relative ${selectedIds.includes(svc.id) ? 'border-[#8B5E3C] ring-2 ring-[#8B5E3C] ring-opacity-20 shadow-xl' : 'border-gray-100 shadow-sm hover:shadow-md'}`}>
+               <div className="absolute top-4 right-4 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(svc.id)}
+                    onChange={() => toggleSelect(svc.id)}
+                    className="w-5 h-5 rounded-lg border-2 border-white bg-white/20 backdrop-blur-md text-[#8B5E3C] focus:ring-[#8B5E3C] cursor-pointer"
+                  />
+               </div>
                <div className="aspect-[4/3] overflow-hidden relative">
                   {svc.image ? (
                     <img src={svc.image} alt={svc.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />

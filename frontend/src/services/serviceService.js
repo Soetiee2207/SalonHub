@@ -6,6 +6,7 @@ export const serviceService = {
   create: (formData) => api.post('/services', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   update: (id, formData) => api.put(`/services/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   delete: (id) => api.delete(`/services/${id}`),
+  bulkDelete: (ids) => api.post('/services/bulk-delete', { ids }),
   getCategories: () => api.get('/services/categories'),
   createCategory: (data) => api.post('/services/categories', data),
   updateCategory: (id, data) => api.put(`/services/categories/${id}`, data),

@@ -6,6 +6,7 @@ const {
   createService,
   updateService,
   deleteService,
+  bulkDeleteServices,
   getAllCategories,
   createCategory,
   updateCategory,
@@ -22,6 +23,7 @@ router.get('/:id', getServiceById);
 // Admin routes - services
 router.post('/', authenticate, authorize('admin'), uploadSingle, createService);
 router.put('/:id', authenticate, authorize('admin'), uploadSingle, updateService);
+router.post('/bulk-delete', authenticate, authorize('admin'), bulkDeleteServices);
 router.delete('/:id', authenticate, authorize('admin'), deleteService);
 
 // Admin routes - categories

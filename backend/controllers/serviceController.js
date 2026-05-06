@@ -59,7 +59,13 @@ const createService = async (req, res, next) => {
   try {
     const { name, description, price, duration, categoryId } = req.body;
 
-    const serviceData = { name, description, price, duration, categoryId };
+    const serviceData = { 
+      name, 
+      description, 
+      price, 
+      duration, 
+      categoryId: categoryId === '' ? null : categoryId 
+    };
 
     if (req.file) {
       serviceData.image = req.file.path;
@@ -99,7 +105,7 @@ const updateService = async (req, res, next) => {
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
     if (duration !== undefined) updateData.duration = duration;
-    if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (categoryId !== undefined) updateData.categoryId = categoryId === '' ? null : categoryId;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     if (req.file) {

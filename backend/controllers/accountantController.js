@@ -449,6 +449,20 @@ const getReferenceDetail = async (req, res, next) => {
             return res.json({ success: true, data: appointment });
         }
 
+        // Phiếu chi nhập kho
+        if (type === 'inventory_import') {
+            const invTx = await db.InventoryTransaction.findByPk(id, {
+                include: [
+                    { model: Product, as: 'product', attributes: ['id', 'name', 'image', 'stock'] },
+                    { model: User, as: 'creator', attributes: ['fullName', 'email'] },
+                    { model: db.ProductBatch, as: 'batch' },
+                    { model: Branch, as: 'branch', attributes: ['id', 'name'] },
+                ]
+            });
+            if (!invTx) return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch kho' });
+            return res.json({ success: true, data: invTx, referenceType: 'inventory_import' });
+        }
+
         return res.status(400).json({ success: false, message: 'Loại chứng từ không hợp lệ' });
     } catch (error) {
         next(error);

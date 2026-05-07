@@ -3,7 +3,7 @@ import {
   FiArrowDownLeft, FiArrowUpRight, FiSearch, 
   FiPlus, FiFilter, FiCalendar, FiDownload,
   FiFileText, FiRefreshCcw, FiTag, FiCreditCard, 
-  FiClock, FiEye, FiShoppingBag, FiScissors, FiUser, FiInfo
+  FiClock, FiEye, FiShoppingBag, FiScissors, FiUser, FiInfo, FiPackage
 } from 'react-icons/fi';
 import { accountantService } from '../../services/accountantService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -12,8 +12,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CashFlowLedger() {
   const [data, setData] = useState([]);
+  const [allData, setAllData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ type: '', category: '', page: 1 });
   
   // Detail Modal State
@@ -34,13 +36,31 @@ export default function CashFlowLedger() {
     try {
       setLoading(true);
       const res = await accountantService.getCashFlow(filters);
-      setData(res.data || res);
+      const items = res.data || res;
+      setAllData(items);
+      setData(items);
     } catch (err) {
       toast.error('Lỗi tải sổ quỹ');
     } finally {
       setLoading(false);
     }
   };
+
+  // Lọc theo từ khóa tìm kiếm
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setData(allData);
+      return;
+    }
+    const keyword = searchTerm.toLowerCase();
+    const filtered = allData.filter(t =>
+      (t.note && t.note.toLowerCase().includes(keyword)) ||
+      (t.creator?.fullName && t.creator.fullName.toLowerCase().includes(keyword)) ||
+      (String(t.id).includes(keyword)) ||
+      (categories[t.category] && categories[t.category].toLowerCase().includes(keyword))
+    );
+    setData(filtered);
+  }, [searchTerm, allData]);
 
   useEffect(() => {
     fetchData();
@@ -204,6 +224,8 @@ export default function CashFlowLedger() {
                <input 
                  className="pl-12 pr-6 py-3 bg-slate-50 rounded-2xl border-0 font-medium text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64"
                  placeholder="Tìm kiếm chứng từ..."
+                 value={searchTerm}
+                 onChange={e => setSearchTerm(e.target.value)}
                />
             </div>
             <select 
@@ -312,11 +334,11 @@ export default function CashFlowLedger() {
                <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
                   <div className="flex items-center gap-4">
                      <div className="p-3 bg-white/10 rounded-2xl text-white">
-                        {selectedRef?.type === 'order' ? <FiShoppingBag size={24} /> : <FiScissors size={24} />}
+                        {selectedRef?.type === 'order' ? <FiShoppingBag size={24} /> : selectedRef?.type === 'inventory_import' ? <FiPackage size={24} /> : <FiScissors size={24} />}
                      </div>
                      <div>
                         <h2 className="text-xl font-black uppercase tracking-tighter">
-                           Chi tiết {selectedRef?.type === 'order' ? 'Đơn hàng' : 'Lịch hẹn'}
+                           Chi tiết {selectedRef?.type === 'order' ? 'Đơn hàng' : selectedRef?.type === 'inventory_import' ? 'Nhập kho' : 'Lịch hẹn'}
                         </h2>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Mã tham chiếu: #{selectedRef?.data?.id}</p>
                      </div>
@@ -332,15 +354,25 @@ export default function CashFlowLedger() {
                     </div>
                   ) : selectedRef?.data ? (
                     <div className="space-y-8 animate-fade-in">
-                       {/* Customer Info */}
+                       {/* Info Row */}
                        <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
                           <div className="flex items-center gap-4">
                              <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-black">
-                                {selectedRef.data.customer?.fullName?.split(' ').pop()?.[0] || 'K'}
+                                {(selectedRef.type === 'inventory_import'
+                                  ? selectedRef.data.creator?.fullName?.split(' ').pop()?.[0]
+                                  : selectedRef.data.customer?.fullName?.split(' ').pop()?.[0]) || 'K'}
                              </div>
                              <div>
-                                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{selectedRef.data.customer?.fullName || 'Khách vãng lai'}</p>
-                                <p className="text-[10px] font-bold text-slate-400">{selectedRef.data.customer?.phone || 'Không có SĐT'}</p>
+                                <p className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                                  {selectedRef.type === 'inventory_import'
+                                    ? (selectedRef.data.creator?.fullName || 'NV Kho')
+                                    : (selectedRef.data.customer?.fullName || 'Khách vãng lai')}
+                                </p>
+                                <p className="text-[10px] font-bold text-slate-400">
+                                  {selectedRef.type === 'inventory_import'
+                                    ? 'Người tạo phiếu nhập'
+                                    : (selectedRef.data.customer?.phone || 'Không có SĐT')}
+                                </p>
                              </div>
                           </div>
                           <div className="text-right">
@@ -368,6 +400,28 @@ export default function CashFlowLedger() {
                                      </div>
                                   </div>
                                   <p className="text-sm font-black text-slate-700">{formatPrice(selectedRef.data.totalPrice)}</p>
+                               </div>
+                             )}
+
+                             {/* Inventory Import Detail */}
+                             {selectedRef.type === 'inventory_import' && (
+                               <div className="space-y-3">
+                                 <div className="p-4 rounded-2xl border-2 border-amber-50 bg-amber-50/20 flex justify-between items-center">
+                                   <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-amber-500 shadow-sm"><FiPackage size={18} /></div>
+                                     <div>
+                                       <p className="text-xs font-black text-slate-800 uppercase">{selectedRef.data.product?.name}</p>
+                                       <p className="text-[10px] font-bold text-amber-500">SL: x{selectedRef.data.quantity}</p>
+                                     </div>
+                                   </div>
+                                   <p className="text-sm font-black text-slate-700">{formatPrice((selectedRef.data.price || 0) * (selectedRef.data.quantity || 0))}</p>
+                                 </div>
+                                 {selectedRef.data.batch && (
+                                   <div className="p-4 rounded-2xl border border-slate-100 text-xs space-y-1">
+                                     <p className="font-bold text-slate-500">Lô: <span className="text-slate-800">{selectedRef.data.batch.batchNumber}</span></p>
+                                     {selectedRef.data.branch && <p className="font-bold text-slate-500">CN: <span className="text-slate-800">{selectedRef.data.branch.name}</span></p>}
+                                   </div>
+                                 )}
                                </div>
                              )}
 

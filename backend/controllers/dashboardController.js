@@ -404,6 +404,24 @@ const getDailyRevenue = async (req, res, next) => {
       where: { date: now.toISOString().split('T')[0] },
     });
 
+    // Doanh thu theo từng chi nhánh (từ lịch hẹn completed hôm nay)
+    const branchRevenue = await db.Appointment.findAll({
+      where: {
+        status: 'completed',
+        date: now.toISOString().split('T')[0],
+      },
+      attributes: [
+        'branchId',
+        [db.sequelize.fn('SUM', db.sequelize.col('totalPrice')), 'revenue'],
+        [db.sequelize.fn('COUNT', db.sequelize.col('Appointment.id')), 'count'],
+      ],
+      include: [
+        { model: db.Branch, as: 'branch', attributes: ['id', 'name'] }
+      ],
+      group: ['branchId', 'branch.id'],
+      raw: false,
+    });
+
     res.status(200).json({
       success: true,
       data: {
@@ -412,6 +430,12 @@ const getDailyRevenue = async (req, res, next) => {
         appointmentRevenue: parseFloat(apptRev?.total) || 0,
         dailyOrders: orderCount,
         dailyAppointments: apptCount,
+        branchRevenue: branchRevenue.map(br => ({
+          branchId: br.branchId,
+          branchName: br.branch?.name || 'Không xác định',
+          revenue: parseFloat(br.dataValues.revenue) || 0,
+          appointmentCount: parseInt(br.dataValues.count) || 0,
+        })),
       },
     });
   } catch (error) {

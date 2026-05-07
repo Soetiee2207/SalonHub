@@ -339,11 +339,11 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           icon={FiDollarSign} 
-          label="Doanh thu hôm nay" 
+          label="Doanh thu hôm nay (Tổng)" 
           value={formatPrice(daily?.dailyRevenue || 0)}
           color="#8B5E3C"
           trend="up"
-          trendValue="12.5%"
+          trendValue={`DV: ${formatPrice(daily?.appointmentRevenue || 0)} | SP: ${formatPrice(daily?.orderRevenue || 0)}`}
         />
         <StatCard 
           icon={FiCalendar} 
@@ -364,6 +364,36 @@ export default function Dashboard() {
           color="#10B981"
         />
       </div>
+
+      {/* 2.5 Branch Revenue Breakdown */}
+      {daily?.branchRevenue && daily.branchRevenue.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {daily.branchRevenue.map((br, idx) => (
+            <div key={br.branchId || idx} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-all group">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm"
+                       style={{ background: idx === 0 ? '#8B5E3C' : idx === 1 ? '#D4A574' : '#3B82F6' }}>
+                    {br.branchName?.[0] || '#'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{br.branchName}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">{br.appointmentCount} lịch hẹn hoàn thành</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xl font-black text-gray-900">{formatPrice(br.revenue)}</p>
+              <div className="mt-2 h-1.5 bg-gray-50 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-1000"
+                     style={{
+                       width: `${daily.appointmentRevenue > 0 ? Math.max((br.revenue / daily.appointmentRevenue) * 100, 3) : 0}%`,
+                       background: idx === 0 ? '#8B5E3C' : idx === 1 ? '#D4A574' : '#3B82F6'
+                     }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 3. Command Center (Hot Alerts & Live Schedule) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

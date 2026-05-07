@@ -1,12 +1,23 @@
 const { Op } = require('sequelize');
 const db = require('../models');
-const { InventoryTransaction, Product, User, CashFlowTransaction, sequelize } = db;
-const { createNotification } = require('./notificationController');
+const { InventoryTransaction, Product, User, CashFlowTransaction, Branch, sequelize } = db;
+const { createNotification, createBranchRoleNotification } = require('./notificationController');
+
+// ============================================================
+// Helper: Tính tồn kho theo chi nhánh từ bảng product_batches
+// ============================================================
+const getBranchStock = async (productId, branchId, transaction = null) => {
+  const result = await db.ProductBatch.sum('quantity', {
+    where: { productId, branchId },
+    ...(transaction ? { transaction } : {})
+  });
+  return result || 0;
+};
 
 // ============================================================
 // GET /api/inventory/transactions
 // Lấy danh sách giao dịch kho với filter và phân trang
-// Quyền: admin, warehouse_staff, accountant
+// Admin: thấy tất cả. NV Kho: chỉ thấy chi nhánh mình.
 // ============================================================
 const getTransactions = async (req, res, next) => {
   try {
@@ -20,6 +31,11 @@ const getTransactions = async (req, res, next) => {
     } = req.query;
 
     const where = {};
+
+    // NV Kho chỉ thấy giao dịch chi nhánh mình, Admin thấy tất cả
+    if (req.user.role !== 'admin') {
+      where.branchId = req.user.branchId;
+    }
 
     if (productId) where.productId = productId;
     if (type) where.type = type;
@@ -52,6 +68,11 @@ const getTransactions = async (req, res, next) => {
           as: 'batch',
           attributes: ['id', 'batchNumber', 'expiryDate'],
         },
+        {
+          model: Branch,
+          as: 'branch',
+          attributes: ['id', 'name'],
+        },
       ],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
@@ -76,7 +97,7 @@ const getTransactions = async (req, res, next) => {
 // ============================================================
 // POST /api/inventory/import
 // Nhập hàng vào kho (tăng tồn kho)
-// Quyền: admin, warehouse_staff
+// NV Kho chỉ nhập vào chi nhánh mình
 // ============================================================
 const createImport = async (req, res, next) => {
   const t = await sequelize.transaction();
@@ -84,12 +105,21 @@ const createImport = async (req, res, next) => {
   try {
     const { productId, quantity, note, batchNumber, expiryDate, warehouseLocation, purchasePrice, price } = req.body;
     const createdBy = req.user.id;
+    const branchId = req.user.branchId;
 
     if (!productId || !quantity) {
       await t.rollback();
       return res.status(400).json({
         success: false,
         message: 'productId và quantity là bắt buộc.',
+      });
+    }
+
+    if (!branchId) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Bạn chưa được gán chi nhánh. Vui lòng liên hệ Admin.',
       });
     }
 
@@ -102,8 +132,7 @@ const createImport = async (req, res, next) => {
       });
     }
 
-    // 1. Tạo hoặc cập nhật Lô hàng (Batch)
-    let batchId = null;
+    // 1. Tạo Lô hàng (Batch) gắn với chi nhánh
     const { ProductBatch } = db;
     
     const batch = await ProductBatch.create({
@@ -113,19 +142,19 @@ const createImport = async (req, res, next) => {
       quantity: parseInt(quantity),
       purchasePrice: purchasePrice || null,
       warehouseLocation: warehouseLocation || null,
+      branchId,
     }, { transaction: t });
-    batchId = batch.id;
 
     const stockBefore = product.stock;
     const stockAfter = stockBefore + parseInt(quantity);
 
-    // 2. Cập nhật tồn kho tổng của Sản phẩm
+    // 2. Cập nhật tồn kho TỔNG của Sản phẩm (tất cả chi nhánh)
     await product.update({ stock: stockAfter }, { transaction: t });
 
-    // 3. Ghi nhật ký giao dịch
+    // 3. Ghi nhật ký giao dịch kho (có gắn branchId)
     const transaction = await InventoryTransaction.create({
       productId,
-      batchId,
+      batchId: batch.id,
       type: 'import',
       quantity: parseInt(quantity),
       price: price || purchasePrice || null,
@@ -135,6 +164,7 @@ const createImport = async (req, res, next) => {
       referenceType: 'manual',
       referenceId: null,
       createdBy,
+      branchId,
     }, { transaction: t });
 
     // 4. Tự động tạo Phiếu Chi (CashFlowTransaction) cho Kế toán
@@ -145,7 +175,7 @@ const createImport = async (req, res, next) => {
         type: 'payment',
         category: 'supplier_payment',
         amount: totalAmount,
-        method: 'bank', // Mặc định chuyển khoản, kế toán có thể sửa sau
+        method: 'bank',
         status: 'pending',
         referenceType: 'inventory_import',
         referenceId: transaction.id,
@@ -161,6 +191,7 @@ const createImport = async (req, res, next) => {
         { model: Product, as: 'product', attributes: ['id', 'name', 'stock'] },
         { model: User, as: 'creator', attributes: ['id', 'fullName', 'role'] },
         { model: db.ProductBatch, as: 'batch' },
+        { model: Branch, as: 'branch', attributes: ['id', 'name'] },
       ],
     });
 
@@ -178,7 +209,7 @@ const createImport = async (req, res, next) => {
 // ============================================================
 // POST /api/inventory/export
 // Xuất hàng khỏi kho thủ công (giảm tồn kho)
-// Quyền: admin, warehouse_staff
+// NV Kho chỉ xuất kho chi nhánh mình
 // ============================================================
 const createExport = async (req, res, next) => {
   const t = await sequelize.transaction();
@@ -186,6 +217,7 @@ const createExport = async (req, res, next) => {
   try {
     const { productId, quantity, note, price } = req.body;
     const createdBy = req.user.id;
+    const branchId = req.user.branchId;
 
     if (!productId || !quantity) {
       await t.rollback();
@@ -212,18 +244,37 @@ const createExport = async (req, res, next) => {
       });
     }
 
-    if (product.stock < parseInt(quantity)) {
+    // Kiểm tra tồn kho THEO CHI NHÁNH (không phải tổng)
+    const branchStock = await getBranchStock(productId, branchId, t);
+
+    if (branchStock < parseInt(quantity)) {
       await t.rollback();
       return res.status(400).json({
         success: false,
-        message: `Tồn kho không đủ. Hiện có: ${product.stock}, yêu cầu: ${quantity}.`,
+        message: `Tồn kho chi nhánh không đủ. Hiện có: ${branchStock}, yêu cầu: ${quantity}.`,
       });
     }
 
     const stockBefore = product.stock;
     const stockAfter = stockBefore - parseInt(quantity);
 
+    // Cập nhật tồn kho TỔNG
     await product.update({ stock: stockAfter }, { transaction: t });
+
+    // Trừ kho trong batch (FIFO - lô cũ nhất trước)
+    let remaining = parseInt(quantity);
+    const batches = await db.ProductBatch.findAll({
+      where: { productId, branchId, quantity: { [Op.gt]: 0 } },
+      order: [['createdAt', 'ASC']],
+      transaction: t,
+    });
+
+    for (const batch of batches) {
+      if (remaining <= 0) break;
+      const deduct = Math.min(remaining, batch.quantity);
+      await batch.update({ quantity: batch.quantity - deduct }, { transaction: t });
+      remaining -= deduct;
+    }
 
     const transaction = await InventoryTransaction.create({
       productId,
@@ -236,16 +287,17 @@ const createExport = async (req, res, next) => {
       referenceType: 'manual',
       referenceId: null,
       createdBy,
+      branchId,
     }, { transaction: t });
 
-    // 4. Kiểm tra Tồn kho thấp (Low Stock Alert)
-    if (stockAfter <= (product.minStock || 5)) {
-      await createNotification({
-        userId: null, // Gửi chung hoặc hệ thống sẽ handle việc gửi cho admin/warehouse
-        title: 'Thông báo: Ngưỡng tồn kho tối thiểu',
-        message: `Sản phẩm "${product.name}" hiện chỉ còn ${stockAfter} đơn vị trong kho (Ngưỡng tối thiểu: ${product.minStock || 5}). Quản trị viên vui lòng xem xét nhập thêm hàng.`,
+    // Kiểm tra cảnh báo hết hàng THEO CHI NHÁNH
+    const newBranchStock = branchStock - parseInt(quantity);
+    if (newBranchStock <= (product.minStock || 5)) {
+      // Gửi thông báo cho NV kho CÙNG CHI NHÁNH
+      await createBranchRoleNotification('warehouse_staff', branchId, {
+        title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
+        message: `Sản phẩm "${product.name}" tại chi nhánh của bạn chỉ còn ${newBranchStock} đơn vị (Ngưỡng: ${product.minStock || 5}). Vui lòng nhập thêm hàng.`,
         type: 'inventory',
-        role: 'warehouse_staff' // Notification support role-based target if implemented
       });
     }
 
@@ -255,12 +307,13 @@ const createExport = async (req, res, next) => {
       include: [
         { model: Product, as: 'product', attributes: ['id', 'name', 'stock'] },
         { model: User, as: 'creator', attributes: ['id', 'fullName', 'role'] },
+        { model: Branch, as: 'branch', attributes: ['id', 'name'] },
       ],
     });
 
     return res.status(201).json({
       success: true,
-      message: `Xuất kho thành công. Tồn kho: ${stockBefore} → ${stockAfter}`,
+      message: `Xuất kho thành công. Tồn kho tổng: ${stockBefore} → ${stockAfter}`,
       data: result,
     });
   } catch (error) {
@@ -280,6 +333,7 @@ const createAdjustment = async (req, res, next) => {
   try {
     const { productId, newStock, quantity, note, price } = req.body;
     const createdBy = req.user.id;
+    const branchId = req.user.branchId;
 
     if (productId === undefined || newStock === undefined) {
       await t.rollback();
@@ -331,15 +385,24 @@ const createAdjustment = async (req, res, next) => {
       referenceType: 'manual',
       referenceId: null,
       createdBy,
+      branchId,
     }, { transaction: t });
 
-    // 4. Kiểm tra Tồn kho thấp (Low Stock Alert)
+    // Kiểm tra Tồn kho thấp
     if (stockAfter <= (product.minStock || 5)) {
-      await createNotification({
-        title: 'Cảnh báo: Tồn kho thấp!',
-        message: `Sản phẩm "${product.name}" sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
-        type: 'inventory',
-      });
+      if (branchId) {
+        await createBranchRoleNotification('warehouse_staff', branchId, {
+          title: 'Cảnh báo: Tồn kho thấp!',
+          message: `Sản phẩm "${product.name}" sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+          type: 'inventory',
+        });
+      } else {
+        await createNotification({
+          title: 'Cảnh báo: Tồn kho thấp!',
+          message: `Sản phẩm "${product.name}" sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+          type: 'inventory',
+        });
+      }
     }
 
     await t.commit();
@@ -365,7 +428,7 @@ const createAdjustment = async (req, res, next) => {
 // ============================================================
 // GET /api/inventory/products/:id/stock
 // Xem tồn kho hiện tại + tóm tắt lịch sử của một sản phẩm
-// Quyền: admin, warehouse_staff, accountant
+// NV Kho: thấy tồn kho chi nhánh mình. Admin: thấy tổng + từng chi nhánh.
 // ============================================================
 const getProductStock = async (req, res, next) => {
   try {
@@ -382,9 +445,26 @@ const getProductStock = async (req, res, next) => {
       });
     }
 
-    // Tóm tắt theo loại giao dịch
-    const summary = await InventoryTransaction.findAll({
+    // Tồn kho theo từng chi nhánh
+    const branchStocks = await db.ProductBatch.findAll({
       where: { productId: id },
+      attributes: [
+        'branchId',
+        [sequelize.fn('SUM', sequelize.col('quantity')), 'totalStock'],
+      ],
+      include: [{ model: Branch, as: 'branch', attributes: ['id', 'name'] }],
+      group: ['branchId'],
+      raw: false,
+    });
+
+    // Tóm tắt theo loại giao dịch
+    const txWhere = { productId: id };
+    if (req.user.role !== 'admin') {
+      txWhere.branchId = req.user.branchId;
+    }
+
+    const summary = await InventoryTransaction.findAll({
+      where: txWhere,
       attributes: [
         'type',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
@@ -396,7 +476,7 @@ const getProductStock = async (req, res, next) => {
 
     // 5 giao dịch gần nhất
     const recentTransactions = await InventoryTransaction.findAll({
-      where: { productId: id },
+      where: txWhere,
       include: [
         { model: User, as: 'creator', attributes: ['id', 'fullName'] },
       ],
@@ -408,6 +488,7 @@ const getProductStock = async (req, res, next) => {
       success: true,
       data: {
         product,
+        branchStocks,
         summary,
         recentTransactions,
       },
@@ -419,13 +500,41 @@ const getProductStock = async (req, res, next) => {
 
 // ============================================================
 // GET /api/inventory/low-stock
-// Danh sách sản phẩm sắp hết hàng (stock <= threshold)
-// Quyền: admin, warehouse_staff
+// Danh sách sản phẩm sắp hết hàng
+// NV Kho: tính theo chi nhánh mình. Admin: tính tổng.
 // ============================================================
 const getLowStockProducts = async (req, res, next) => {
   try {
     const { threshold = 10 } = req.query;
 
+    if (req.user.role !== 'admin' && req.user.branchId) {
+      // NV Kho: Tính tồn kho theo chi nhánh
+      const branchProducts = await db.ProductBatch.findAll({
+        attributes: [
+          'productId',
+          [sequelize.fn('SUM', sequelize.col('ProductBatch.quantity')), 'branchStock'],
+        ],
+        where: { branchId: req.user.branchId },
+        include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'stock', 'isActive'], where: { isActive: true } }],
+        group: ['productId'],
+        having: sequelize.where(sequelize.fn('SUM', sequelize.col('ProductBatch.quantity')), '<=', parseInt(threshold)),
+        raw: false,
+      });
+
+      return res.json({
+        success: true,
+        data: branchProducts.map(bp => ({
+          id: bp.product?.id,
+          name: bp.product?.name,
+          stock: parseInt(bp.dataValues.branchStock) || 0,
+          totalStock: bp.product?.stock,
+          isActive: bp.product?.isActive,
+        })),
+        meta: { threshold: parseInt(threshold), count: branchProducts.length },
+      });
+    }
+
+    // Admin: tồn kho tổng
     const products = await Product.findAll({
       where: {
         stock: { [Op.lte]: parseInt(threshold) },
@@ -451,13 +560,15 @@ const getLowStockProducts = async (req, res, next) => {
 // ============================================================
 // GET /api/inventory/stats
 // Thống kê dành cho Dashboard Thủ Kho
-// Quyền: admin, warehouse_staff
+// NV Kho: thống kê chi nhánh mình. Admin: thống kê tổng.
 // ============================================================
 const getWarehouseStats = async (req, res, next) => {
   try {
     const { Order, ProductBatch } = db;
+    const isAdmin = req.user.role === 'admin';
+    const branchId = req.user.branchId;
 
-    // 1. Chỉ số đơn hàng (Orders)
+    // 1. Chỉ số đơn hàng (Orders) — giữ nguyên, vì order không gắn chi nhánh
     const orderStats = await Order.findAll({
       attributes: [
         'status',
@@ -470,51 +581,71 @@ const getWarehouseStats = async (req, res, next) => {
       raw: true,
     });
 
-    // 2. Sản phẩm sắp hết hàng (Low Stock)
-    const lowStockCount = await Product.count({
-      where: {
-        stock: { [Op.lte]: sequelize.col('minStock') },
-        isActive: true,
-      },
-    });
+    // 2. Sản phẩm sắp hết hàng
+    let lowStockCount;
+    if (isAdmin) {
+      lowStockCount = await Product.count({
+        where: {
+          stock: { [Op.lte]: sequelize.col('minStock') },
+          isActive: true,
+        },
+      });
+    } else {
+      // Đếm sản phẩm có tồn kho chi nhánh <= minStock
+      const [results] = await sequelize.query(`
+        SELECT COUNT(DISTINCT pb.productId) as cnt 
+        FROM product_batches pb 
+        JOIN products p ON pb.productId = p.id 
+        WHERE pb.branchId = :branchId AND p.isActive = 1
+        GROUP BY pb.productId 
+        HAVING SUM(pb.quantity) <= COALESCE(p.minStock, 5)
+      `, { replacements: { branchId }, type: sequelize.QueryTypes.SELECT });
+      lowStockCount = results?.cnt || 0;
+    }
 
     // 3. Hàng sắp hết hạn (Expiring soon - within 30 days)
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
     
-    // Đếm số lượng
-    const expiringSoonCount = await ProductBatch.count({
-      where: {
-        expiryDate: {
-          [Op.between]: [new Date(), thirtyDaysLater],
-        },
-        quantity: { [Op.gt]: 0 },
-      },
-    });
+    const batchWhere = {
+      expiryDate: { [Op.between]: [new Date(), thirtyDaysLater] },
+      quantity: { [Op.gt]: 0 },
+    };
+    if (!isAdmin && branchId) batchWhere.branchId = branchId;
 
-    // Lấy danh sách chi tiết
+    const expiringSoonCount = await ProductBatch.count({ where: batchWhere });
+
     const expiringSoonItems = await ProductBatch.findAll({
-      where: {
-        expiryDate: {
-          [Op.between]: [new Date(), thirtyDaysLater],
-        },
-        quantity: { [Op.gt]: 0 },
-      },
+      where: batchWhere,
       include: [
-        { model: Product, as: 'product', attributes: ['name', 'image'] }
+        { model: Product, as: 'product', attributes: ['name', 'image'] },
+        { model: Branch, as: 'branch', attributes: ['id', 'name'] },
       ],
       limit: 5,
       order: [['expiryDate', 'ASC']]
     });
 
     // 4. Tổng quan tồn kho
-    const stockSummary = await Product.findAll({
-      attributes: [
-        [sequelize.fn('SUM', sequelize.col('stock')), 'totalPhysical'],
-        [sequelize.fn('SUM', sequelize.col('reservedStock')), 'totalReserved'],
-      ],
-      raw: true,
-    });
+    let stockSummary;
+    if (isAdmin) {
+      stockSummary = await Product.findAll({
+        attributes: [
+          [sequelize.fn('SUM', sequelize.col('stock')), 'totalPhysical'],
+          [sequelize.fn('SUM', sequelize.col('reservedStock')), 'totalReserved'],
+        ],
+        raw: true,
+      });
+    } else {
+      // Tồn kho chi nhánh
+      const branchSum = await ProductBatch.findAll({
+        where: { branchId },
+        attributes: [
+          [sequelize.fn('SUM', sequelize.col('quantity')), 'totalPhysical'],
+        ],
+        raw: true,
+      });
+      stockSummary = [{ totalPhysical: branchSum[0]?.totalPhysical || 0, totalReserved: 0 }];
+    }
 
     return res.json({
       success: true,
@@ -584,12 +715,13 @@ const normalizeProductBatches = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Sản phẩm đã có dữ liệu lô hàng' });
     }
 
-    // Tạo lô mặc định
+    // Tạo lô mặc định - gắn chi nhánh NV đang thao tác
     await ProductBatch.create({
       productId: id,
       batchNumber: `LEGACY-${product.sku || id}`,
       quantity: product.stock,
       warehouseLocation: 'Chờ phân phối',
+      branchId: req.user.branchId || null,
       note: 'Lô hàng mặc định được tạo tự động để chuẩn hóa dữ liệu tồn kho cũ'
     });
 
@@ -608,5 +740,6 @@ module.exports = {
   getLowStockProducts,
   getWarehouseStats,
   updateBatchLocation,
-  normalizeProductBatches
+  normalizeProductBatches,
+  getBranchStock
 };

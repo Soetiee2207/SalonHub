@@ -28,7 +28,40 @@ const getFinancialStats = async (req, res, next) => {
       dateFilter.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
     }
 
-    // 1. Tổng thu từ hệ thống (Payments Success)
+    const isAdmin = req.user.role === 'admin';
+    const branchId = req.user.branchId;
+
+    // === Thu nhập Dịch vụ (từ Appointments) ===
+    // Accountant: chỉ tính lịch hẹn chi nhánh mình
+    let serviceRevenueWhere = {
+      appointmentId: { [Op.ne]: null },
+      status: 'success',
+      ...dateFilter
+    };
+
+    if (!isAdmin && branchId) {
+      // Tìm appointment IDs thuộc chi nhánh
+      const branchAppointments = await Appointment.findAll({
+        where: { branchId },
+        attributes: ['id'],
+        raw: true
+      });
+      const branchApptIds = branchAppointments.map(a => a.id);
+      serviceRevenueWhere.appointmentId = { [Op.in]: branchApptIds.length > 0 ? branchApptIds : [0] };
+    }
+
+    const serviceRevenue = await Payment.sum('amount', { where: serviceRevenueWhere }) || 0;
+
+    // === Thu nhập Bán lẻ (từ Orders) — cả 2 kế toán đều thấy ===
+    const retailRevenue = await Payment.sum('amount', {
+      where: { 
+        orderId: { [Op.ne]: null },
+        status: 'success',
+        ...dateFilter
+      }
+    }) || 0;
+
+    // 1. Tổng thu theo phương thức
     const totalPayments = await Payment.findAll({
       where: { 
         status: 'success',
@@ -42,27 +75,7 @@ const getFinancialStats = async (req, res, next) => {
       raw: true,
     });
 
-    // 2. Thu nhập Dịch vụ vs Bán lẻ
-    // Thu nhập dịch vụ (từ Appointments)
-    const serviceRevenue = await Payment.sum('amount', {
-      where: { 
-        appointmentId: { [Op.ne]: null },
-        status: 'success',
-        ...dateFilter
-      }
-    }) || 0;
-
-    // Thu nhập bán lẻ (từ Orders)
-    const retailRevenue = await Payment.sum('amount', {
-      where: { 
-        orderId: { [Op.ne]: null },
-        status: 'success',
-        ...dateFilter
-      }
-    }) || 0;
-
-    // 3. Chi phí vận hành (từ CashFlowTransaction)
-    // Bao gồm cả 'completed' và 'pending' để chủ doanh nghiệp thấy được dòng tiền sắp chi
+    // Chi phí vận hành
     const totalExpenses = await CashFlowTransaction.sum('amount', {
       where: { 
         type: 'payment',
@@ -71,7 +84,7 @@ const getFinancialStats = async (req, res, next) => {
       }
     }) || 0;
 
-    // 4. Giá vốn hàng bán (COGS - Cost of Goods Sold)
+    // COGS
     const ordersWithPayments = await Payment.findAll({
         where: { orderId: { [Op.ne]: null }, status: 'success', ...dateFilter },
         attributes: ['orderId'],
@@ -83,7 +96,7 @@ const getFinancialStats = async (req, res, next) => {
         where: { 
             type: 'export',
             referenceType: 'order',
-            referenceId: { [Op.in]: paidOrderIds }
+            referenceId: { [Op.in]: paidOrderIds.length > 0 ? paidOrderIds : [0] }
         }
     }) || 0;
 
@@ -102,7 +115,6 @@ const getFinancialStats = async (req, res, next) => {
             operating: totalExpenses - cogs > 0 ? totalExpenses - cogs : 0
         },
         netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs,
-        // 5. Dữ liệu biểu đồ 7 ngày gần nhất
         chartData: await getChartData()
       },
     });
@@ -195,6 +207,9 @@ const createCashFlow = async (req, res, next) => {
 // ============================================================
 const getReconciliation = async (req, res, next) => {
   try {
+    const isAdmin = req.user.role === 'admin';
+    const branchId = req.user.branchId;
+
     const payments = await Payment.findAll({
       where: {
         isReconciled: false,
@@ -206,11 +221,27 @@ const getReconciliation = async (req, res, next) => {
       },
       include: [
           { model: Order, as: 'order', attributes: ['id', 'totalAmount', 'status'] },
-          { model: Appointment, as: 'appointment', attributes: ['id', 'totalPrice'] }
+          { 
+            model: Appointment, as: 'appointment', 
+            attributes: ['id', 'totalPrice', 'branchId'] 
+          }
       ],
       order: [['createdAt', 'DESC']]
     });
-    res.json({ success: true, data: payments });
+
+    // Kế toán: lọc theo chi nhánh cho lịch hẹn, giữ tất cả đơn hàng
+    let filtered = payments;
+    if (!isAdmin && branchId) {
+      filtered = payments.filter(p => {
+        // Đơn hàng sản phẩm: cả 2 kế toán đều thấy
+        if (p.orderId) return true;
+        // Lịch hẹn: chỉ kế toán cùng chi nhánh mới thấy
+        if (p.appointment && p.appointment.branchId === branchId) return true;
+        return false;
+      });
+    }
+
+    res.json({ success: true, data: filtered });
   } catch (error) {
     next(error);
   }

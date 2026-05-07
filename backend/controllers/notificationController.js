@@ -172,6 +172,43 @@ const createRoleNotification = async (role, { title, message, type }) => {
   }
 };
 
+/**
+ * Gửi thông báo cho người dùng thuộc một vai trò + chi nhánh cụ thể
+ * @param {string} role - 'warehouse_staff', 'accountant', etc.
+ * @param {number} branchId - ID chi nhánh cần gửi
+ * @param {object} param2 - { title, message, type }
+ */
+const createBranchRoleNotification = async (role, branchId, { title, message, type }) => {
+  try {
+    if (!branchId) {
+      // Fallback: gửi cho tất cả user có role này nếu không có branchId
+      return await createRoleNotification(role, { title, message, type });
+    }
+
+    // Tìm user có đúng role + branchId
+    const users = await db.User.findAll({ where: { role, branchId } });
+    
+    const notifications = await Promise.all(
+      users.map(user => db.Notification.create({
+        userId: user.id,
+        title,
+        message,
+        type: type || null,
+      }))
+    );
+
+    // Gửi socket cho từng user trong chi nhánh
+    notifications.forEach((notif, idx) => {
+      socketService.sendToUser(users[idx].id, 'new_notification', notif);
+    });
+
+    return notifications;
+  } catch (error) {
+    console.error(`Failed to create branch role notification for ${role}@branch${branchId}:`, error.message);
+    return [];
+  }
+};
+
 module.exports = {
   getMyNotifications,
   getUnreadCount,
@@ -180,4 +217,5 @@ module.exports = {
   deleteNotification,
   createNotification,
   createRoleNotification,
+  createBranchRoleNotification,
 };

@@ -62,6 +62,23 @@ async function runMigrations() {
     await db.sequelize.query('ALTER TABLE `users` ADD COLUMN `isActive` TINYINT(1) DEFAULT 1;');
     console.log('🔧 Migration: Added column isActive to users');
   }
+
+  // Migration: Thêm branchId cho inventory tracking theo chi nhánh
+  try {
+    const invDesc = await qi.describeTable('inventory_transactions');
+    if (!invDesc.branchId) {
+      await db.sequelize.query('ALTER TABLE `inventory_transactions` ADD COLUMN `branchId` INT DEFAULT NULL;');
+      console.log('🔧 Migration: Added column branchId to inventory_transactions');
+    }
+  } catch (e) { /* Table may not exist yet */ }
+
+  try {
+    const batchDesc = await qi.describeTable('product_batches');
+    if (!batchDesc.branchId) {
+      await db.sequelize.query('ALTER TABLE `product_batches` ADD COLUMN `branchId` INT DEFAULT NULL;');
+      console.log('🔧 Migration: Added column branchId to product_batches');
+    }
+  } catch (e) { /* Table may not exist yet */ }
 }
 
 // Chỉ chạy server sau khi đã kết nối Database thành công

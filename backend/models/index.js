@@ -170,6 +170,12 @@ ProductBatch.hasMany(InventoryTransaction, { foreignKey: 'batchId', as: 'invento
 ProductBatch.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(ProductBatch, { foreignKey: 'productId', as: 'batches' });
 
+// Branch-level inventory tracking
+InventoryTransaction.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
+Branch.hasMany(InventoryTransaction, { foreignKey: 'branchId', as: 'inventoryTransactions' });
+ProductBatch.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
+Branch.hasMany(ProductBatch, { foreignKey: 'branchId', as: 'productBatches' });
+
 // Accountant associations
 Payment.belongsTo(User, { as: 'reconciler', foreignKey: 'reconciledBy' });
 CashFlowTransaction.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });

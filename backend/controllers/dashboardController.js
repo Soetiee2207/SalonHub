@@ -404,8 +404,15 @@ const getDailyRevenue = async (req, res, next) => {
       where: { date: now.toISOString().split('T')[0] },
     });
 
-    // Doanh thu theo từng chi nhánh (từ lịch hẹn completed hôm nay)
-    const branchRevenue = await db.Appointment.findAll({
+    // 1. Lấy tất cả chi nhánh hoạt động
+    const allBranches = await db.Branch.findAll({
+      where: { isActive: true },
+      attributes: ['id', 'name'],
+      raw: true
+    });
+
+    // 2. Lấy doanh thu lịch hẹn hôm nay theo chi nhánh
+    const branchStats = await db.Appointment.findAll({
       where: {
         status: 'completed',
         date: now.toISOString().split('T')[0],
@@ -415,11 +422,19 @@ const getDailyRevenue = async (req, res, next) => {
         [db.sequelize.fn('SUM', db.sequelize.col('totalPrice')), 'revenue'],
         [db.sequelize.fn('COUNT', db.sequelize.col('Appointment.id')), 'count'],
       ],
-      include: [
-        { model: db.Branch, as: 'branch', attributes: ['id', 'name'] }
-      ],
-      group: ['branchId', 'branch.id'],
-      raw: false,
+      group: ['branchId'],
+      raw: true,
+    });
+
+    // 3. Map lại để luôn có đủ danh sách chi nhánh
+    const branchRevenueList = allBranches.map(branch => {
+      const stats = branchStats.find(s => s.branchId === branch.id);
+      return {
+        branchId: branch.id,
+        branchName: branch.name,
+        revenue: parseFloat(stats?.revenue) || 0,
+        appointmentCount: parseInt(stats?.count) || 0,
+      };
     });
 
     res.status(200).json({
@@ -430,12 +445,7 @@ const getDailyRevenue = async (req, res, next) => {
         appointmentRevenue: parseFloat(apptRev?.total) || 0,
         dailyOrders: orderCount,
         dailyAppointments: apptCount,
-        branchRevenue: branchRevenue.map(br => ({
-          branchId: br.branchId,
-          branchName: br.branch?.name || 'Không xác định',
-          revenue: parseFloat(br.dataValues.revenue) || 0,
-          appointmentCount: parseInt(br.dataValues.count) || 0,
-        })),
+        branchRevenue: branchRevenueList,
       },
     });
   } catch (error) {

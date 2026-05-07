@@ -404,9 +404,8 @@ const getDailyRevenue = async (req, res, next) => {
       where: { date: now.toISOString().split('T')[0] },
     });
 
-    // 1. Lấy tất cả chi nhánh hoạt động
+    // 1. Lấy tất cả chi nhánh
     const allBranches = await db.Branch.findAll({
-      where: { isActive: true },
       attributes: ['id', 'name'],
       raw: true
     });
@@ -420,7 +419,7 @@ const getDailyRevenue = async (req, res, next) => {
       attributes: [
         'branchId',
         [db.sequelize.fn('SUM', db.sequelize.col('totalPrice')), 'revenue'],
-        [db.sequelize.fn('COUNT', db.sequelize.col('Appointment.id')), 'count'],
+        [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'count'],
       ],
       group: ['branchId'],
       raw: true,
@@ -428,7 +427,7 @@ const getDailyRevenue = async (req, res, next) => {
 
     // 3. Map lại để luôn có đủ danh sách chi nhánh
     const branchRevenueList = allBranches.map(branch => {
-      const stats = branchStats.find(s => s.branchId === branch.id);
+      const stats = branchStats.find(s => Number(s.branchId) === Number(branch.id));
       return {
         branchId: branch.id,
         branchName: branch.name,

@@ -115,7 +115,7 @@ const getFinancialStats = async (req, res, next) => {
             operating: totalExpenses - cogs > 0 ? totalExpenses - cogs : 0
         },
         netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs,
-        chartData: await getChartData()
+        chartData: await getChartData(startDate, endDate)
       },
     });
   } catch (error) {
@@ -124,17 +124,30 @@ const getFinancialStats = async (req, res, next) => {
 };
 
 // Hàm helper tính toán dữ liệu biểu đồ
-const getChartData = async () => {
+const getChartData = async (startDate, endDate) => {
     const days = [];
     const now = new Date();
+    let startRange, endRange, numDays;
+
+    if (startDate && endDate) {
+        startRange = new Date(startDate);
+        endRange = new Date(endDate);
+        numDays = Math.ceil((endRange - startRange) / (1000 * 60 * 60 * 24)) + 1;
+    } else {
+        numDays = 7;
+        startRange = new Date(now);
+        startRange.setDate(now.getDate() - 6);
+        endRange = now;
+    }
     
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
+    for (let i = 0; i < numDays; i++) {
+        const d = new Date(startRange);
+        d.setDate(d.getDate() + i);
         const start = new Date(d.setHours(0, 0, 0, 0));
         const end = new Date(d.setHours(23, 59, 59, 999));
 
         const dayName = d.toLocaleDateString('vi-VN', { weekday: 'short' });
+        const dayLabel = `${d.getDate()}/${d.getMonth() + 1}`;
 
         const rev = await Payment.sum('amount', {
             where: { status: 'success', createdAt: { [Op.between]: [start, end] } }
@@ -148,7 +161,11 @@ const getChartData = async () => {
             }
         }) || 0;
 
-        days.push({ name: dayName, revenue: rev, expenses: exp });
+        days.push({ 
+          name: numDays > 7 ? dayLabel : dayName, 
+          revenue: rev, 
+          expenses: exp 
+        });
     }
     return days;
 };

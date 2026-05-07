@@ -13,6 +13,8 @@ import { accountantService } from '../../services/accountantService';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 
+import { useNavigate } from 'react-router-dom';
+
 /* ========== REUSABLE UI COMPONENTS ========== */
 const GlassCard = ({ children, className = "" }) => (
   <motion.div 
@@ -44,9 +46,36 @@ const MetricCard = ({ title, value, subValue, icon: Icon, color, trend }) => (
 );
 
 export default function AccountantDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+  const [period, setPeriod] = useState('month'); // 'month' | 'week'
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { startDate: start.toISOString().split('T')[0], endDate: now.toISOString().split('T')[0] };
+  });
+
+  const handlePeriodChange = (p) => {
+    setPeriod(p);
+    const now = new Date();
+    let start;
+    if (p === 'week') {
+      start = new Date();
+      start.setDate(now.getDate() - 6);
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    setDateRange({ 
+      startDate: start.toISOString().split('T')[0], 
+      endDate: now.toISOString().split('T')[0] 
+    });
+  };
+
+  const handleExport = () => {
+    // In trang hiện tại (Trình duyệt sẽ xử lý in ra PDF)
+    window.print();
+  };
 
   const fetchStats = async () => {
     try {
@@ -76,7 +105,7 @@ export default function AccountantDashboard() {
   return (
     <div className="space-y-8 pb-12">
       {/* Dynamic Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
         <div>
           <h1 className="text-4xl font-black text-slate-800 tracking-tighter flex items-center gap-4">
             <div className="p-3 bg-slate-900 text-white rounded-2xl rotate-3">
@@ -92,8 +121,18 @@ export default function AccountantDashboard() {
             <FiCalendar />
             Tầm nhìn
           </div>
-          <button className="px-4 py-2 rounded-2xl bg-slate-900 text-white font-bold text-xs shadow-lg border-0 cursor-pointer">Tháng này</button>
-          <button className="px-4 py-2 rounded-2xl hover:bg-slate-50 text-slate-400 font-bold text-xs border-0 bg-transparent cursor-pointer">7 ngày qua</button>
+          <button 
+            onClick={() => handlePeriodChange('month')}
+            className={`px-4 py-2 rounded-2xl font-bold text-xs shadow-lg border-0 cursor-pointer transition-all ${period === 'month' ? 'bg-slate-900 text-white' : 'bg-transparent text-slate-400 hover:bg-slate-50'}`}
+          >
+            Tháng này
+          </button>
+          <button 
+            onClick={() => handlePeriodChange('week')}
+            className={`px-4 py-2 rounded-2xl font-bold text-xs shadow-lg border-0 cursor-pointer transition-all ${period === 'week' ? 'bg-slate-900 text-white' : 'bg-transparent text-slate-400 hover:bg-slate-50'}`}
+          >
+            7 ngày qua
+          </button>
           <button className="p-2 h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 border-0 bg-transparent cursor-pointer">
             <FiFilter />
           </button>
@@ -247,7 +286,7 @@ export default function AccountantDashboard() {
       </div>
 
       {/* Quick Action Hub */}
-      <GlassCard className="bg-indigo-600 !p-8 relative overflow-hidden group">
+      <GlassCard className="bg-indigo-600 !p-8 relative overflow-hidden group print:hidden">
          <div className="absolute right-0 top-0 h-full w-1/3 bg-indigo-500 rotate-12 translate-x-12 opacity-50 group-hover:rotate-6 transition-all duration-500" />
          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-white">
@@ -255,9 +294,22 @@ export default function AccountantDashboard() {
               <p className="text-indigo-100 font-bold opacity-80">Lập phiếu thu/chi và đối soát tức thì ngay tại đây</p>
             </div>
             <div className="flex flex-wrap gap-4">
-               <button className="px-8 py-4 bg-white text-indigo-600 rounded-[1.5rem] font-black text-sm shadow-xl shadow-indigo-900/20 hover:scale-105 transition-all border-0 cursor-pointer">LẬP PHIẾU THU</button>
-               <button className="px-8 py-4 bg-indigo-400 text-white rounded-[1.5rem] font-black text-sm shadow-lg shadow-indigo-900/20 hover:scale-105 transition-all border border-indigo-300 cursor-pointer">LẬP PHIẾU CHI</button>
-               <button className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm shadow-xl shadow-slate-900/40 hover:scale-105 transition-all border-0 cursor-pointer flex items-center gap-2">
+               <button 
+                 onClick={() => navigate('/admin/cash-ledger')}
+                 className="px-8 py-4 bg-white text-indigo-600 rounded-[1.5rem] font-black text-sm shadow-xl shadow-indigo-900/20 hover:scale-105 transition-all border-0 cursor-pointer"
+               >
+                 LẬP PHIẾU THU
+               </button>
+               <button 
+                 onClick={() => navigate('/admin/cash-ledger')}
+                 className="px-8 py-4 bg-indigo-400 text-white rounded-[1.5rem] font-black text-sm shadow-lg shadow-indigo-900/20 hover:scale-105 transition-all border border-indigo-300 cursor-pointer"
+               >
+                 LẬP PHIẾU CHI
+               </button>
+               <button 
+                 onClick={handleExport}
+                 className="px-8 py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm shadow-xl shadow-slate-900/40 hover:scale-105 transition-all border-0 cursor-pointer flex items-center gap-2"
+               >
                  <FiDownload /> XUẤT BÁO CÁO P&L
                </button>
             </div>

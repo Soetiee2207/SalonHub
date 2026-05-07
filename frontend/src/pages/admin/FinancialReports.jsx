@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
   FiFileText, FiDownload, FiBarChart2, FiPieChart, 
-  FiCalendar, FiPrinter, FiFilter, FiCheckCircle
+  FiCalendar, FiPrinter, FiFilter, FiCheckCircle, FiRefreshCcw
 } from 'react-icons/fi';
 import { accountantService } from '../../services/accountantService';
 import { formatPrice } from '../../utils/formatPrice';
@@ -84,7 +84,6 @@ export default function FinancialReports() {
 
   const reportCards = [
     { id: 'pl', title: 'Báo cáo Kết quả Kinh doanh (P&L)', icon: FiBarChart2, desc: 'Doanh thu, Chi phí và Lợi nhuận ròng hàng tháng.', color: 'indigo' },
-    { id: 'debt', title: 'Báo cáo Công nợ NCC', icon: FiPieChart, desc: 'Theo dõi tiền nợ các nhà cung cấp sản phẩm.', color: 'amber' },
     { id: 'inventory', title: 'Báo cáo Kiểm kê Kho', icon: FiFileText, desc: 'Giá trị hàng hóa tồn trong kho tại thời điểm hiện tại.', color: 'emerald' },
   ];
 

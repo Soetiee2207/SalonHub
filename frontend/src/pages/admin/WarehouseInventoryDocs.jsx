@@ -6,6 +6,7 @@ import {
 } from 'react-icons/fi';
 import { inventoryService } from '../../services/inventoryService';
 import { productService } from '../../services/productService';
+import { branchService } from '../../services/branchService';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 
@@ -13,6 +14,7 @@ export default function WarehouseInventoryDocs() {
   const [activeTab, setActiveTab] = useState('history'); // 'history', 'import', 'export_offline', 'damage'
   const [transactions, setTransactions] = useState([]);
   const [products, setProducts] = useState([]);
+  const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
@@ -24,18 +26,21 @@ export default function WarehouseInventoryDocs() {
     batchNumber: '',
     expiryDate: '',
     warehouseLocation: '',
-    price: '' // Purchase price or Selling reference
+    price: '', // Purchase price or Selling reference
+    currentPrice: 0 // New field for auto-display
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [transRes, prodRes] = await Promise.all([
+      const [transRes, prodRes, branchRes] = await Promise.all([
         inventoryService.getTransactions({ limit: 50 }),
-        productService.getAll({ limit: 200 })
+        productService.getAll({ limit: 200 }),
+        branchService.getAll()
       ]);
       setTransactions(transRes.data || transRes);
       setProducts(prodRes.data || prodRes);
+      setBranches(branchRes.data || branchRes);
     } catch (err) {
       toast.error('Lỗi tải dữ liệu');
     } finally {
@@ -55,7 +60,18 @@ export default function WarehouseInventoryDocs() {
       batchNumber: '', 
       expiryDate: '', 
       warehouseLocation: '',
-      price: ''
+      price: '',
+      currentPrice: 0
+    });
+  };
+
+  const handleProductChange = (e) => {
+    const pId = e.target.value;
+    const product = products.find(p => String(p.id) === String(pId));
+    setFormData({ 
+      ...formData, 
+      productId: pId,
+      currentPrice: product?.price || 0 
     });
   };
 
@@ -139,13 +155,21 @@ export default function WarehouseInventoryDocs() {
                 <select 
                   className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none transition-all appearance-none font-medium"
                   value={formData.productId}
-                  onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                  onChange={handleProductChange}
                 >
                   <option value="">-- Chọn sản phẩm --</option>
                   {products.map(p => (
                     <option key={p.id} value={p.id}>{p.name} (Hiện có: {p.stock})</option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Current Price (Read Only) */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-indigo-500 mb-2 uppercase tracking-wider">Giá sản phẩm đang bán trên sàn (Tham chiếu)</label>
+              <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 font-black text-indigo-600 text-lg">
+                {formatPrice(formData.currentPrice)}
               </div>
             </div>
 
@@ -164,7 +188,7 @@ export default function WarehouseInventoryDocs() {
             {/* Price (Purchase for import, Reference for others) */}
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">
-                {isImport ? 'Giá nhập (VNĐ)' : 'Đơn giá tham chiếu'}
+                {isImport ? 'Giá nhập thực tế (VNĐ)' : 'Giá vốn tham chiếu'}
               </label>
               <input 
                 type="number"
@@ -206,15 +230,18 @@ export default function WarehouseInventoryDocs() {
             {isImport && (
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center gap-1">
-                  <FiMapPin size={12} /> VỊ TRÍ LƯU KHO
+                  <FiMapPin size={12} /> CƠ SỞ LƯU KHO
                 </label>
-                <input 
-                  type="text"
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-indigo-500 focus:outline-none transition-all"
-                  placeholder="VD: Kệ A1 - Tầng 2"
+                <select 
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-indigo-500 focus:outline-none transition-all appearance-none bg-white font-medium"
                   value={formData.warehouseLocation}
                   onChange={(e) => setFormData({ ...formData, warehouseLocation: e.target.value })}
-                />
+                >
+                  <option value="">-- Chọn chi nhánh nhận hàng --</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.name}>{b.name} - {b.address}</option>
+                  ))}
+                </select>
               </div>
             )}
 

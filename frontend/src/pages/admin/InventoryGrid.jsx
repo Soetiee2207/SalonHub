@@ -169,15 +169,49 @@ export default function InventoryGrid() {
                     </button>
                   </td>
                 </tr>
-                {/* Expanded Lô hàng */}
+                {/* Expanded Lô hàng & Tổng hợp chi nhánh */}
                 {expandedId === p.id && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-6 bg-slate-50 shadow-inner">
+                    <td colSpan="6" className="px-6 py-8 bg-slate-50 shadow-inner">
+                      {/* 1. Branch Summary Section */}
+                      <div className="mb-8">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                             <FiMapPin size={16} />
+                          </div>
+                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Tổng hợp tồn kho theo cơ sở</h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          {(() => {
+                            const branchStock = {};
+                            p.batches?.forEach(b => {
+                              const loc = b.warehouseLocation || 'Chưa định vị';
+                              branchStock[loc] = (branchStock[loc] || 0) + b.quantity;
+                            });
+                            
+                            return Object.entries(branchStock).map(([loc, qty], idx) => (
+                              <div key={idx} className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex justify-between items-center">
+                                <div>
+                                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Cơ sở</p>
+                                  <p className="text-xs font-black text-slate-800 truncate max-w-[120px]">{loc}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-black text-emerald-600 font-mono">{qty}</p>
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase">Sản phẩm</p>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* 2. Detailed Batches Section */}
                       <div className="flex items-center gap-2 mb-6">
                         <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
                            <FiClock size={16} />
                         </div>
-                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Danh sách các lô hàng & Hạn sử dụng</h4>
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Danh sách các lô hàng & Hạn sử dụng chi tiết</h4>
                       </div>
 
                       {p.batches && p.batches.length > 0 ? (
@@ -205,7 +239,7 @@ export default function InventoryGrid() {
                                 </div>
 
                                 <div>
-                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vị trí kho</p>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cơ sở / Vị trí</p>
                                   {editingLoc.batchId === batch.id ? (
                                     <div className="flex items-center gap-1 mt-1">
                                        <input 

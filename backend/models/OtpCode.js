@@ -26,6 +26,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: false,
     },
+    payload: {
+      type: DataTypes.TEXT, // Store JSON string of registration data
+      allowNull: true,
+    },
   }, {
     timestamps: true,
     tableName: 'otp_codes',

@@ -1,4 +1,58 @@
 const Groq = require('groq-sdk');
+const db = require('../models');
+
+// Simple Memory Cache for AI Context
+let aiContextCache = {
+  data: "",
+  lastFetched: 0
+};
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 phút
+
+async function getSalonContext() {
+  const now = Date.now();
+  // Return cached data if valid
+  if (aiContextCache.data && (now - aiContextCache.lastFetched < CACHE_TTL_MS)) {
+    return aiContextCache.data;
+  }
+
+  try {
+    // Chỉ lấy những cột cần thiết
+    const branches = await db.Branch.findAll({ attributes: ['name', 'address', 'hotline'], raw: true });
+    const services = await db.Service.findAll({ attributes: ['name', 'price'], raw: true });
+    const products = await db.Product.findAll({ attributes: ['name', 'price'], raw: true });
+
+    let contextStr = "### DỮ LIỆU THỰC TẾ TỪ CƠ SỞ DỮ LIỆU ###\n\n";
+    
+    contextStr += "**1. Các chi nhánh hiện tại:**\n";
+    if (branches.length === 0) contextStr += "- Đang cập nhật hệ thống chi nhánh.\n";
+    branches.forEach(b => {
+      contextStr += `- ${b.name}: ${b.address} (Hotline: ${b.hotline})\n`;
+    });
+
+    contextStr += "\n**2. Bảng giá dịch vụ:**\n";
+    if (services.length === 0) contextStr += "- Đang cập nhật bảng giá.\n";
+    services.forEach(s => {
+      const priceFormatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(s.price);
+      contextStr += `- ${s.name}: ${priceFormatted}\n`;
+    });
+
+    contextStr += "\n**3. Sản phẩm đang bán:**\n";
+    if (products.length === 0) contextStr += "- Đang cập nhật sản phẩm.\n";
+    products.forEach(p => {
+      const priceFormatted = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.price);
+      contextStr += `- ${p.name}: ${priceFormatted}\n`;
+    });
+
+    aiContextCache.data = contextStr;
+    aiContextCache.lastFetched = now;
+    
+    return contextStr;
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu Database cho AI:", error);
+    return "Lưu ý: Không thể kết nối với Cơ sở dữ liệu lúc này. Nếu khách hỏi giá chi tiết, hãy khuyên họ xem trực tiếp trên Website.";
+  }
+}
 
 exports.askChatbot = async (req, res) => {
   try {
@@ -14,26 +68,28 @@ exports.askChatbot = async (req, res) => {
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     
+    // Lấy dữ liệu thực từ Database (đã được Cache 5 phút)
+    const dynamicData = await getSalonContext();
+    
     // Prompt định hướng: Đóng vai Chuyên viên tư vấn chuyên nghiệp
     const systemInstruction = `
 Bạn là một Chuyên viên tư vấn chuyên nghiệp, tận tâm và thân thiện của SalonHub. 
 Tên của bạn là: Trợ lý SalonHub.
 
-Nhiệm vụ của bạn là giải đáp thắc mắc của khách hàng về dịch vụ làm tóc, đặt lịch, giá cả, và các sản phẩm của Salon.
+Nhiệm vụ của bạn là tư vấn và giải đáp thắc mắc của khách hàng MỘT CÁCH CHÍNH XÁC dựa trên **Dữ liệu thực tế** được cung cấp bên dưới.
 
-**Thông tin cơ bản về SalonHub:**
+${dynamicData}
+
+**Thông tin vận hành chung của SalonHub:**
 - Giờ mở cửa: 8:00 - 20:00 hàng ngày (kể cả cuối tuần).
-- Giá dịch vụ: Bắt đầu từ 50.000 VNĐ cho cắt tóc cơ bản. Có các dịch vụ cắt, uốn, nhuộm, phục hồi tóc chuyên sâu.
-- Đặt lịch: Khuyên khách hàng vào trang "Đặt lịch" trên website, chọn chi nhánh, dịch vụ, thợ chuyên nghiệp và thời gian mong muốn. Đặt lịch hoàn toàn online 24/7.
-- Chi nhánh: SalonHub có 3 cơ sở chính được trang bị hiện đại chuẩn 5 sao.
-- Sản phẩm: SalonHub có bán các dòng sản phẩm chăm sóc tóc chính hãng tại mục "Sản phẩm" trên website.
+- Đặt lịch: Khuyên khách hàng vào trang "Đặt lịch" trên website. Đặt lịch hoàn toàn online 24/7.
 - Hủy lịch hẹn: Khách hàng có thể hủy/đổi lịch hẹn tại mục "Lịch hẹn của tôi" trên trang cá nhân (chỉ hỗ trợ khi lịch đang ở trạng thái chờ/đã xác nhận).
 
-**Quy tắc trả lời của bạn:**
+**Quy tắc trả lời BẮT BUỘC:**
 1. Trả lời cực kỳ ngắn gọn, súc tích (tối đa 4-5 câu). Tránh viết đoạn văn dài dòng.
 2. Xưng hô là "mình" hoặc "Trợ lý SalonHub" và gọi khách hàng là "bạn" hoặc "quý khách". Thái độ phải lịch sự, chuyên nghiệp như làm dịch vụ Luxury.
-3. KHÔNG bịa đặt giá cả chi tiết, nếu họ hỏi giá chính xác từng loại uốn/nhuộm, hãy mời họ xem trực tiếp mục "Dịch vụ" trên website.
-4. KHÔNG trả lời các câu hỏi lạc đề (toán học, code, chính trị, v.v.). Nếu bị hỏi lạc đề, hãy từ chối khéo léo và hướng họ về dịch vụ làm đẹp của SalonHub.
+3. CHỈ BÁO GIÁ dựa vào DỮ LIỆU THỰC TẾ ở trên. KHÔNG TỰ BỊA ĐẶT GIÁ HOẶC TÊN DỊCH VỤ/SẢN PHẨM. Nếu khách hỏi một dịch vụ/sản phẩm không có trong DỮ LIỆU THỰC TẾ, hãy xin lỗi và nói rằng "Hiện tại SalonHub chưa cung cấp dịch vụ/sản phẩm này".
+4. KHÔNG trả lời các câu hỏi lạc đề (toán học, code, lịch sử, chính trị, v.v.). Nếu bị hỏi lạc đề, hãy từ chối khéo léo và hướng họ về dịch vụ làm đẹp của SalonHub.
     `;
 
     const chatCompletion = await groq.chat.completions.create({
@@ -42,6 +98,8 @@ Nhiệm vụ của bạn là giải đáp thắc mắc của khách hàng về d
         { role: "user", content: message }
       ],
       model: "llama-3.3-70b-versatile",
+      temperature: 0.3, // Giảm temperature để AI trả lời bám sát dữ liệu thực tế hơn
+      max_tokens: 256
     });
 
     const answer = chatCompletion.choices[0]?.message?.content || "";

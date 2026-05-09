@@ -79,6 +79,15 @@ async function runMigrations() {
       console.log('🔧 Migration: Added column branchId to product_batches');
     }
   } catch (e) { /* Table may not exist yet */ }
+
+  // Migration: Thêm trường payload cho OTP để lưu tạm thông tin đăng ký
+  try {
+    const otpDesc = await qi.describeTable('otp_codes');
+    if (!otpDesc.payload) {
+      await db.sequelize.query('ALTER TABLE `otp_codes` ADD COLUMN `payload` TEXT DEFAULT NULL;');
+      console.log('🔧 Migration: Added column payload to otp_codes');
+    }
+  } catch (e) { /* Table may not exist yet */ }
 }
 
 // Chỉ chạy server sau khi đã kết nối Database thành công

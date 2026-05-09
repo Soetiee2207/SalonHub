@@ -1,4 +1,9 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Ép toàn bộ Node.js ưu tiên phân giải tên miền (như smtp.gmail.com) ra địa chỉ IPv4
+// Điều này giải quyết TRIỆT ĐỂ lỗi ENETUNREACH IPv6 trên Render
+dns.setDefaultResultOrder('ipv4first');
 
 // ⚠️ Sử dụng OAuth2 cho Gmail chuyên nghiệp và bảo mật
 // Đã thêm cấu hình fallback sang App Password nếu Token hết hạn

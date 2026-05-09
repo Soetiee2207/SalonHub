@@ -6,6 +6,7 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
   secure: false, // Use STARTTLS
+  family: 4, // Force IPv4 to prevent ENETUNREACH IPv6 routing errors on Render
   auth: process.env.GOOGLE_MAIL_REFRESH_TOKEN ? {
     type: 'OAuth2',
     user: process.env.SMTP_USER,

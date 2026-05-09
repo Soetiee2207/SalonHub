@@ -36,11 +36,54 @@ export default function ChatbotWidget() {
     setIsTyping(true);
 
     try {
-      const response = await api.post('/chat/ask', { message: text });
-      if (response.success) {
-        setMessages((prev) => [...prev, { from: 'bot', text: response.answer }]);
+      // Gọi trực tiếp Gemini API từ Client để vượt lỗi chặn Location của Render
+      const GEMINI_API_KEY = "AIzaSyA5RluwsFliBPQ_b8ZA4DmGA99I6X2CQHs";
+      
+      const systemInstruction = `
+Bạn là một Chuyên viên tư vấn chuyên nghiệp, tận tâm và thân thiện của SalonHub. 
+Tên của bạn là: Trợ lý SalonHub.
+
+Nhiệm vụ của bạn là giải đáp thắc mắc của khách hàng về dịch vụ làm tóc, đặt lịch, giá cả, và các sản phẩm của Salon.
+
+**Thông tin cơ bản về SalonHub:**
+- Giờ mở cửa: 8:00 - 20:00 hàng ngày (kể cả cuối tuần).
+- Giá dịch vụ: Bắt đầu từ 50.000 VNĐ cho cắt tóc cơ bản. Có các dịch vụ cắt, uốn, nhuộm, phục hồi tóc chuyên sâu.
+- Đặt lịch: Khuyên khách hàng vào trang "Đặt lịch" trên website, chọn chi nhánh, dịch vụ, thợ chuyên nghiệp và thời gian mong muốn. Đặt lịch hoàn toàn online 24/7.
+- Chi nhánh: SalonHub có 3 cơ sở chính được trang bị hiện đại chuẩn 5 sao.
+- Sản phẩm: SalonHub có bán các dòng sản phẩm chăm sóc tóc chính hãng tại mục "Sản phẩm" trên website.
+- Hủy lịch hẹn: Khách hàng có thể hủy/đổi lịch hẹn tại mục "Lịch hẹn của tôi" trên trang cá nhân (chỉ hỗ trợ khi lịch đang ở trạng thái chờ/đã xác nhận).
+
+**Quy tắc trả lời của bạn:**
+1. Trả lời cực kỳ ngắn gọn, súc tích (tối đa 4-5 câu). Tránh viết đoạn văn dài dòng.
+2. Xưng hô là "mình" hoặc "Trợ lý SalonHub" và gọi khách hàng là "bạn" hoặc "quý khách". Thái độ phải lịch sự, chuyên nghiệp như làm dịch vụ Luxury.
+3. KHÔNG bịa đặt giá cả chi tiết, nếu họ hỏi giá chính xác từng loại uốn/nhuộm, hãy mời họ xem trực tiếp mục "Dịch vụ" trên website.
+4. KHÔNG trả lời các câu hỏi lạc đề (toán học, code, chính trị, v.v.). Nếu bị hướng ngoài lề, hãy từ chối khéo léo và hướng họ về dịch vụ làm đẹp của SalonHub.
+      `;
+
+      const payload = {
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          { parts: [{ text: text }] }
+        ]
+      };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+
+      if (data.candidates && data.candidates.length > 0) {
+        // Lấy kết quả từ candidates
+        const answer = data.candidates[0].content.parts[0].text;
+        setMessages((prev) => [...prev, { from: 'bot', text: answer }]);
       } else {
-        setMessages((prev) => [...prev, { from: 'bot', text: response.message || 'Xin lỗi, hiện tại trợ lý đang bận.' }]);
+        console.error("Gemini Response Error:", data);
+        setMessages((prev) => [...prev, { from: 'bot', text: 'Xin lỗi, hiện tại trợ lý đang bận. Vui lòng thử lại sau.' }]);
       }
     } catch (error) {
       console.error('Chat error:', error);

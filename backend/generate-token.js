@@ -5,7 +5,7 @@ require('dotenv').config();
 const oAuth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_MAIL_CLIENT_ID,
   process.env.GOOGLE_MAIL_CLIENT_SECRET,
-  'https://developers.google.com/oauthplayground' // URI bắt buộc nếu dùng chung với OAuth Playground
+  'https://developers.google.com/oauthplayground' // URI bắt buộc
 );
 
 // URL cấp quyền truy cập Gmail

@@ -34,15 +34,12 @@ const sendEmail = async ({ to, subject, html }) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent via OAuth2: %s', info.messageId);
+    console.log('Email sent: %s', info.messageId);
     return info;
   } catch (error) {
-    console.error('Send email OAuth2 error:', error);
-    // Báo lỗi chi tiết hơn nếu là lỗi xác thực OAuth2
-    if (error.code === 'EAUTH') {
-      throw new Error('Lỗi xác thực email (OAuth2). Vui lòng kiểm tra cấu hình token.');
-    }
-    throw new Error('Không thể gửi email xác thực. Vui lòng thử lại sau.');
+    console.error('Send email error:', error);
+    // Trả về lỗi chi tiết từ nodemailer để dễ debug
+    throw new Error(`Lỗi gửi email: ${error.message || error.code || 'Unknown error'}`);
   }
 };
 

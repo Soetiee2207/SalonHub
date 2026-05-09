@@ -1,51 +1,55 @@
-const nodemailer = require('nodemailer');
-const dns = require('dns');
+const { google } = require('googleapis');
 
-// Ép toàn bộ Node.js ưu tiên phân giải tên miền (như smtp.gmail.com) ra địa chỉ IPv4
-// Điều này giải quyết TRIỆT ĐỂ lỗi ENETUNREACH IPv6 trên Render
-dns.setDefaultResultOrder('ipv4first');
+// Xây dựng email theo chuẩn MIME và mã hóa Base64URL cho Gmail API
+const createEmailMessage = (to, subject, html) => {
+  const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+  const messageParts = [
+    `From: ${process.env.SMTP_FROM_NAME || 'SalonHub'} <${process.env.SMTP_USER}>`,
+    `To: ${to}`,
+    'Content-Type: text/html; charset=utf-8',
+    'MIME-Version: 1.0',
+    `Subject: ${utf8Subject}`,
+    '',
+    html,
+  ];
+  const message = messageParts.join('\r\n');
 
-// ⚠️ Sử dụng OAuth2 cho Gmail chuyên nghiệp và bảo mật
-// Đã thêm cấu hình fallback sang App Password nếu Token hết hạn
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Use STARTTLS
-  family: 4, // Force IPv4 to prevent ENETUNREACH IPv6 routing errors on Render
-  auth: process.env.GOOGLE_MAIL_REFRESH_TOKEN ? {
-    type: 'OAuth2',
-    user: process.env.SMTP_USER,
-    clientId: process.env.GOOGLE_MAIL_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_MAIL_CLIENT_SECRET,
-    refreshToken: process.env.GOOGLE_MAIL_REFRESH_TOKEN,
-  } : {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, // Mật khẩu ứng dụng Gmail (App Password)
-  },
-  connectionTimeout: 10000, // 10s timeout
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-});
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
 
 /**
- * Gửi email chung sử dụng OAuth2
+ * Gửi email sử dụng Gmail REST API (qua cổng Web 443 - Không bị Render chặn)
  */
 const sendEmail = async ({ to, subject, html }) => {
   try {
-    const mailOptions = {
-      from: `"${process.env.SMTP_FROM_NAME || 'SalonHub'}" <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      html,
-    };
+    if (!process.env.GOOGLE_MAIL_REFRESH_TOKEN) {
+      throw new Error('Thiếu cấu hình GOOGLE_MAIL_REFRESH_TOKEN');
+    }
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent: %s', info.messageId);
-    return info;
+    const oAuth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_MAIL_CLIENT_ID,
+      process.env.GOOGLE_MAIL_CLIENT_SECRET,
+      'https://developers.google.com/oauthplayground'
+    );
+    
+    oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_MAIL_REFRESH_TOKEN });
+    const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+    const rawMessage = createEmailMessage(to, subject, html);
+    
+    const res = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: rawMessage },
+    });
+
+    console.log('✅ Email sent successfully via Gmail API:', res.data.id);
+    return res.data;
   } catch (error) {
-    console.error('Send email error:', error);
-    // Trả về lỗi chi tiết từ nodemailer để dễ debug
-    throw new Error(`Lỗi gửi email: ${error.message || error.code || 'Unknown error'}`);
+    console.error('❌ Send email error (Gmail API):', error.message);
+    throw new Error(`Lỗi gửi email: ${error.message || 'Unknown error'}`);
   }
 };
 

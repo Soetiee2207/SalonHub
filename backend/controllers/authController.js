@@ -82,11 +82,19 @@ const register = async (req, res) => {
     });
 
     // Send verification email
-    await emailService.sendOtpEmail(email, otpCode);
+    try {
+      await emailService.sendOtpEmail(email, otpCode);
+    } catch (emailError) {
+      console.error('Lỗi gửi email (Có thể do Render chặn port 587):', emailError.message);
+      console.log('==================================================');
+      console.log(`[DEV MODE / RENDER FALLBACK] MÃ OTP CỦA ${email} LÀ: ${otpCode}`);
+      console.log('==================================================');
+      // Không throw lỗi ra ngoài để luồng đăng ký không bị đứt đoạn
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Mã xác thực đã được gửi đến email của bạn.',
+      message: 'Mã xác thực đã được xử lý (Xem Render Logs nếu không nhận được mail).',
       data: { email },
     });
   } catch (error) {

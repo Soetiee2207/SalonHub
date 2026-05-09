@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require('groq-sdk');
 
 exports.askChatbot = async (req, res) => {
   try {
@@ -8,11 +8,11 @@ exports.askChatbot = async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu nội dung tin nhắn." });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ success: false, message: "Hệ thống chưa được cấu hình Gemini API Key. Vui lòng thêm biến môi trường GEMINI_API_KEY." });
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ success: false, message: "Hệ thống chưa được cấu hình GROQ API Key. Vui lòng thêm biến môi trường GROQ_API_KEY." });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     
     // Prompt định hướng: Đóng vai Chuyên viên tư vấn chuyên nghiệp
     const systemInstruction = `
@@ -36,18 +36,19 @@ Nhiệm vụ của bạn là giải đáp thắc mắc của khách hàng về d
 4. KHÔNG trả lời các câu hỏi lạc đề (toán học, code, chính trị, v.v.). Nếu bị hỏi lạc đề, hãy từ chối khéo léo và hướng họ về dịch vụ làm đẹp của SalonHub.
     `;
 
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-flash-latest",
-      systemInstruction: systemInstruction 
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: message }
+      ],
+      model: "llama-3.3-70b-versatile",
     });
 
-    const result = await model.generateContent(message);
-    const response = await result.response;
-    const text = response.text();
+    const answer = chatCompletion.choices[0]?.message?.content || "";
 
     return res.status(200).json({
       success: true,
-      answer: text
+      answer: answer
     });
 
   } catch (error) {

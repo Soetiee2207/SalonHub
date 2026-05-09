@@ -37,7 +37,11 @@ export default function ChatbotWidget() {
 
     try {
       // Gọi trực tiếp Gemini API từ Client để vượt lỗi chặn Location của Render
-      const GEMINI_API_KEY = "AIzaSyA5RluwsFliBPQ_b8ZA4DmGA99I6X2CQHs";
+      // Dùng biến môi trường để bảo mật API Key
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!GEMINI_API_KEY) {
+        throw new Error("Chưa cấu hình VITE_GEMINI_API_KEY trên Frontend.");
+      }
       
       const systemInstruction = `
 Bạn là một Chuyên viên tư vấn chuyên nghiệp, tận tâm và thân thiện của SalonHub. 

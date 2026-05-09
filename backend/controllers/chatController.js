@@ -37,7 +37,7 @@ Nhiệm vụ của bạn là giải đáp thắc mắc của khách hàng về d
     `;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       systemInstruction: systemInstruction 
     });
 

@@ -18,7 +18,7 @@ async function getSalonContext() {
 
   try {
     // Chỉ lấy những cột cần thiết
-    const branches = await db.Branch.findAll({ attributes: ['name', 'address', 'hotline'], raw: true });
+    const branches = await db.Branch.findAll({ attributes: ['name', 'address', 'phone'], raw: true });
     const services = await db.Service.findAll({ attributes: ['name', 'price'], raw: true });
     const products = await db.Product.findAll({ attributes: ['name', 'price'], raw: true });
 
@@ -27,7 +27,7 @@ async function getSalonContext() {
     contextStr += "**1. Các chi nhánh hiện tại:**\n";
     if (branches.length === 0) contextStr += "- Đang cập nhật hệ thống chi nhánh.\n";
     branches.forEach(b => {
-      contextStr += `- ${b.name}: ${b.address} (Hotline: ${b.hotline})\n`;
+      contextStr += `- ${b.name}: ${b.address} (Hotline: ${b.phone})\n`;
     });
 
     contextStr += "\n**2. Bảng giá dịch vụ:**\n";

@@ -1,56 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { FiMessageCircle, FiX, FiSend } from 'react-icons/fi';
 
-// ============================================================
-// FAQ auto-responses (mock — will integrate AI API later)
-// ============================================================
-const FAQ_RESPONSES = [
-  {
-    keywords: ['giờ', 'mở cửa', 'đóng cửa', 'thời gian'],
-    answer: 'SalonHub mở cửa từ 8:00 đến 20:00 hàng ngày (kể cả Chủ nhật). Bạn có thể đặt lịch online 24/7 nhé!',
-  },
-  {
-    keywords: ['đặt lịch', 'book', 'hẹn'],
-    answer: 'Để đặt lịch, bạn vào trang "Đặt lịch" trên menu, chọn chi nhánh → dịch vụ → thợ cắt → ngày giờ phù hợp. Rất nhanh gọn!',
-  },
-  {
-    keywords: ['giá', 'bao nhiêu', 'phí', 'chi phí'],
-    answer: 'Giá dịch vụ bắt đầu từ 50.000đ cho cắt tóc cơ bản. Bạn có thể xem bảng giá đầy đủ trong mục "Dịch vụ" trên website nhé.',
-  },
-  {
-    keywords: ['khuyến mãi', 'voucher', 'giảm giá', 'ưu đãi'],
-    answer: 'Hiện tại SalonHub có nhiều voucher giảm giá hấp dẫn! Kiểm tra mục "Khuyến mãi" trên trang hoặc liên hệ hotline để biết thêm chi tiết.',
-  },
-  {
-    keywords: ['hủy', 'cancel', 'thay đổi'],
-    answer: 'Bạn có thể hủy hoặc đổi lịch hẹn trong mục "Lịch hẹn của tôi" tại trang cá nhân. Lưu ý chỉ hủy được khi lịch hẹn đang ở trạng thái chờ hoặc đã xác nhận.',
-  },
-  {
-    keywords: ['chi nhánh', 'địa chỉ', 'ở đâu'],
-    answer: 'SalonHub có 3 chi nhánh. Bạn xem danh sách chi nhánh khi đặt lịch hoặc trong mục liên hệ trên website.',
-  },
-  {
-    keywords: ['sản phẩm', 'mua', 'shop'],
-    answer: 'SalonHub có cửa hàng online bán sản phẩm chăm sóc tóc chính hãng. Truy cập mục "Sản phẩm" trên menu để mua sắm nhé!',
-  },
-];
-
-const DEFAULT_ANSWER = 'Cảm ơn bạn đã liên hệ! Tôi chưa hiểu rõ câu hỏi. Bạn có thể hỏi về giờ mở cửa, đặt lịch, giá dịch vụ, hoặc khuyến mãi. Để được hỗ trợ chi tiết hơn, gọi hotline: 1900-xxxx.';
+import api from '../../services/api';
 
 const WELCOME_MESSAGE = {
   from: 'bot',
-  text: 'Xin chào! 👋 Tôi là trợ lý ảo của SalonHub. Bạn cần hỗ trợ gì nào?',
+  text: 'Xin chào! 👋 Mình là Trợ lý ảo AI của SalonHub. Bạn cần mình tư vấn điều gì ạ?',
 };
-
-function findAnswer(input) {
-  const lower = input.toLowerCase();
-  for (const faq of FAQ_RESPONSES) {
-    if (faq.keywords.some((kw) => lower.includes(kw))) {
-      return faq.answer;
-    }
-  }
-  return DEFAULT_ANSWER;
-}
 
 // ============================================================
 // ChatbotWidget Component
@@ -70,21 +26,29 @@ export default function ChatbotWidget() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
 
     // Add user message
     setMessages((prev) => [...prev, { from: 'user', text }]);
     setInput('');
-
-    // Simulate typing delay
     setIsTyping(true);
-    setTimeout(() => {
-      const answer = findAnswer(text);
-      setMessages((prev) => [...prev, { from: 'bot', text: answer }]);
+
+    try {
+      const response = await api.post('/chat/ask', { message: text });
+      if (response.success) {
+        setMessages((prev) => [...prev, { from: 'bot', text: response.answer }]);
+      } else {
+        setMessages((prev) => [...prev, { from: 'bot', text: response.message || 'Xin lỗi, hiện tại trợ lý đang bận.' }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage = error.message || 'Hệ thống AI đang bảo trì hoặc mất kết nối. Mong quý khách thông cảm ạ!';
+      setMessages((prev) => [...prev, { from: 'bot', text: errorMessage }]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   const handleKeyDown = (e) => {

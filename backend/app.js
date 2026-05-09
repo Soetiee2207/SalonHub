@@ -25,6 +25,7 @@ const inventoryRoutes = require('./routes/inventoryRoutes');
 const staffScheduleRoutes = require('./routes/staffScheduleRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const accountantRoutes = require('./routes/accountantRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/schedules', staffScheduleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/accountant', accountantRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Moved Health check to top
 

@@ -1,16 +1,20 @@
 const nodemailer = require('nodemailer');
 
 // ⚠️ Sử dụng OAuth2 cho Gmail chuyên nghiệp và bảo mật
+// Đã thêm cấu hình fallback sang App Password nếu Token hết hạn
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 587,
   secure: false, // Use STARTTLS
-  auth: {
+  auth: process.env.GOOGLE_MAIL_REFRESH_TOKEN ? {
     type: 'OAuth2',
     user: process.env.SMTP_USER,
     clientId: process.env.GOOGLE_MAIL_CLIENT_ID,
     clientSecret: process.env.GOOGLE_MAIL_CLIENT_SECRET,
     refreshToken: process.env.GOOGLE_MAIL_REFRESH_TOKEN,
+  } : {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS, // Mật khẩu ứng dụng Gmail (App Password)
   },
   connectionTimeout: 10000, // 10s timeout
   greetingTimeout: 10000,

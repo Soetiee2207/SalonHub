@@ -131,7 +131,10 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
               <button
                 onClick={() => handleSendOtp(email)}
                 disabled={loading || !email}
-                className="w-full mt-4 bg-primary text-white py-2.5 rounded-xl hover:bg-primary-dark transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full mt-4 text-white py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: 'var(--primary)' }}
+                onMouseEnter={(e) => { if (!loading && email) e.target.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
               >
                 {loading ? 'Đang gửi...' : 'Gửi mã OTP'}
                 <FiArrowRight />
@@ -158,7 +161,10 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
               <button
                 onClick={handleVerifyOtpAndReset}
                 disabled={loading || otp.length !== 6}
-                className="w-full mt-4 bg-primary text-white py-2.5 rounded-xl hover:bg-primary-dark transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full mt-4 text-white py-2.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: 'var(--primary)' }}
+                onMouseEnter={(e) => { if (!loading && otp.length === 6) e.target.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
               >
                 Xác nhận
               </button>
@@ -209,7 +215,10 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
               <button
                 onClick={handleVerifyOtpAndReset}
                 disabled={loading || !newPassword || !confirmPassword}
-                className="w-full mt-4 bg-primary text-white py-2.5 rounded-xl hover:bg-primary-dark transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full mt-4 text-white py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: 'var(--primary)' }}
+                onMouseEnter={(e) => { if (!loading && newPassword && confirmPassword) e.target.style.opacity = '0.9'; }}
+                onMouseLeave={(e) => { e.target.style.opacity = '1'; }}
               >
                 {loading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
                 <FiCheckCircle />

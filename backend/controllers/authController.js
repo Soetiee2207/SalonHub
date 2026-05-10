@@ -357,7 +357,7 @@ const forgotPassword = async (req, res) => {
 
     // Check if there is already an unexpired OTP to prevent spam
     const lastOtp = await db.OtpCode.findOne({ 
-      where: { email, type: 'reset_password' }, 
+      where: { email, type: 'password_reset' }, 
       order: [['createdAt', 'DESC']] 
     });
     if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
@@ -370,7 +370,7 @@ const forgotPassword = async (req, res) => {
     await db.OtpCode.create({
       email,
       code: otpCode,
-      type: 'reset_password',
+      type: 'password_reset',
       expiresAt
     });
 
@@ -405,7 +405,7 @@ const resetPassword = async (req, res) => {
       where: {
         email,
         code: otp,
-        type: 'reset_password',
+        type: 'password_reset',
         isUsed: false,
         expiresAt: { [db.Sequelize.Op.gt]: new Date() },
       },

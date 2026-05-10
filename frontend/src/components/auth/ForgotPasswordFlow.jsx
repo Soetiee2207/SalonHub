@@ -169,7 +169,7 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
                   disabled={countdown > 0 || loading}
                   className="text-sm text-primary hover:underline disabled:opacity-50 disabled:no-underline border-0 bg-transparent cursor-pointer"
                 >
-                  {countdown > 0 ? \`Gửi lại mã sau \${countdown}s\` : 'Gửi lại mã OTP'}
+                  {countdown > 0 ? `Gửi lại mã sau ${countdown}s` : 'Gửi lại mã OTP'}
                 </button>
               </div>
             </div>

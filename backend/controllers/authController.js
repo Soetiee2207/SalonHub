@@ -341,6 +341,103 @@ const sendVerifyEmail = async (req, res) => {
   }
 };
 
+// @desc    Request OTP for forgotten password
+// @route   POST /api/auth/forgot-password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp email.' });
+    }
+
+    const user = await db.User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Email không tồn tại trong hệ thống.' });
+    }
+
+    // Check if there is already an unexpired OTP to prevent spam
+    const lastOtp = await db.OtpCode.findOne({ 
+      where: { email, type: 'reset_password' }, 
+      order: [['createdAt', 'DESC']] 
+    });
+    if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
+      return res.status(429).json({ success: false, message: 'Vui lòng đợi 60 giây trước khi yêu cầu mã mới.' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+    await db.OtpCode.create({
+      email,
+      code: otpCode,
+      type: 'reset_password',
+      expiresAt
+    });
+
+    try {
+      await emailService.sendOtpEmail(email, otpCode);
+    } catch (emailError) {
+      console.error('Lỗi gửi email OTP reset password:', emailError.message);
+      console.log('==================================================');
+      console.log(`[DEV MODE] MÃ OTP RESET PASSWORD CỦA ${email} LÀ: ${otpCode}`);
+      console.log('==================================================');
+    }
+
+    return res.status(200).json({ success: true, message: 'Mã xác thực đã được gửi đến email của bạn.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
+// @desc    Verify OTP and reset password
+// @route   POST /api/auth/reset-password
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đầy đủ thông tin.' });
+    }
+
+    // Find valid OTP
+    const otpRecord = await db.OtpCode.findOne({
+      where: {
+        email,
+        code: otp,
+        type: 'reset_password',
+        isUsed: false,
+        expiresAt: { [db.Sequelize.Op.gt]: new Date() },
+      },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Mã xác thực không đúng hoặc đã hết hạn.' });
+    }
+
+    const user = await db.User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại.' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    await user.update({ password: hashedPassword });
+    
+    // Mark OTP as used
+    await otpRecord.update({ isUsed: true });
+
+    return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -352,4 +449,6 @@ module.exports = {
   resendOtp,
   sendVerifyEmail,
   verifyRegistrationOtp,
+  forgotPassword,
+  resetPassword,
 };

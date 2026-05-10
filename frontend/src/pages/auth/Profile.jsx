@@ -11,6 +11,7 @@ import OrderTimeline from '../../components/profile/OrderTimeline';
 import UpcomingAppointments from '../../components/profile/UpcomingAppointments';
 import LoyaltyProgress from '../../components/profile/LoyaltyProgress';
 import TransformationGallery from '../../components/profile/TransformationGallery';
+import ForgotPasswordFlow from '../../components/auth/ForgotPasswordFlow';
 
 const roleBadgeMap = {
   admin: { label: 'Quản trị viên', bg: '#8B5E3C', color: '#fff' },
@@ -22,6 +23,7 @@ export default function Profile() {
   const { user, updateUser, verifyOtp } = useAuth();
   const fileInputRef = useRef(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
   const [form, setForm] = useState({
@@ -437,12 +439,22 @@ export default function Profile() {
 
           {/* Right - Change Password */}
           <div className="bg-white rounded-2xl p-8 border" style={{ borderColor: 'var(--border)' }}>
-            <h2
-              className="text-lg font-bold mb-6"
-              style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
-            >
-              Đổi mật khẩu
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2
+                className="text-lg font-bold"
+                style={{ fontFamily: 'var(--font-display)', color: 'var(--primary-dark, #5A3A24)' }}
+              >
+                Đổi mật khẩu
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsForgotOpen(true)}
+                className="text-sm font-medium hover:underline border-0 bg-transparent cursor-pointer"
+                style={{ color: 'var(--primary)', fontFamily: 'var(--font-body)' }}
+              >
+                Quên mật khẩu cũ?
+              </button>
+            </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-5">
               {renderPasswordField(
@@ -710,6 +722,12 @@ export default function Profile() {
         onClose={() => setShowVerifyModal(false)}
         email={user?.email}
         onVerify={handleVerifySuccess}
+      />
+
+      <ForgotPasswordFlow
+        isOpen={isForgotOpen}
+        onClose={() => setIsForgotOpen(false)}
+        initialEmail={user?.email}
       />
     </div>
   );

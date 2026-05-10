@@ -5,7 +5,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService } from '../../services/authService';
+import ForgotPasswordFlow from '../../components/auth/ForgotPasswordFlow';
 
 export default function Login() {
   const { user, login, googleLogin, loginWithToken } = useAuth();
@@ -14,6 +14,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -178,12 +179,22 @@ export default function Login() {
 
               {/* Password */}
               <div>
-                <label
-                  className="block text-sm font-medium mb-1.5"
-                  style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
-                >
-                  Mật khẩu
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label
+                    className="block text-sm font-medium"
+                    style={{ color: 'var(--text-dark)', fontFamily: 'var(--font-body)' }}
+                  >
+                    Mật khẩu
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotOpen(true)}
+                    className="text-sm font-medium hover:underline border-0 bg-transparent cursor-pointer"
+                    style={{ color: 'var(--primary)', fontFamily: 'var(--font-body)' }}
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-gray)' }}>
                     <FiLock size={18} />
@@ -269,6 +280,11 @@ export default function Login() {
           </div>
         </div>
       </div>
+      
+      <ForgotPasswordFlow 
+        isOpen={isForgotOpen} 
+        onClose={() => setIsForgotOpen(false)} 
+      />
     </div>
   );
 }

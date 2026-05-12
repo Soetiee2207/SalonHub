@@ -18,10 +18,15 @@ const generateToken = (user) => {
   );
 };
 
+// @desc    Register new customer account (Direct registration)
+// @route   POST /api/auth/register
+// @desc    Register new customer account (Request OTP)
+// @route   POST /api/auth/register
 const register = async (req, res) => {
   try {
     const { fullName, email, password, phone } = req.body;
 
+    // Validate required fields
     if (!fullName || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -29,6 +34,7 @@ const register = async (req, res) => {
       });
     }
 
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -37,10 +43,11 @@ const register = async (req, res) => {
       });
     }
 
-    const existingUser = await db.User.findOne({ 
-      where: { 
-        [db.Sequelize.Op.or]: [{ email }, { phone: phone || '' }] 
-      } 
+    // Check if user already exists
+    const existingUser = await db.User.findOne({
+      where: {
+        [db.Sequelize.Op.or]: [{ email }, { phone: phone || '' }]
+      }
     });
     if (existingUser) {
       return res.status(409).json({
@@ -49,12 +56,15 @@ const register = async (req, res) => {
       });
     }
 
+    // Hash password before storing in payload
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generate OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
+    // Store registration data in payload
     const payload = JSON.stringify({
       fullName,
       email,
@@ -71,6 +81,7 @@ const register = async (req, res) => {
       payload
     });
 
+    // Send verification email
     try {
       await emailService.sendOtpEmail(email, otpCode);
     } catch (emailError) {
@@ -78,6 +89,7 @@ const register = async (req, res) => {
       console.log('==================================================');
       console.log(`[DEV MODE / RENDER FALLBACK] MÃ OTP CỦA ${email} LÀ: ${otpCode}`);
       console.log('==================================================');
+      // Không throw lỗi ra ngoài để luồng đăng ký không bị đứt đoạn
     }
 
     return res.status(200).json({
@@ -94,6 +106,8 @@ const register = async (req, res) => {
   }
 };
 
+// @desc    Verify OTP for registration and CREATE account
+// @route   POST /api/auth/verify-registration-otp
 const verifyRegistrationOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -105,6 +119,7 @@ const verifyRegistrationOtp = async (req, res) => {
       });
     }
 
+    // Find valid OTP
     const otpRecord = await db.OtpCode.findOne({
       where: {
         email,
@@ -123,20 +138,25 @@ const verifyRegistrationOtp = async (req, res) => {
       });
     }
 
+    // Extract registration data from payload
     const userDataToCreate = JSON.parse(otpRecord.payload);
 
+    // Double check if user created by someone else in the meantime
     const existingUser = await db.User.findOne({ where: { email: userDataToCreate.email } });
     if (existingUser) {
       return res.status(409).json({ success: false, message: 'Email đã được đăng ký.' });
     }
 
+    // 1. Create the official user account
     const user = await db.User.create({
       ...userDataToCreate,
       isEmailVerified: true
     });
 
+    // 2. Mark OTP as used
     await otpRecord.update({ isUsed: true });
 
+    // 3. Generate token for auto-login
     const token = generateToken(user);
     const userData = user.toJSON();
     delete userData.password;
@@ -158,14 +178,16 @@ const verifyRegistrationOtp = async (req, res) => {
   }
 };
 
+// @desc    Login with email and password
+// @route   POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Please provide email and password.' });
     }
-    const user = await db.User.findOne({ 
-      where: { [db.Sequelize.Op.or]: [{ email: email }, { phone: email }] } 
+    const user = await db.User.findOne({
+      where: { [db.Sequelize.Op.or]: [{ email: email }, { phone: email }] }
     });
     if (!user || user.isActive === false) {
       return res.status(401).json({
@@ -187,6 +209,7 @@ const login = async (req, res) => {
   }
 };
 
+// @desc    Get current user profile
 const getProfile = async (req, res) => {
   try {
     const includeOptions = [];
@@ -204,6 +227,7 @@ const getProfile = async (req, res) => {
   }
 };
 
+// @desc    Update user profile
 const updateProfile = async (req, res) => {
   try {
     const { fullName, phone } = req.body;
@@ -219,6 +243,7 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Change password
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
@@ -235,6 +260,7 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    Login with Google
 const googleLogin = async (req, res) => {
   try {
     const { tokenId, code, redirect_uri } = req.body;
@@ -264,6 +290,7 @@ const googleLogin = async (req, res) => {
   }
 };
 
+// @desc    Verify OTP for general verification
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -280,6 +307,7 @@ const verifyOtp = async (req, res) => {
   }
 };
 
+// @desc    Resend OTP
 const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -298,6 +326,7 @@ const resendOtp = async (req, res) => {
   }
 };
 
+// @desc    Send verification email
 const sendVerifyEmail = async (req, res) => {
   try {
     const user = await db.User.findByPk(req.user.id);
@@ -312,6 +341,8 @@ const sendVerifyEmail = async (req, res) => {
   }
 };
 
+// @desc    Request OTP for forgotten password
+// @route   POST /api/auth/forgot-password
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -324,16 +355,17 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Email không tồn tại trong hệ thống.' });
     }
 
-    const lastOtp = await db.OtpCode.findOne({ 
-      where: { email, type: 'password_reset' }, 
-      order: [['createdAt', 'DESC']] 
+    // Check if there is already an unexpired OTP to prevent spam
+    const lastOtp = await db.OtpCode.findOne({
+      where: { email, type: 'password_reset' },
+      order: [['createdAt', 'DESC']]
     });
     if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
       return res.status(429).json({ success: false, message: 'Vui lòng đợi 60 giây trước khi yêu cầu mã mới.' });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
 
     await db.OtpCode.create({
       email,
@@ -346,6 +378,9 @@ const forgotPassword = async (req, res) => {
       await emailService.sendOtpEmail(email, otpCode);
     } catch (emailError) {
       console.error('Lỗi gửi email OTP reset password:', emailError.message);
+      console.log('==================================================');
+      console.log(`[DEV MODE] MÃ OTP RESET PASSWORD CỦA ${email} LÀ: ${otpCode}`);
+      console.log('==================================================');
     }
 
     return res.status(200).json({ success: true, message: 'Mã xác thực đã được gửi đến email của bạn.' });
@@ -355,6 +390,8 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+// @desc    Verify OTP and reset password
+// @route   POST /api/auth/reset-password
 const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -363,6 +400,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đầy đủ thông tin.' });
     }
 
+    // Find valid OTP
     const otpRecord = await db.OtpCode.findOne({
       where: {
         email,
@@ -383,10 +421,14 @@ const resetPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Người dùng không tồn tại.' });
     }
 
+    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
+    // Update password
     await user.update({ password: hashedPassword });
+
+    // Mark OTP as used
     await otpRecord.update({ isUsed: true });
 
     return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });

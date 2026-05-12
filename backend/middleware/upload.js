@@ -16,19 +16,16 @@ const upload = multer({
   },
 });
 
-// Bọc uploadSingle để nếu Cloudinary lỗi thì vẫn tiếp tục (không có ảnh)
 const uploadSingle = (req, res, next) => {
   upload.single('image')(req, res, (err) => {
     if (err) {
       console.error('⚠️ Upload ảnh thất bại (Cloudinary):', err.message);
-      // Không crash - tiếp tục tạo bản ghi mà không có ảnh
       req.file = null;
     }
     next();
   });
 };
 
-// Multiple files upload (max 5)
 const uploadMultiple = upload.array('images', 5);
 
 module.exports = { uploadSingle, uploadMultiple };

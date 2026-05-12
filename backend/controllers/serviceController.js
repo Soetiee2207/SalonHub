@@ -1,7 +1,6 @@
 const db = require('../models');
 const { Op } = require('sequelize');
 
-// Get all active services
 const getAllServices = async (req, res, next) => {
   try {
     const { categoryId, search } = req.query;
@@ -31,7 +30,6 @@ const getAllServices = async (req, res, next) => {
   }
 };
 
-// Get service by ID
 const getServiceById = async (req, res, next) => {
   try {
     const service = await db.Service.findByPk(req.params.id, {
@@ -54,7 +52,6 @@ const getServiceById = async (req, res, next) => {
   }
 };
 
-// Create service (admin only)
 const createService = async (req, res, next) => {
   try {
     const { name, description, price, duration, categoryId } = req.body;
@@ -83,7 +80,6 @@ const createService = async (req, res, next) => {
   }
 };
 
-// Update service (admin only)
 const updateService = async (req, res, next) => {
   try {
     const service = await db.Service.findByPk(req.params.id);
@@ -124,7 +120,6 @@ const updateService = async (req, res, next) => {
   }
 };
 
-// Delete service - soft delete (admin only)
 const deleteService = async (req, res, next) => {
   try {
     const service = await db.Service.findByPk(req.params.id);
@@ -147,7 +142,6 @@ const deleteService = async (req, res, next) => {
   }
 };
 
-// Get all service categories
 const getAllCategories = async (req, res, next) => {
   try {
     const categories = await db.ServiceCategory.findAll({
@@ -163,7 +157,6 @@ const getAllCategories = async (req, res, next) => {
   }
 };
 
-// Create service category (admin only)
 const createCategory = async (req, res, next) => {
   try {
     const { name, description } = req.body;
@@ -179,7 +172,6 @@ const createCategory = async (req, res, next) => {
   }
 };
 
-// Update service category (admin only)
 const updateCategory = async (req, res, next) => {
   try {
     const category = await db.ServiceCategory.findByPk(req.params.id);
@@ -208,7 +200,6 @@ const updateCategory = async (req, res, next) => {
   }
 };
 
-// Delete service category (admin only)
 const deleteCategory = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -219,11 +210,9 @@ const deleteCategory = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Category not found.' });
     }
 
-    // 1. Tìm các dịch vụ thuộc danh mục này
     const services = await db.Service.findAll({ where: { categoryId: id }, attributes: ['id'], transaction });
     const serviceIds = services.map(s => s.id);
 
-    // 2. Vô hiệu hóa khóa ngoại
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {
@@ -241,7 +230,6 @@ const deleteCategory = async (req, res, next) => {
         }
       }
 
-      // 3. Xóa danh mục
       await db.sequelize.query(`DELETE FROM service_categories WHERE id = ${id}`, { transaction });
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
@@ -269,7 +257,6 @@ const bulkDeleteServices = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ.' });
     }
 
-    // Dùng RAW SQL để ép xóa sạch không lo khóa ngoại
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {

@@ -10,11 +10,9 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
   const socket = useSocket();
   const [copiedField, setCopiedField] = useState(null);
 
-  // Auto-redirect on payment success
   useEffect(() => {
     if (socket && isOpen) {
       const handlePaymentSuccess = (data) => {
-        // Match either order or appointment
         const isMatch = (orderId && data.type === 'ORDER' && Number(data.id) === Number(orderId)) ||
                         (apptId && data.type === 'APP' && Number(data.id) === Number(apptId));
 
@@ -43,7 +41,6 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
 
   const content = orderId ? `SH${orderId}` : `AP${apptId}`;
   
-  // Generating VietQR URL
   const qrUrl = `https://img.vietqr.io/image/${bankInfo.bankId}-${bankInfo.accountNumber}-compact2.png?amount=${amount}&addInfo=${content}&accountName=${encodeURIComponent(bankInfo.accountName)}`;
 
   const copyToClipboard = (text, field) => {

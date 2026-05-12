@@ -12,7 +12,6 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  // Cập nhật step và email nếu initialEmail thay đổi
   useEffect(() => {
     if (isOpen) {
       setEmail(initialEmail);
@@ -22,7 +21,6 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
       setConfirmPassword('');
       setCountdown(0);
       
-      // Tự động gửi OTP nếu có initialEmail (ví dụ: từ trang Profile)
       if (initialEmail) {
         handleSendOtp(initialEmail);
       }
@@ -61,10 +59,6 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
   const handleVerifyOtpAndReset = async () => {
     if (step === 2) {
       if (!otp || otp.length !== 6) return toast.error('Vui lòng nhập đủ 6 số OTP');
-      // Ở luồng này, ta có thể cho phép người dùng chuyển qua bước 3 luôn, 
-      // rồi gửi chung email + otp + newPassword lên server 1 lượt.
-      // Nhưng để chắc chắn, ta kiểm tra frontend xem đã đủ chưa, 
-      // vì server hiện tại chỉ có 1 hàm resetPassword gộp.
       setStep(3);
     } else if (step === 3) {
       if (newPassword.length < 6) return toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
@@ -79,10 +73,9 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
         });
         if (res.success) {
           toast.success('Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
-          onClose(); // Đóng modal
+          onClose();
         } else {
           toast.error(res.message || 'Có lỗi xảy ra');
-          // Nếu OTP sai, quay lại bước 2
           if (res.message.includes('Mã xác thực')) setStep(2);
         }
       } catch (err) {
@@ -98,7 +91,6 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-up">
-        {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-bold text-gray-800">
             {step === 1 ? 'Quên mật khẩu' : step === 2 ? 'Xác thực OTP' : 'Tạo mật khẩu mới'}
@@ -108,7 +100,6 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           {step === 1 && (
             <div className="space-y-4">

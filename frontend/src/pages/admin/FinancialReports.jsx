@@ -23,14 +23,12 @@ export default function FinancialReports() {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Báo cáo P&L');
 
-      // Style constants
       const headerStyle = {
         font: { bold: true, color: { argb: 'FFFFFFFF' } },
         fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } },
         alignment: { horizontal: 'center' }
       };
 
-      // Title
       worksheet.mergeCells('A1:D1');
       worksheet.getCell('A1').value = 'BÁO CÁO KẾT QUẢ KINH DOANH (P&L)';
       worksheet.getCell('A1').font = { size: 16, bold: true };
@@ -42,11 +40,9 @@ export default function FinancialReports() {
 
       worksheet.addRow([]); // Blank line
 
-      // Table Header
       const headerRow = worksheet.addRow(['STT', 'CHỈ TIÊU', 'GIÁ TRỊ', 'GHI CHÚ']);
       headerRow.eachCell(cell => cell.style = headerStyle);
 
-      // Data Rows
       worksheet.addRow([1, 'DOANH THU DỊCH VỤ SALON', stats.revenue.service, 'Cắt, uốn, nhuộm...']);
       worksheet.addRow([2, 'DOANH THU BÁN LẺ SẢN PHẨM', stats.revenue.retail, 'Sáp, gội, xịt...']);
       const revTotalRow = worksheet.addRow(['', 'TỔNG DOANH THU', stats.revenue.total, '']);
@@ -64,7 +60,6 @@ export default function FinancialReports() {
       profitRow.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
       profitRow.getCell(3).font = { color: { argb: 'FF065F46' }, bold: true };
 
-      // Formatting
       worksheet.getColumn(2).width = 40;
       worksheet.getColumn(3).width = 25;
       worksheet.getColumn(3).numFmt = '#,##0';

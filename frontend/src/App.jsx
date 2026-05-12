@@ -11,7 +11,6 @@ import AdminLayout from './components/layout/AdminLayout';
 import { lazy, Suspense } from 'react';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
-// Customer pages
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
@@ -27,11 +26,9 @@ const MyAppointments = lazy(() => import('./pages/appointments/MyAppointments'))
 const MyOrders = lazy(() => import('./pages/orders/MyOrders'));
 const OrderDetail = lazy(() => import('./pages/orders/OrderDetail'));
 const Notifications = lazy(() => import('./pages/notifications/Notifications'));
-const VnpayReturn = lazy(() => import('./pages/payments/VnpayReturn'));
 const MyAddresses = lazy(() => import('./pages/addresses/MyAddresses'));
 const Contact = lazy(() => import('./pages/Contact'));
 
-// Admin pages
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const StaffDashboard = lazy(() => import('./pages/admin/StaffDashboard'));
 const WarehouseDashboard = lazy(() => import('./pages/admin/WarehouseDashboard'));
@@ -85,7 +82,6 @@ function App() {
                     <Route path="/products" element={<Products />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
                     <Route path="/contact" element={<Contact />} />
-                    <Route path="/vnpay-return" element={<VnpayReturn />} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                     <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                     <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
@@ -97,7 +93,7 @@ function App() {
                     <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   </Route>
 
-                  {/* Admin/Staff Routes — all management roles */}
+                  {/* Admin/Staff Routes */}
                   <Route
                     path="/admin"
                     element={

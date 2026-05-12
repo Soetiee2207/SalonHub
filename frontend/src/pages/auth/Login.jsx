@@ -26,12 +26,10 @@ export default function Login() {
     }
   }, [user, navigate]);
 
-  // Handle Google Redirect callback (code in URL)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     if (code) {
-      // Clear code from URL to keep it clean
       window.history.replaceState({}, '', '/login');
       
       const processGoogleLogin = async () => {
@@ -59,7 +57,6 @@ export default function Login() {
     redirect_uri: window.location.origin + '/login',
   });
 
-  // Form submit handler
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };

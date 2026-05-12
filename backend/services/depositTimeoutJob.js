@@ -32,13 +32,11 @@ const cancelExpiredDeposits = async () => {
         cancelReason: 'Tự động hủy: Quá thời hạn đặt cọc (30 phút)',
       });
 
-      // Cancel the pending payment record
       await db.Payment.update(
         { status: 'failed' },
         { where: { appointmentId: appointment.id, status: 'pending' } },
       );
 
-      // Notify customer
       const { createNotification } = require('../controllers/notificationController');
       await createNotification({
         userId: appointment.userId,
@@ -57,7 +55,6 @@ const cancelExpiredDeposits = async () => {
 const startDepositTimeoutJob = () => {
   console.log(`⏰ Deposit timeout job started (check every ${CHECK_INTERVAL_MS / 60000} min, timeout: ${DEPOSIT_TIMEOUT_MINUTES} min)`);
   setInterval(cancelExpiredDeposits, CHECK_INTERVAL_MS);
-  // Also run once immediately on startup
   cancelExpiredDeposits();
 };
 

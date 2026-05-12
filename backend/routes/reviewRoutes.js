@@ -12,16 +12,13 @@ const {
   deleteReview,
 } = require('../controllers/reviewController');
 
-// Public routes
 router.get('/staff/:staffId', getStaffReviews);
 router.get('/service/:serviceId', getServiceReviews);
 router.get('/product/:productId', getProductReviews);
 
-// Protected routes (require authentication)
 router.post('/service', authenticate, createReview);
 router.post('/product', authenticate, createProductReview);
 
-// Admin routes
 router.get('/', authenticate, authorize('admin'), getAllReviewsAdmin);
 router.put('/:id', authenticate, authorize('admin'), updateReviewAdmin);
 

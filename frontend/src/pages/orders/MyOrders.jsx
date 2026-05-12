@@ -284,7 +284,8 @@ export default function MyOrders() {
                           <span>{itemCount} sản phẩm</span>
                           <span className="text-gray-300">|</span>
                           <span>
-                            {order.paymentMethod === 'vnpay' ? 'VNPay' : 'COD'}
+                            {order.paymentMethod === 'sepay' ? 'Chuyển khoản' : 
+                             order.paymentMethod === 'cash' ? 'Tiền mặt' : 'COD'}
                           </span>
                         </div>
                         <p className="text-lg font-bold text-[var(--primary)]">

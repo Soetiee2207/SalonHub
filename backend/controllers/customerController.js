@@ -1,7 +1,6 @@
 const db = require('../models');
 const { Op } = require('sequelize');
 
-// Get all customers (CRM List)
 const getAllCustomers = async (req, res, next) => {
   try {
     const { search } = req.query;
@@ -66,7 +65,6 @@ const getAllCustomers = async (req, res, next) => {
   }
 };
 
-// Get single customer details with history
 const getCustomerDetails = async (req, res, next) => {
   try {
     const customer = await db.User.findOne({
@@ -117,7 +115,6 @@ const getCustomerDetails = async (req, res, next) => {
   }
 };
 
-// Update customer details (CRM Correction)
 const updateCustomer = async (req, res, next) => {
   try {
     const customer = await db.User.findOne({
@@ -143,7 +140,6 @@ const updateCustomer = async (req, res, next) => {
   }
 };
 
-// Toggle customer status (Lock/Unlock)
 const toggleCustomerStatus = async (req, res, next) => {
   try {
     const customer = await db.User.findOne({
@@ -169,7 +165,6 @@ const toggleCustomerStatus = async (req, res, next) => {
   }
 };
 
-// Delete customer (Data Cleanup)
 const deleteCustomer = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -187,16 +182,13 @@ const deleteCustomer = async (req, res, next) => {
       });
     }
 
-    // Delete associated data first to avoid FK constraints
     await db.Address.destroy({ where: { userId: id }, transaction });
     await db.Review.destroy({ where: { userId: id }, transaction });
     await db.OtpCode.destroy({ where: { email: customer.email }, transaction });
     
-    // Also delete appointments and orders if cleaning up
     await db.Appointment.destroy({ where: { userId: id }, transaction });
     await db.Order.destroy({ where: { userId: id }, transaction });
     
-    // Finally delete the user
     await customer.destroy({ transaction });
 
     await transaction.commit();
@@ -225,7 +217,6 @@ const bulkDeleteCustomers = async (req, res, next) => {
       });
     }
 
-    // Lấy thông tin email của các khách hàng để xóa OTP
     const customers = await db.User.findAll({
       where: { id: { [Op.in]: ids }, role: 'customer' },
       attributes: ['id', 'email'],
@@ -235,11 +226,9 @@ const bulkDeleteCustomers = async (req, res, next) => {
     const emails = customers.map(c => c.email);
     const foundIds = customers.map(c => c.id);
 
-    // Dùng RAW SQL để ép xóa sạch không lo khóa ngoại
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {
-      // Xóa ở tất cả các bảng có thể liên quan
       const queries = [
         `DELETE FROM addresses WHERE userId IN (${foundIds.join(',')})`,
         `DELETE FROM reviews WHERE userId IN (${foundIds.join(',')})`,

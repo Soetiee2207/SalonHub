@@ -14,8 +14,6 @@ export default function ReturnModal({
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    // In a real app, you would upload to a server/S3
-    // For now, we simulate with local URLs
     const newImages = files.map(file => URL.createObjectURL(file));
     setImages(prev => [...prev, ...newImages].slice(0, 5)); // Limit to 5 images
   };

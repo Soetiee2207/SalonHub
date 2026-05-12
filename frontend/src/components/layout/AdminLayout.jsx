@@ -10,7 +10,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { notificationService } from '../../services/notificationService';
 
-// Sidebar links per role
 const linksByRole = {
   admin: [
     { to: '/admin', icon: FiGrid, label: 'Dashboard', exact: true },
@@ -42,7 +41,7 @@ const linksByRole = {
   ],
   accountant: [
     { to: '/admin', icon: FiGrid, label: 'Dashboard', exact: true },
-    { to: '/admin/reconciliation', icon: FiCreditCard, label: 'Đối soát VNPAY/COD' },
+    { to: '/admin/reconciliation', icon: FiCreditCard, label: 'Đối soát SePay/COD' },
     { to: '/admin/cash-ledger', icon: FiDollarSign, label: 'Sổ quỹ Thu/Chi' },
     { to: '/admin/refunds', icon: FiRefreshCw, label: 'Xử lý Hoàn tiền' },
     { to: '/admin/reports', icon: FiFileText, label: 'Báo cáo Tài chính' },

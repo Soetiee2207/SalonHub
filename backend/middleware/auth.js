@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../models');
 
-// JWT authentication middleware
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -47,7 +46,6 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// Role authorization middleware
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {

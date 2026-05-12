@@ -2,7 +2,6 @@ const errorHandler = (err, req, res, next) => {
   console.error('Error:', err.message);
   console.error('Stack:', err.stack);
 
-  // Sequelize validation error
   if (err.name === 'SequelizeValidationError') {
     const messages = err.errors.map((e) => e.message);
     return res.status(400).json({
@@ -12,7 +11,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Sequelize unique constraint error
   if (err.name === 'SequelizeUniqueConstraintError') {
     const messages = err.errors.map((e) => e.message);
     return res.status(409).json({
@@ -22,7 +20,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Sequelize foreign key constraint error
   if (err.name === 'SequelizeForeignKeyConstraintError') {
     return res.status(400).json({
       success: false,
@@ -30,7 +27,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // JWT errors
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
@@ -45,7 +41,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Multer file size error
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
       success: false,
@@ -53,7 +48,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Default server error
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,

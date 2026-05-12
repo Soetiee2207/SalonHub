@@ -5,7 +5,6 @@ require('dotenv').config();
 const errorHandler = require('./middleware/errorHandler');
 
 
-// Import routes
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const branchRoutes = require('./routes/branchRoutes');
@@ -30,17 +29,14 @@ const chatRoutes = require('./routes/chatRoutes');
 const app = express();
 
 
-// Root health check for Render/Cloudflare
 app.get('/', (req, res) => {
   res.json({ success: true, message: 'SalonHub Server is alive and well!' });
 });
 
-// Health check (Must be before main routes and auth)
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'SalonHub API is running' });
 });
 
-// Hardened CORS for production
 const allowedOrigins = [
   'https://salonhub-soe.vercel.app',
   'http://localhost:3000',
@@ -54,16 +50,13 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Handled by app.use(cors(...)) above
 
 
 
 
-// Đảm bảo có dòng này để đọc được body từ request POST (đăng nhập)
 app.use(express.json()); 
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/branches', branchRoutes);
@@ -85,9 +78,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/accountant', accountantRoutes);
 app.use('/api/chat', chatRoutes);
 
-// Moved Health check to top
 
-// Error handler (must be last)
 app.use(errorHandler);
 
 module.exports = app;

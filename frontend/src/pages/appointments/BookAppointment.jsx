@@ -56,7 +56,6 @@ export default function BookAppointment() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Selections
   const [selectedService, setSelectedService] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -64,14 +63,12 @@ export default function BookAppointment() {
   const [selectedTime, setSelectedTime] = useState(null);
   const [note, setNote] = useState('');
 
-  // Deposit state
   const [showBankModal, setShowBankModal] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState(null);
   const [depositInfo, setDepositInfo] = useState(null);
 
   const next7Days = getNext7Days();
 
-  // Load services
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -89,7 +86,6 @@ export default function BookAppointment() {
     fetchServices();
   }, [preselectedServiceId]);
 
-  // Load branches when step 1
   useEffect(() => {
     if (currentStep === 1) {
       setLoading(true);
@@ -100,7 +96,6 @@ export default function BookAppointment() {
     }
   }, [currentStep]);
 
-  // Load staff when step 2
   useEffect(() => {
     if (currentStep === 2 && selectedBranch && selectedService) {
       setLoading(true);
@@ -116,7 +111,6 @@ export default function BookAppointment() {
     }
   }, [currentStep, selectedBranch, selectedService]);
 
-  // Load available slots when step 3 and date selected
   useEffect(() => {
     if (currentStep === 3 && selectedDate && selectedBranch && selectedService) {
       setLoading(true);
@@ -165,7 +159,6 @@ export default function BookAppointment() {
       setCreatedAppointment(data);
       setDepositInfo(data.depositInfo);
 
-      // Show QR modal for deposit payment
       setShowBankModal(true);
       toast.success('Lịch hẹn đã được tạo! Vui lòng đặt cọc để xác nhận.');
     } catch (err) {
@@ -177,11 +170,9 @@ export default function BookAppointment() {
 
   const handleDepositModalClose = () => {
     setShowBankModal(false);
-    // Navigate to my-appointments so they can track deposit status
     navigate('/my-appointments');
   };
 
-  // Step indicator
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-10">
       {STEPS.map((step, idx) => {
@@ -223,7 +214,6 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 0: Choose Service
   const renderStepService = () => (
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn dịch vụ</h2>
@@ -265,7 +255,6 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 1: Choose Branch
   const renderStepBranch = () => (
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn chi nhánh</h2>
@@ -311,7 +300,6 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 2: Choose Staff
   const renderStepStaff = () => (
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn thợ</h2>
@@ -369,7 +357,6 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 3: Choose Date & Time
   const renderStepDateTime = () => (
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-4">Chọn ngày & giờ</h2>
@@ -440,7 +427,6 @@ export default function BookAppointment() {
     </div>
   );
 
-  // Step 4: Confirmation + Deposit
   const renderStepConfirm = () => (
     <div>
       <h2 className="text-xl font-bold text-gray-800 mb-6">Đặt cọc & Xác nhận</h2>

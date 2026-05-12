@@ -20,7 +20,6 @@ export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
     return () => clearInterval(interval);
   }, [isOpen, timer]);
 
-  // Focus first input when modal opens
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => otpInputs.current[0]?.focus(), 100);
@@ -75,7 +74,6 @@ export default function EmailVerifyModal({ isOpen, onClose, email, onVerify }) {
         email,
         otp: otpValue,
       });
-      // Toast and navigation are handled by the parent/onVerify
     } catch (err) {
       toast.error(err.response?.data?.message || 'Mã xác thực không đúng hoặc đã hết hạn');
     } finally {

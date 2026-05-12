@@ -7,7 +7,6 @@ import { staffService } from '../../services/staffService';
 import { productService } from '../../services/productService';
 import { formatPrice } from '../../utils/formatPrice';
 
-// Components
 import AppointmentCalendar from '../../components/dashboard/AppointmentCalendar';
 import BankTransferModal from '../../components/common/BankTransferModal';
 
@@ -38,7 +37,6 @@ export default function AdminAppointments() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterStaff, setFilterStaff] = useState('');
@@ -137,10 +135,6 @@ export default function AdminAppointments() {
       
       const data = res.data?.data || res.data || res;
       
-      if (paymentMethod === 'vnpay' && data.paymentUrl) {
-         window.location.href = data.paymentUrl;
-         return;
-      }
       
       if (paymentMethod === 'sepay') {
         setCreatedResult(data);
@@ -435,12 +429,6 @@ export default function AdminAppointments() {
                            className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'cash' ? 'bg-[#8B5E3C] text-white border-[#8B5E3C]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#8B5E3C]'}`}
                          >
                             TIỀN MẶT
-                         </button>
-                         <button 
-                           onClick={() => setPaymentMethod('vnpay')}
-                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase transition-all border-2 ${paymentMethod === 'vnpay' ? 'bg-[#005BAA] text-white border-[#005BAA]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#005BAA]'}`}
-                         >
-                            VNPAY QR
                          </button>
                          <button 
                            onClick={() => setPaymentMethod('sepay')}

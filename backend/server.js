@@ -5,13 +5,10 @@ const app = require('./app');
 const db = require('./models');
 const socketService = require('./services/socketService');
 
-// Port 10000 là chuẩn của Render
 const PORT = process.env.PORT || 10000; 
 
-// Create HTTP server
 const server = http.createServer(app);
 
-// Initialize Socket.io
 const io = new Server(server, {
   cors: {
     origin: [
@@ -23,22 +20,18 @@ const io = new Server(server, {
   },
 });
 
-// Initialize our socket helper service
 socketService.init(io);
 
-// Store io in app to use in controllers
 app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log('📡 New client connected:', socket.id);
 
-  // Join room based on userId (for private notifications)
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
     console.log(`👤 User ${userId} joined their private room.`);
   });
 
-  // Join room based on role (for group notifications)
   socket.on('join_role', (role) => {
     socket.join(`role_${role}`);
     console.log(`👥 Client joined role room: role_${role}`);
@@ -49,7 +42,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Manual migration: Add missing columns that TiDB can't handle via sync({ alter: true })
 async function runMigrations() {
   const qi = db.sequelize.getQueryInterface();
   const tableDesc = await qi.describeTable('users');
@@ -63,7 +55,6 @@ async function runMigrations() {
     console.log('🔧 Migration: Added column isActive to users');
   }
 
-  // Migration: Thêm branchId cho inventory tracking theo chi nhánh
   try {
     const invDesc = await qi.describeTable('inventory_transactions');
     if (!invDesc.branchId) {
@@ -80,7 +71,6 @@ async function runMigrations() {
     }
   } catch (e) { /* Table may not exist yet */ }
 
-  // Migration: Thêm trường payload cho OTP để lưu tạm thông tin đăng ký
   try {
     const otpDesc = await qi.describeTable('otp_codes');
     if (!otpDesc.payload) {
@@ -90,7 +80,6 @@ async function runMigrations() {
   } catch (e) { /* Table may not exist yet */ }
 }
 
-// Chỉ chạy server sau khi đã kết nối Database thành công
 db.sequelize
   .sync()
   .then(() => runMigrations())
@@ -98,7 +87,6 @@ db.sequelize
     console.log('✅ Success: Database synced successfully.');
     console.log(`📡 Connecting to: ${process.env.DB_HOST || 'local TiDB/MySQL'}`);
     
-    // Start deposit timeout job (auto-cancel expired deposits)
     const { startDepositTimeoutJob } = require('./services/depositTimeoutJob');
     startDepositTimeoutJob();
     

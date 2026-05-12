@@ -2,10 +2,6 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { User, Appointment, Service, Order, OrderItem, Product, CustomerServiceNote, Branch, Review, sequelize } = db;
 
-// ============================================================
-// PUT /api/staff/status
-// Cập nhật trạng thái làm việc của thợ (Available, Break, Busy)
-// ============================================================
 const updateWorkStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
@@ -20,10 +16,6 @@ const updateWorkStatus = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/staff/customer-history/:customerId
-// Lấy lịch sử làm tóc và bí kíp (công thức hóa chất) của một khách
-// ============================================================
 const getCustomerHistoryDetail = async (req, res, next) => {
   try {
     const { customerId } = req.params;
@@ -46,7 +38,6 @@ const getCustomerHistoryDetail = async (req, res, next) => {
       order: [['date', 'DESC'], ['startTime', 'DESC']]
     });
 
-    // Lấy tất cả ghi chú tích lũy cho khách hàng này
     const allNotes = await CustomerServiceNote.findAll({
       where: { customerId },
       include: [{ model: User, as: 'staff', attributes: ['fullName'] }],
@@ -65,10 +56,6 @@ const getCustomerHistoryDetail = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/staff/customer-notes
-// Lưu công thức hóa chất hoặc ghi chú phục vụ khách
-// ============================================================
 const saveCustomerServiceNote = async (req, res, next) => {
   try {
     const { customerId, appointmentId, serviceId, notes, formulas, photos } = req.body;
@@ -89,10 +76,6 @@ const saveCustomerServiceNote = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/staff/dashboard-stats
-// Thống kê nhanh cho thợ (Lịch hôm nay, Review gần đây)
-// ============================================================
 const getStaffDashboardStats = async (req, res, next) => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -110,7 +93,6 @@ const getStaffDashboardStats = async (req, res, next) => {
       where: { staffId, date: today, status: 'completed' }
     });
 
-    // Tính điểm đánh giá trung bình
     const reviews = await Review.findAll({
       where: { staffId, isHidden: false },
       attributes: ['rating']
@@ -138,10 +120,6 @@ const getStaffDashboardStats = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/staff
-// Lấy danh sách tất cả nhân viên (dành cho Admin/Quản lý)
-// ============================================================
 const getAllStaff = async (req, res, next) => {
   try {
     const { branchId, serviceId } = req.query;
@@ -163,7 +141,6 @@ const getAllStaff = async (req, res, next) => {
       }
     ];
 
-    // Lọc theo kĩ năng nếu có serviceId
     if (serviceId) {
       include[1].where = { id: serviceId };
     }
@@ -180,15 +157,10 @@ const getAllStaff = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/staff
-// Thêm nhân viên mới (Admin only)
-// ============================================================
 const createStaff = async (req, res, next) => {
   try {
     const { email, password, fullName, phone, role, branchId } = req.body;
     
-    // Hash password
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -215,10 +187,6 @@ const createStaff = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// PUT /api/staff/:id
-// Cập nhật thông tin nhân viên (Admin only)
-// ============================================================
 const updateStaff = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -242,10 +210,6 @@ const updateStaff = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// DELETE /api/staff/:id
-// Xóa nhân viên (Admin only)
-// ============================================================
 const deleteStaff = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -256,7 +220,6 @@ const deleteStaff = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Nhân viên không tồn tại' });
     }
 
-    // 1. Vô hiệu hóa khóa ngoại để dọn dẹp
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {

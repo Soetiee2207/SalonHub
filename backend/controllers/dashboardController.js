@@ -1,14 +1,12 @@
 const db = require('../models');
 const { Op } = require('sequelize');
 
-// Get overview stats
 const getOverview = async (req, res, next) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // Total revenue from paid orders this month
     const orderRevenue = await db.Order.findOne({
       where: {
         paymentStatus: 'paid',
@@ -20,7 +18,6 @@ const getOverview = async (req, res, next) => {
       raw: true,
     });
 
-    // Total revenue from paid appointments (completed) this month
     const appointmentRevenue = await db.Appointment.findOne({
       where: {
         status: 'completed',
@@ -36,21 +33,18 @@ const getOverview = async (req, res, next) => {
       (parseFloat(orderRevenue.total) || 0) +
       (parseFloat(appointmentRevenue.total) || 0);
 
-    // Total orders this month
     const totalOrders = await db.Order.count({
       where: {
         createdAt: { [Op.between]: [startOfMonth, endOfMonth] },
       },
     });
 
-    // Total appointments this month
     const totalAppointments = await db.Appointment.count({
       where: {
         createdAt: { [Op.between]: [startOfMonth, endOfMonth] },
       },
     });
 
-    // Total customers this month
     const totalCustomers = await db.User.count({
       where: {
         role: 'customer',
@@ -72,7 +66,6 @@ const getOverview = async (req, res, next) => {
   }
 };
 
-// Get revenue chart data
 const getRevenueChart = async (req, res, next) => {
   try {
     const { period } = req.query; // week, month, year
@@ -90,7 +83,6 @@ const getRevenueChart = async (req, res, next) => {
       groupBy = db.sequelize.fn('MONTH', db.sequelize.col('createdAt'));
       dateFormat = 'month';
     } else {
-      // Default: month
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       groupBy = db.sequelize.fn('DATE', db.sequelize.col('createdAt'));
       dateFormat = 'date';
@@ -135,7 +127,6 @@ const getRevenueChart = async (req, res, next) => {
   }
 };
 
-// Get top 5 most booked services
 const getTopServices = async (req, res, next) => {
   try {
     const topServices = await db.Appointment.findAll({
@@ -164,7 +155,6 @@ const getTopServices = async (req, res, next) => {
   }
 };
 
-// Get top 5 best selling products
 const getTopProducts = async (req, res, next) => {
   try {
     const topProducts = await db.OrderItem.findAll({
@@ -193,7 +183,6 @@ const getTopProducts = async (req, res, next) => {
   }
 };
 
-// Get appointment stats by status
 const getAppointmentStats = async (req, res, next) => {
   try {
     const stats = await db.Appointment.findAll({
@@ -214,7 +203,6 @@ const getAppointmentStats = async (req, res, next) => {
   }
 };
 
-// Get new customer registrations
 const getNewCustomers = async (req, res, next) => {
   try {
     const { period } = req.query; // week, month, year
@@ -232,7 +220,6 @@ const getNewCustomers = async (req, res, next) => {
       groupBy = db.sequelize.fn('MONTH', db.sequelize.col('createdAt'));
       dateFormat = 'month';
     } else {
-      // Default: month
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       groupBy = db.sequelize.fn('DATE', db.sequelize.col('createdAt'));
       dateFormat = 'date';
@@ -263,8 +250,6 @@ const getNewCustomers = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/revenue-by-branch
-// Doanh thu theo từng chi nhánh (lịch hẹn hoàn thành)
 const getRevenueByBranch = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
@@ -306,8 +291,6 @@ const getRevenueByBranch = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/appointments-by-staff
-// Số lịch hẹn và doanh thu theo từng nhân viên dịch vụ
 const getAppointmentsByStaff = async (req, res, next) => {
   try {
     const { startDate, endDate, branchId } = req.query;
@@ -370,8 +353,6 @@ const getAppointmentsByStaff = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/daily-revenue
-// Doanh thu ngày hôm nay (orders + appointments)
 const getDailyRevenue = async (req, res, next) => {
   try {
     const now = new Date();
@@ -404,13 +385,11 @@ const getDailyRevenue = async (req, res, next) => {
       where: { date: now.toISOString().split('T')[0] },
     });
 
-    // 1. Lấy tất cả chi nhánh
     const allBranches = await db.Branch.findAll({
       attributes: ['id', 'name'],
       raw: true
     });
 
-    // 2. Lấy doanh thu lịch hẹn hôm nay theo chi nhánh
     const branchStats = await db.Appointment.findAll({
       where: {
         status: 'completed',
@@ -425,7 +404,6 @@ const getDailyRevenue = async (req, res, next) => {
       raw: true,
     });
 
-    // 3. Map lại để luôn có đủ danh sách chi nhánh
     const branchRevenueList = allBranches.map(branch => {
       const stats = branchStats.find(s => Number(s.branchId) === Number(branch.id));
       return {
@@ -452,8 +430,6 @@ const getDailyRevenue = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/top-barbers
-// Top thợ cắt tóc được book nhiều nhất
 const getTopBarbers = async (req, res, next) => {
   try {
     const now = new Date();
@@ -495,8 +471,6 @@ const getTopBarbers = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/hourly-traffic
-// Lưu lượng khách theo khung giờ trong ngày (hôm nay hoặc theo ?date=YYYY-MM-DD)
 const getHourlyTraffic = async (req, res, next) => {
   try {
     const targetDate = req.query.date || new Date().toISOString().split('T')[0];
@@ -512,7 +486,6 @@ const getHourlyTraffic = async (req, res, next) => {
       raw: true,
     });
 
-    // Fill all hours 8-20
     const fullHours = [];
     for (let h = 8; h <= 20; h++) {
       const found = traffic.find((t) => Number(t.hour) === h);
@@ -532,13 +505,10 @@ const getHourlyTraffic = async (req, res, next) => {
   }
 };
 
-// GET /api/dashboard/command-center
-// All-in-one data for the new dashboard "Hot Alerts" and "Live Schedule"
 const getCommandCenter = async (req, res, next) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Low stock alerts
     const lowStock = await db.Product.findAll({
       where: {
         stock: { [Op.lte]: db.sequelize.col('minStock') },
@@ -547,7 +517,6 @@ const getCommandCenter = async (req, res, next) => {
       limit: 5,
     });
 
-    // 2. Pending appointments
     const pendingAppointments = await db.Appointment.findAll({
       where: { status: 'pending' },
       include: [
@@ -558,7 +527,6 @@ const getCommandCenter = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
-    // 3. Today's live schedule
     const todaySchedule = await db.Appointment.findAll({
       where: { date: today },
       include: [
@@ -570,14 +538,12 @@ const getCommandCenter = async (req, res, next) => {
       order: [['startTime', 'ASC']],
     });
 
-    // 4. Recent reviews
     const recentServiceReviews = await db.Review.findAll({
       limit: 5,
       order: [['createdAt', 'DESC']],
       include: [{ model: db.User, as: 'customer', attributes: ['fullName'] }],
     });
 
-    // 5. Hourly traffic for today
     const traffic = await db.Appointment.findAll({
       where: { date: today },
       attributes: [

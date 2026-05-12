@@ -9,7 +9,6 @@ const {
   clearCart,
 } = require('../controllers/cartController');
 
-// All routes require authentication
 router.use(authenticate);
 
 router.get('/', getCart);

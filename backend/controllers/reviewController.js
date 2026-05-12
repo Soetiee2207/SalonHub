@@ -2,7 +2,6 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { Review, ProductReview, Appointment, User, Product, Service, Order, OrderItem } = db;
 
-// POST /service - Customer creates review for completed appointment
 const createReview = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -22,7 +21,6 @@ const createReview = async (req, res, next) => {
       });
     }
 
-    // Verify appointment exists, belongs to user, and is completed
     const appointment = await Appointment.findByPk(appointmentId);
     if (!appointment) {
       return res.status(404).json({
@@ -45,7 +43,6 @@ const createReview = async (req, res, next) => {
       });
     }
 
-    // Check if review already exists for this appointment
     const existingReview = await Review.findOne({ where: { appointmentId, userId } });
     if (existingReview) {
       return res.status(400).json({
@@ -79,7 +76,6 @@ const createReview = async (req, res, next) => {
   }
 };
 
-// GET /staff/:staffId - Public. Get all reviews for a staff member
 const getStaffReviews = async (req, res, next) => {
   try {
     const { staffId } = req.params;
@@ -97,7 +93,6 @@ const getStaffReviews = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
-    // Calculate average rating
     let averageRating = 0;
     if (reviews.length > 0) {
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
@@ -117,7 +112,6 @@ const getStaffReviews = async (req, res, next) => {
   }
 };
 
-// GET /service/:serviceId - Public. Get all reviews for a service
 const getServiceReviews = async (req, res, next) => {
   try {
     const { serviceId } = req.params;
@@ -155,7 +149,6 @@ const getServiceReviews = async (req, res, next) => {
   }
 };
 
-// GET /product/:productId - Public. Get all reviews for a product
 const getProductReviews = async (req, res, next) => {
   try {
     const { productId } = req.params;
@@ -168,7 +161,6 @@ const getProductReviews = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
-    // Calculate average rating
     let averageRating = 0;
     if (reviews.length > 0) {
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
@@ -188,7 +180,6 @@ const getProductReviews = async (req, res, next) => {
   }
 };
 
-// POST /product - Customer creates product review
 const createProductReview = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -208,7 +199,6 @@ const createProductReview = async (req, res, next) => {
       });
     }
 
-    // Check if user has a delivered or completed order with this product
     const purchased = await Order.findOne({
       where: {
         userId,
@@ -228,7 +218,6 @@ const createProductReview = async (req, res, next) => {
       });
     }
 
-    // Check if user already reviewed this product
     const existingReview = await ProductReview.findOne({
       where: { userId, productId },
     });
@@ -262,7 +251,6 @@ const createProductReview = async (req, res, next) => {
   }
 };
 
-// GET / - Admin/Receptionist. Get all reviews (service + product)
 const getAllReviewsAdmin = async (req, res, next) => {
   try {
     const [serviceReviews, productReviews] = await Promise.all([
@@ -287,7 +275,6 @@ const getAllReviewsAdmin = async (req, res, next) => {
       }),
     ]);
 
-    // Map to a unified format
     const unified = [
       ...serviceReviews.map(r => ({
         ...r.toJSON(),
@@ -314,7 +301,6 @@ const getAllReviewsAdmin = async (req, res, next) => {
   }
 };
 
-// PUT /:id - Admin/Receptionist. Update review (Reply or Toggle hidden)
 const updateReviewAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -354,19 +340,16 @@ const updateReviewAdmin = async (req, res, next) => {
   }
 };
 
-// DELETE /:id - Admin or review owner can delete
 const deleteReview = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // Try to find in service reviews first
     let review = await Review.findByPk(id);
     let reviewType = 'service';
 
     if (!review) {
-      // Try product reviews
       review = await ProductReview.findByPk(id);
       reviewType = 'product';
     }
@@ -378,7 +361,6 @@ const deleteReview = async (req, res, next) => {
       });
     }
 
-    // Check permission: admin or review owner
     if (userRole !== 'admin' && review.userId !== userId) {
       return res.status(403).json({
         success: false,

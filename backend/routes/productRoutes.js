@@ -15,18 +15,15 @@ const {
   deleteCategory,
 } = require('../controllers/productController');
 
-// Public routes
 router.get('/', getAllProducts);
 router.get('/categories', getAllCategories);
 router.get('/:id', getProductById);
 
-// Admin only routes - products
 router.post('/', authenticate, authorize('admin'), uploadSingle, createProduct);
 router.put('/:id', authenticate, authorize('admin'), uploadSingle, updateProduct);
 router.post('/bulk-delete', authenticate, authorize('admin'), bulkDeleteProducts);
 router.delete('/:id', authenticate, authorize('admin'), deleteProduct);
 
-// Admin only routes - categories
 router.post('/categories', authenticate, authorize('admin'), createCategory);
 router.put('/categories/:id', authenticate, authorize('admin'), updateCategory);
 router.delete('/categories/:id', authenticate, authorize('admin'), deleteCategory);

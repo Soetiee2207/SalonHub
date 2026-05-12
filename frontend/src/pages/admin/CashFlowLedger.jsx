@@ -18,7 +18,6 @@ export default function CashFlowLedger() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({ type: '', category: '', page: 1 });
   
-  // Detail Modal State
   const [selectedRef, setSelectedRef] = useState(null);
   const [refLoading, setRefLoading] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -46,7 +45,6 @@ export default function CashFlowLedger() {
     }
   };
 
-  // Lọc theo từ khóa tìm kiếm
   useEffect(() => {
     if (!searchTerm.trim()) {
       setData(allData);

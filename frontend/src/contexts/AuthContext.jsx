@@ -53,7 +53,6 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (data) => {
-    // Backend now sends OTP instead of token — don't save anything
     const res = await authService.register(data);
     return res;
   };
@@ -66,7 +65,6 @@ export function AuthProvider({ children }) {
 
   const verifyOtp = async (data) => {
     const res = await authService.verifyOtp(data);
-    // After verification, update the user state locally
     const updatedUser = { ...user, isEmailVerified: true };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));

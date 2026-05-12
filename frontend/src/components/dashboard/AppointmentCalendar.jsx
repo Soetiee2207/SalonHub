@@ -4,7 +4,6 @@ import { FiChevronLeft, FiChevronRight, FiClock, FiUser } from 'react-icons/fi';
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8 AM to 8 PM
 
 const AppointmentCalendar = ({ appointments = [], currentDate, onDateChange, onAppointmentClick }) => {
-  // Logic to calculate the week range based on currentDate
   const weekDays = useMemo(() => {
     const start = new Date(currentDate);
     const day = start.getDay();

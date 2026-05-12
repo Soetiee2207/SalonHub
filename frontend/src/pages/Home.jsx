@@ -5,9 +5,6 @@ import { serviceService } from '../services/serviceService';
 import { productService } from '../services/productService';
 import { formatPrice } from '../utils/formatPrice';
 
-// ============================================================
-// Hero carousel slides
-// ============================================================
 const HERO_SLIDES = [
   {
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
@@ -66,9 +63,6 @@ const stats = [
   { icon: FiStar, value: '4.8', label: 'Đánh giá trung bình' },
 ];
 
-// ============================================================
-// Hero Banner Carousel
-// ============================================================
 function HeroBanner() {
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -88,7 +82,6 @@ function HeroBanner() {
     goToSlide((current - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
   }, [current, goToSlide]);
 
-  // Auto-slide every 5s
   useEffect(() => {
     const timer = setInterval(nextSlide, 5000);
     return () => clearInterval(timer);
@@ -180,9 +173,6 @@ function HeroBanner() {
   );
 }
 
-// ============================================================
-// Main Home Page
-// ============================================================
 export default function Home() {
   const [services, setServices] = useState([]);
   const [products, setProducts] = useState([]);

@@ -18,7 +18,6 @@ export default function WarehouseInventoryDocs() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   
-  // Form States
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',

@@ -179,7 +179,6 @@ export default function Profile() {
         setRecentAppointments(Array.isArray(appointments) ? appointments.slice(0, 3) : []);
         setRecentOrders(Array.isArray(orders) ? orders.slice(0, 3) : []);
       } catch {
-        // ignore
       } finally {
         setLoadingHistory(false);
       }

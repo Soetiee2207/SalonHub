@@ -27,7 +27,6 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
 
   const navigate = useNavigate();
 
-  // Listen for payment success to close console automatically
   useEffect(() => {
     if (socket && checkoutMode && paymentMethod === 'sepay') {
       const handlePaymentSuccess = (data) => {
@@ -47,7 +46,6 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
 
   useEffect(() => {
     fetchProducts();
-    // If appointment already has an upsell order, load its items
     if (appointment.upsellOrder?.items) {
       setItems(appointment.upsellOrder.items.map(item => ({
         productId: item.productId,
@@ -98,7 +96,6 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
     try {
       setLoading(true);
       
-      // 1. Save notes & formulas if any
       if (note || formula) {
         await staffService.saveNote({
           customerId: appointment.userId,
@@ -109,7 +106,6 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
         });
       }
 
-      // 2. Perform checkout
       const res = await staffService.checkout(appointment.id, {
         products: items,
         paymentMethod

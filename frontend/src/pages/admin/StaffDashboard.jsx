@@ -14,7 +14,6 @@ import toast from 'react-hot-toast';
 import moment from 'moment';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Sub-components
 import ServiceConsole from '../../components/staff/ServiceConsole';
 import CustomerHistoryModal from '../../components/staff/CustomerHistoryModal';
 import QuickBookingModal from '../../components/staff/QuickBookingModal';
@@ -46,7 +45,6 @@ export default function StaffDashboard() {
       const reviewsData = reviewsRes.data?.data || reviewsRes.data;
       if (reviewsData?.reviews) setReviews(reviewsData.reviews);
       
-      // Auto-set the "In Progress" appointment as currently selected
       const active = Array.isArray(appstList) ? appstList.find(a => a?.status === 'in_progress') : null;
       if (active) setSelectedAppt(active);
     } catch (err) {

@@ -2,14 +2,12 @@ const db = require('../models');
 const { ReturnRequest, Order, OrderItem, Product, User, sequelize } = db;
 const { createNotification, createRoleNotification } = require('./notificationController');
 
-// Khách hàng tạo yêu cầu trả hàng
 const createReturnRequest = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
     const userId = req.user.id;
     const { orderId, reason, images } = req.body;
 
-    // 1. Kiểm tra đơn hàng tồn tại và thuộc về khách hàng
     const order = await Order.findOne({
       where: { id: orderId, userId },
       include: [{ model: ReturnRequest, as: 'returnRequest' }]
@@ -19,7 +17,6 @@ const createReturnRequest = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
 
-    // 2. Kiểm tra điều kiện trả hàng (phải là đã giao hoặc đã hoàn thành)
     if (!['delivered', 'completed'].includes(order.status)) {
       return res.status(400).json({ 
         success: false, 
@@ -27,12 +24,10 @@ const createReturnRequest = async (req, res, next) => {
       });
     }
 
-    // 3. Kiểm tra xem đã có yêu cầu chưa
     if (order.returnRequest) {
       return res.status(400).json({ success: false, message: 'Đơn hàng này đã có yêu cầu trả hàng' });
     }
 
-    // 4. Tạo yêu cầu trả hàng
     const returnRequest = await ReturnRequest.create({
       orderId,
       userId,
@@ -43,7 +38,6 @@ const createReturnRequest = async (req, res, next) => {
 
     await t.commit();
 
-    // Thông báo cho Admin/Staff
     await createRoleNotification('admin', {
       title: 'Yêu cầu trả hàng mới',
       message: `Khách hàng vừa gửi yêu cầu trả hàng cho đơn #${orderId}. Lý do: ${reason}`,
@@ -61,7 +55,6 @@ const createReturnRequest = async (req, res, next) => {
   }
 };
 
-// Admin/Staff lấy tất cả yêu cầu trả hàng
 const getAllReturnRequests = async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -83,7 +76,6 @@ const getAllReturnRequests = async (req, res, next) => {
   }
 };
 
-// Khách hàng lấy danh sách yêu cầu trả hàng của mình
 const getMyReturnRequests = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -101,7 +93,6 @@ const getMyReturnRequests = async (req, res, next) => {
   }
 };
 
-// Admin cập nhật trạng thái yêu cầu trả hàng
 const updateReturnRequestStatus = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
@@ -123,12 +114,9 @@ const updateReturnRequestStatus = async (req, res, next) => {
     const oldStatus = returnRequest.status;
     const newStatus = status;
 
-    // logic xử lý đặc biệt khi hoàn thành trả hàng
     if (newStatus === 'completed' && oldStatus !== 'completed') {
       const { RefundRequest, InventoryTransaction, Product } = db;
 
-      // 1. Phục hồi tồn kho (stock) và ghi nhận giao dịch kho
-      // Chỉ khi đơn đã từng xuất kho (packing, shipping, delivered, completed)
       if (['packing', 'shipping', 'delivered', 'completed'].includes(returnRequest.order.status)) {
         for (const item of returnRequest.order.items) {
           const product = await Product.findByPk(item.productId, { transaction: t });
@@ -153,7 +141,6 @@ const updateReturnRequestStatus = async (req, res, next) => {
         }
       }
 
-      // 2. Có thể tự động tạo RefundRequest nếu đơn đã thanh toán
       if (returnRequest.order.paymentStatus === 'paid') {
         await RefundRequest.create({
           type: 'order',
@@ -164,7 +151,6 @@ const updateReturnRequestStatus = async (req, res, next) => {
         }, { transaction: t });
       }
       
-      // 3. Chuyển trạng thái đơn hàng sang cancelled
       await Order.update({ status: 'cancelled' }, { 
         where: { id: returnRequest.orderId }, 
         transaction: t 
@@ -175,7 +161,6 @@ const updateReturnRequestStatus = async (req, res, next) => {
 
     await t.commit();
 
-    // Thông báo cho khách hàng
     const statusMsgs = {
       approved: 'đã được chấp nhận. Vui lòng gửi hàng lại cho chúng tôi.',
       rejected: 'đã bị từ chối.',

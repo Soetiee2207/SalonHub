@@ -54,7 +54,7 @@ export default function PaymentReconciliation() {
             </div>
             Đối soát Thanh toán
           </h1>
-          <p className="text-slate-400 mt-2 font-medium">Đối chiếu các giao dịch VNPay/Chuyển khoản và tiền mặt (COD) vào hệ thống tài chính</p>
+          <p className="text-slate-400 mt-2 font-medium">Đối chiếu các giao dịch Chuyển khoản (SePay) và tiền mặt (COD) vào hệ thống tài chính</p>
         </div>
         
         <div className="flex bg-slate-100 p-2 rounded-2xl gap-2 font-black text-[10px] uppercase">
@@ -77,7 +77,7 @@ export default function PaymentReconciliation() {
             </div>
             
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 italic text-[10px] text-slate-400 font-bold leading-relaxed space-y-3">
-               <p>• VNPay: Đối soát theo mã giao dịch hệ thống.</p>
+               <p>• SePay: Đối soát tự động/thủ công theo mã giao dịch ngân hàng.</p>
                <p>• COD: Đối soát theo mã vận đơn hoặc mã đơn hàng.</p>
             </div>
          </div>
@@ -135,9 +135,9 @@ export default function PaymentReconciliation() {
                             </td>
                             <td className="px-8 py-6 text-center">
                                <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter border ${
-                                 p.method === 'vnpay' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'
+                                 p.method === 'sepay' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'
                                }`}>
-                                 {p.method}
+                                 {p.method === 'sepay' ? 'Chuyển khoản (SePay)' : p.method === 'cod' ? 'Tiền mặt (COD)' : p.method}
                                </span>
                             </td>
                             <td className="px-8 py-6 text-right font-black text-lg text-slate-800">

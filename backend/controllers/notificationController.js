@@ -2,7 +2,6 @@ const db = require('../models');
 const { Op } = require('sequelize');
 const socketService = require('../services/socketService');
 
-// Get current user's notifications
 const getMyNotifications = async (req, res, next) => {
   try {
     const { unread } = req.query;
@@ -18,7 +17,6 @@ const getMyNotifications = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
-    // Count total unread notifications for this user
     const totalUnread = await db.Notification.count({
       where: { userId: req.user.id, isRead: false }
     });
@@ -33,7 +31,6 @@ const getMyNotifications = async (req, res, next) => {
   }
 };
 
-// Get current user's unread notification count
 const getUnreadCount = async (req, res, next) => {
   try {
     const count = await db.Notification.count({
@@ -49,7 +46,6 @@ const getUnreadCount = async (req, res, next) => {
   }
 };
 
-// Mark single notification as read
 const markAsRead = async (req, res, next) => {
   try {
     const notification = await db.Notification.findOne({
@@ -74,7 +70,6 @@ const markAsRead = async (req, res, next) => {
   }
 };
 
-// Mark all notifications as read
 const markAllAsRead = async (req, res, next) => {
   try {
     await db.Notification.update(
@@ -91,7 +86,6 @@ const markAllAsRead = async (req, res, next) => {
   }
 };
 
-// Delete a notification
 const deleteNotification = async (req, res, next) => {
   try {
     const notification = await db.Notification.findOne({
@@ -116,7 +110,6 @@ const deleteNotification = async (req, res, next) => {
   }
 };
 
-// Internal helper - create notification for a user
 const createNotification = async ({ userId, title, message, type }) => {
   try {
     const notification = await db.Notification.create({
@@ -126,7 +119,6 @@ const createNotification = async ({ userId, title, message, type }) => {
       type: type || null,
     });
 
-    // Send real-time notification via Socket.io
     socketService.sendToUser(userId, 'new_notification', notification);
 
     return notification;
@@ -143,10 +135,8 @@ const createNotification = async ({ userId, title, message, type }) => {
  */
 const createRoleNotification = async (role, { title, message, type }) => {
   try {
-    // 1. Tìm tất cả người dùng có role này
     const users = await db.User.findAll({ where: { role } });
     
-    // 2. Tạo bản ghi Notification cho từng người (để lưu vào DB)
     const notifications = await Promise.all(
       users.map(user => db.Notification.create({
         userId: user.id,
@@ -156,8 +146,6 @@ const createRoleNotification = async (role, { title, message, type }) => {
       }))
     );
 
-    // 3. Gửi socket emit duy nhất 1 lần cho cả Room của Role đó
-    // Lưu ý: Dữ liệu gửi đi có thể là thông báo chung, client sẽ tự fetch lại hoặc lấy data này
     socketService.sendToRole(role, 'new_role_notification', {
       title,
       message,
@@ -181,11 +169,9 @@ const createRoleNotification = async (role, { title, message, type }) => {
 const createBranchRoleNotification = async (role, branchId, { title, message, type }) => {
   try {
     if (!branchId) {
-      // Fallback: gửi cho tất cả user có role này nếu không có branchId
       return await createRoleNotification(role, { title, message, type });
     }
 
-    // Tìm user có đúng role + branchId
     const users = await db.User.findAll({ where: { role, branchId } });
     
     const notifications = await Promise.all(
@@ -197,7 +183,6 @@ const createBranchRoleNotification = async (role, branchId, { title, message, ty
       }))
     );
 
-    // Gửi socket cho từng user trong chi nhánh
     notifications.forEach((notif, idx) => {
       socketService.sendToUser(users[idx].id, 'new_notification', notif);
     });

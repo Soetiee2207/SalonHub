@@ -20,7 +20,6 @@ export default function Cart() {
       .then((res) => {
         const data = res.data || res;
         setCart(data);
-        // Default to select all when first loading
         if (data?.items && !silent) {
           setSelectedIds(data.items.map(item => item.id));
         }

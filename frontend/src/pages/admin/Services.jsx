@@ -11,7 +11,6 @@ export default function AdminServices() {
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('');
   
-  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -21,7 +20,6 @@ export default function AdminServices() {
   const [editingCat, setEditingCat] = useState(null);
   const [deleteCatId, setDeleteCatId] = useState(null);
 
-  // Forms
   const [form, setForm] = useState({ name: '', description: '', price: '', duration: '', categoryId: '', image: null });
   const [imagePreview, setImagePreview] = useState(null);
   const [catForm, setCatForm] = useState({ name: '' });

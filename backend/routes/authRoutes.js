@@ -17,7 +17,6 @@ const {
   resetPassword,
 } = require('../controllers/authController');
 
-// Public routes
 router.post('/register', register);
 router.post('/login', login);
 router.post('/google-login', googleLogin);
@@ -26,7 +25,6 @@ router.post('/resend-otp', resendOtp);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
-// Protected routes (require authentication)
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, uploadSingle, updateProfile);
 router.put('/change-password', authenticate, changePassword);

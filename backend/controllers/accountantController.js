@@ -16,10 +16,6 @@ const {
 } = db;
 const { createNotification } = require('./notificationController');
 
-// ============================================================
-// GET /api/accountant/stats
-// Thống kê tài chính dành cho Accountant Dashboard
-// ============================================================
 const getFinancialStats = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
@@ -31,8 +27,6 @@ const getFinancialStats = async (req, res, next) => {
     const isAdmin = req.user.role === 'admin';
     const branchId = req.user.branchId;
 
-    // === Thu nhập Dịch vụ (từ Appointments) ===
-    // Accountant: chỉ tính lịch hẹn chi nhánh mình
     let serviceRevenueWhere = {
       appointmentId: { [Op.ne]: null },
       status: 'success',
@@ -40,7 +34,6 @@ const getFinancialStats = async (req, res, next) => {
     };
 
     if (!isAdmin && branchId) {
-      // Tìm appointment IDs thuộc chi nhánh
       const branchAppointments = await Appointment.findAll({
         where: { branchId },
         attributes: ['id'],
@@ -52,7 +45,6 @@ const getFinancialStats = async (req, res, next) => {
 
     const serviceRevenue = await Payment.sum('amount', { where: serviceRevenueWhere }) || 0;
 
-    // === Thu nhập Bán lẻ (từ Orders) — cả 2 kế toán đều thấy ===
     const retailRevenue = await Payment.sum('amount', {
       where: { 
         orderId: { [Op.ne]: null },
@@ -61,7 +53,6 @@ const getFinancialStats = async (req, res, next) => {
       }
     }) || 0;
 
-    // 1. Tổng thu theo phương thức
     const totalPayments = await Payment.findAll({
       where: { 
         status: 'success',
@@ -75,7 +66,6 @@ const getFinancialStats = async (req, res, next) => {
       raw: true,
     });
 
-    // Chi phí vận hành
     const totalExpenses = await CashFlowTransaction.sum('amount', {
       where: { 
         type: 'payment',
@@ -84,7 +74,6 @@ const getFinancialStats = async (req, res, next) => {
       }
     }) || 0;
 
-    // COGS
     const ordersWithPayments = await Payment.findAll({
         where: { orderId: { [Op.ne]: null }, status: 'success', ...dateFilter },
         attributes: ['orderId'],
@@ -123,7 +112,6 @@ const getFinancialStats = async (req, res, next) => {
   }
 };
 
-// Hàm helper tính toán dữ liệu biểu đồ
 const getChartData = async (startDate, endDate) => {
     const days = [];
     const now = new Date();
@@ -170,10 +158,6 @@ const getChartData = async (startDate, endDate) => {
     return days;
 };
 
-// ============================================================
-// GET /api/accountant/cash-flow
-// Lấy danh sách sổ quỹ thu/chi
-// ============================================================
 const getCashFlow = async (req, res, next) => {
   try {
     const { type, category, startDate, endDate, page = 1, limit = 20 } = req.query;
@@ -202,10 +186,6 @@ const getCashFlow = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/accountant/cash-flow
-// Tạo phiếu thu/chi thủ công
-// ============================================================
 const createCashFlow = async (req, res, next) => {
   try {
     const transaction = await CashFlowTransaction.create({
@@ -218,10 +198,6 @@ const createCashFlow = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/accountant/reconciliation
-// Lấy danh sách thanh toán cần đối soát
-// ============================================================
 const getReconciliation = async (req, res, next) => {
   try {
     const isAdmin = req.user.role === 'admin';
@@ -231,7 +207,7 @@ const getReconciliation = async (req, res, next) => {
       where: {
         isReconciled: false,
         [Op.or]: [
-          { method: 'vnpay', status: 'success' },
+          { method: 'sepay', status: 'success' },
           { method: 'cod' },
           { method: 'cash' }
         ]
@@ -246,13 +222,10 @@ const getReconciliation = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    // Kế toán: lọc theo chi nhánh cho lịch hẹn, giữ tất cả đơn hàng
     let filtered = payments;
     if (!isAdmin && branchId) {
       filtered = payments.filter(p => {
-        // Đơn hàng sản phẩm: cả 2 kế toán đều thấy
         if (p.orderId) return true;
-        // Lịch hẹn: chỉ kế toán cùng chi nhánh mới thấy
         if (p.appointment && p.appointment.branchId === branchId) return true;
         return false;
       });
@@ -264,10 +237,6 @@ const getReconciliation = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/accountant/reconciliation/:id
-// Xác nhận đối soát thanh toán
-// ============================================================
 const reconcilePayment = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
@@ -298,12 +267,11 @@ const reconcilePayment = async (req, res, next) => {
       );
     }
 
-    // Tự động tạo Phiếu Thu (CashFlowTransaction) vào Sổ cái
     await CashFlowTransaction.create({
       type: 'receipt',
       amount: payment.amount,
       category: 'other', 
-      method: payment.method === 'vnpay' ? 'bank' : 'cash',
+      method: payment.method === 'sepay' ? 'bank' : 'cash',
       status: 'completed',
       referenceType: payment.orderId ? 'order' : 'appointment',
       referenceId: payment.orderId || payment.appointmentId,
@@ -319,10 +287,6 @@ const reconcilePayment = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/accountant/refunds
-// Danh sách yêu cầu hoàn tiền
-// ============================================================
 const getRefundRequests = async (req, res, next) => {
   try {
     const rawRefunds = await RefundRequest.findAll({
@@ -360,10 +324,6 @@ const getRefundRequests = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/accountant/refunds/:id/process
-// Xử lý hoàn tiền (Duyệt/Từ chối)
-// ============================================================
 const processRefund = async (req, res, next) => {
     const t = await sequelize.transaction();
     try {
@@ -376,7 +336,6 @@ const processRefund = async (req, res, next) => {
         processedBy: req.user.id
       }, { transaction: t });
   
-      // Nếu được duyệt, tạo một CashFlowTransaction loại 'payment' (Chi)
       if (status === 'approved' || status === 'completed') {
           await CashFlowTransaction.create({
               type: 'payment',
@@ -389,14 +348,12 @@ const processRefund = async (req, res, next) => {
               createdBy: req.user.id
           }, { transaction: t });
 
-          // Cập nhật trạng thái thanh toán tương ứng thành 'refunded'
           if (refund.type === 'order') {
               await Payment.update({ status: 'refunded' }, { where: { orderId: refund.targetId }, transaction: t });
           } else {
               await Payment.update({ status: 'refunded' }, { where: { appointmentId: refund.targetId }, transaction: t });
           }
 
-          // Gửi thông báo cho khách hàng: Đã hoàn tiền
           const target = refund.type === 'order' 
             ? await Order.findByPk(refund.targetId) 
             : await Appointment.findByPk(refund.targetId);
@@ -419,10 +376,6 @@ const processRefund = async (req, res, next) => {
     }
 };
 
-// ============================================================
-// GET /api/accountant/reference-detail/:type/:id
-// Lấy chi tiết gốc của một chứng từ tham chiếu (Order/Appointment)
-// ============================================================
 const getReferenceDetail = async (req, res, next) => {
     try {
         const { type, id } = req.params;
@@ -466,7 +419,6 @@ const getReferenceDetail = async (req, res, next) => {
             return res.json({ success: true, data: appointment });
         }
 
-        // Phiếu chi nhập kho
         if (type === 'inventory_import') {
             const invTx = await db.InventoryTransaction.findByPk(id, {
                 include: [
@@ -486,12 +438,9 @@ const getReferenceDetail = async (req, res, next) => {
     }
 };
 
-// ============================================================
-// AUTO-ACCOUNTING HELPERS (For Automated Payment Methods)
-// ============================================================
 
 /**
- * Tự động hạch toán giao dịch vào sổ quỹ khi thanh toán thành công qua cổng (SePay/VNPay)
+ * Tự động hạch toán giao dịch vào sổ quỹ khi thanh toán thành công qua cổng SePay
  * Bỏ qua bước ĐỐI SOÁT thủ công.
  */
 const syncTransactionToCashFlow = async (paymentId, transaction = null) => {
@@ -503,18 +452,16 @@ const syncTransactionToCashFlow = async (paymentId, transaction = null) => {
       return;
     }
 
-    // Đánh dấu đối soát tự động luôn
     await payment.update({
       isReconciled: true,
       reconciledAt: new Date(),
     }, { transaction: t });
 
-    // Tạo phiếu thu ngay vào Sổ quỹ
     await CashFlowTransaction.create({
       type: 'receipt',
       amount: payment.amount,
       category: 'other',
-      method: payment.method === 'vnpay' || payment.method === 'sepay' ? 'bank' : 'cash',
+      method: payment.method === 'sepay' ? 'bank' : 'cash',
       status: 'completed',
       referenceType: payment.orderId ? 'order' : 'appointment',
       referenceId: payment.orderId || payment.appointmentId,

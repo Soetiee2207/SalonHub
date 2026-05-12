@@ -73,7 +73,6 @@ export default function AccountantDashboard() {
   };
 
   const handleExport = () => {
-    // In trang hiện tại (Trình duyệt sẽ xử lý in ra PDF)
     window.print();
   };
 

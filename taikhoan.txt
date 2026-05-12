@@ -4,8 +4,8 @@ Mật khẩu mặc định: 123456
 
 [VAI TRÒ QUẢN LÝ]
 - Admin: admin@salonhub.vn (System Administrator)
-- Kế toán: hung@salonhub.vn (Chu Hữu Hùng)
-- Thủ kho: nhieu@salonhub.vn (Nguyễn Hiếu)
+- Kế toán: accountant@salonhub.vn
+- Thủ kho: warehouse@salonhub.vn
 
 [VAI TRÒ NHÂN VIÊN (STAFF)]
 - Thợ chính: minh@salonhub.vn (Nguyễn Nhật Minh)
@@ -18,9 +18,8 @@ Mật khẩu mặc định: 123456
 
 ---
 
-Ngân hàng: NCB
-Số thẻ: 9704198526191432198
-Tên chủ thẻ: NGUYEN VAN A
-Ngày phát hành: 07/15
-Mã OTP: 123456
-
+THÔNG TIN THANH TOÁN (BANK TRANSFER)
+- Ngân hàng: TPBank (Ngân hàng Tiên Phong)
+- Số tài khoản: 88886352274
+- Tên chủ tài khoản: NGUYEN NHAT MINH
+- Phương thức: Quét mã QR hoặc Chuyển khoản nhanh 24/7

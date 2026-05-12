@@ -1,7 +1,6 @@
 const db = require('../models');
 const { Cart, Product, ProductCategory } = db;
 
-// Get current user's cart
 const getCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -33,7 +32,6 @@ const getCart = async (req, res, next) => {
   }
 };
 
-// Add product to cart
 const addToCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -47,7 +45,6 @@ const addToCart = async (req, res, next) => {
       });
     }
 
-    // Check if item already in cart
     let cartItem = await Cart.findOne({
       where: { userId, productId },
     });
@@ -86,7 +83,6 @@ const addToCart = async (req, res, next) => {
   }
 };
 
-// Update cart item quantity
 const updateCartItem = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -133,7 +129,6 @@ const updateCartItem = async (req, res, next) => {
   }
 };
 
-// Remove item from cart
 const removeFromCart = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -161,7 +156,6 @@ const removeFromCart = async (req, res, next) => {
   }
 };
 
-// Clear all items from cart
 const clearCart = async (req, res, next) => {
   try {
     const userId = req.user.id;

@@ -6,18 +6,15 @@ async function fixAccounts() {
   try {
     console.log('--- Bắt đầu cập nhật tài khoản ---');
     
-    // Hash mật khẩu '123456'
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('123456', salt);
 
-    // 1. Cập nhật tất cả mật khẩu hiện có thành '123456'
     const [updatedCount] = await User.update(
       { password: hashedPassword },
       { where: {} }
     );
     console.log(`- Đã cập nhật mật khẩu cho ${updatedCount} người dùng hiện có.`);
 
-    // 2. Kiểm tra và tạo các tài khoản test quan trọng
     const testAccounts = [
       {
         email: 'admin@salonhub.vn',
@@ -51,7 +48,6 @@ async function fixAccounts() {
       if (created) {
         console.log(`- Đã tạo mới tài khoản: ${acc.email} (${acc.role})`);
       } else {
-        // Đảm bảo role đúng cho tài khoản hiện có
         user.role = acc.role;
         user.password = hashedPassword;
         await user.save();
@@ -59,7 +55,6 @@ async function fixAccounts() {
       }
     }
 
-    // 3. Liệt kê danh sách tài khoản hiện có để kiểm tra
     const allUsers = await User.findAll({
       attributes: ['email', 'role', 'fullName']
     });

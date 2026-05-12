@@ -5,7 +5,6 @@ async function migrate() {
   try {
     console.log('Starting deposit migration...');
     
-    // 1. Update appointments status ENUM
     await db.sequelize.query(`
       ALTER TABLE appointments 
       MODIFY COLUMN status ENUM('awaiting_deposit','pending','confirmed','in_progress','completed','cancelled') 
@@ -13,7 +12,6 @@ async function migrate() {
     `);
     console.log('✅ Updated appointments.status ENUM');
     
-    // 2. Add depositAmount column
     try {
       await db.sequelize.query(`
         ALTER TABLE appointments ADD COLUMN depositAmount DECIMAL(10,2) DEFAULT NULL
@@ -25,7 +23,6 @@ async function migrate() {
       } else throw e;
     }
     
-    // 3. Add depositStatus column
     try {
       await db.sequelize.query(`
         ALTER TABLE appointments ADD COLUMN depositStatus ENUM('pending','paid','refunded') DEFAULT 'pending'
@@ -37,7 +34,6 @@ async function migrate() {
       } else throw e;
     }
     
-    // 4. Update cash_flow_transactions category ENUM
     await db.sequelize.query(`
       ALTER TABLE cash_flow_transactions 
       MODIFY COLUMN category ENUM('utilities','rent','salary','supplier_payment','outside_income','refund','deposit','other') 

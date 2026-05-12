@@ -9,7 +9,6 @@ const {
 } = require('../controllers/notificationController');
 const { authenticate } = require('../middleware/auth');
 
-// All routes require authentication
 router.use(authenticate);
 
 router.get('/', getMyNotifications);

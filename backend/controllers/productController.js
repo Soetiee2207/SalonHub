@@ -2,7 +2,6 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { Product, ProductCategory, ProductReview, sequelize } = db;
 
-// Get all active products with category
 const getAllProducts = async (req, res, next) => {
   try {
     const { categoryId, search, sort } = req.query;
@@ -47,7 +46,6 @@ const getAllProducts = async (req, res, next) => {
   }
 };
 
-// Get single product with category + average rating
 const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -89,7 +87,6 @@ const getProductById = async (req, res, next) => {
   }
 };
 
-// Create product (admin only)
 const createProduct = async (req, res, next) => {
   try {
     const { name, description, price, stock, categoryId } = req.body;
@@ -114,7 +111,6 @@ const createProduct = async (req, res, next) => {
   }
 };
 
-// Update product (admin only)
 const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -132,7 +128,6 @@ const updateProduct = async (req, res, next) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
-    // stock is NOT allowed to be updated here
     if (categoryId !== undefined) updateData.categoryId = categoryId === '' ? null : categoryId;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (req.file) updateData.image = req.file.path;
@@ -152,7 +147,6 @@ const updateProduct = async (req, res, next) => {
   }
 };
 
-// Delete product (soft delete)
 const deleteProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -176,7 +170,6 @@ const deleteProduct = async (req, res, next) => {
   }
 };
 
-// Get all product categories
 const getAllCategories = async (req, res, next) => {
   try {
     const categories = await ProductCategory.findAll({
@@ -192,7 +185,6 @@ const getAllCategories = async (req, res, next) => {
   }
 };
 
-// Create product category (admin only)
 const createCategory = async (req, res, next) => {
   try {
     const { name, description } = req.body;
@@ -208,7 +200,6 @@ const createCategory = async (req, res, next) => {
   }
 };
 
-// Update product category (admin only)
 const updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -237,7 +228,6 @@ const updateCategory = async (req, res, next) => {
   }
 };
 
-// Delete product category (admin only)
 const deleteCategory = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
@@ -248,11 +238,9 @@ const deleteCategory = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Category not found.' });
     }
 
-    // 1. Tìm tất cả sản phẩm thuộc danh mục này
     const products = await Product.findAll({ where: { categoryId: id }, attributes: ['id'], transaction });
     const productIds = products.map(p => p.id);
 
-    // 2. Vô hiệu hóa khóa ngoại để dọn dẹp
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {
@@ -270,7 +258,6 @@ const deleteCategory = async (req, res, next) => {
         }
       }
 
-      // 3. Xóa chính danh mục
       await db.sequelize.query(`DELETE FROM product_categories WHERE id = ${id}`, { transaction });
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
@@ -298,7 +285,6 @@ const bulkDeleteProducts = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Danh sách ID không hợp lệ.' });
     }
 
-    // Dùng RAW SQL để ép xóa sạch không lo khóa ngoại
     await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
 
     try {

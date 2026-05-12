@@ -20,7 +20,6 @@ export default function RegisterOtpModal({ isOpen, onClose, email, onVerify }) {
     return () => clearInterval(interval);
   }, [isOpen, timer]);
 
-  // Focus first input when modal opens
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => otpInputs.current[0]?.focus(), 100);

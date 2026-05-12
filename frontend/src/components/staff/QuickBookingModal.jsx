@@ -37,9 +37,6 @@ export default function QuickBookingModal({ onClose, onSuccess }) {
 
     try {
       setLoading(true);
-      // Logic for quick booking:
-      // In a real app, you might want to find user by phone first or create a temporary one.
-      // For this MVP, we use a simplified creation.
       
       const payload = {
         ...formData,

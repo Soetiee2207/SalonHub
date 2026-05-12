@@ -9,13 +9,11 @@ export default function Vouchers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   
-  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form
   const [form, setForm] = useState({
     code: '', discount: '', discountType: 'percent', minOrderValue: '',
     maxDiscount: '', startDate: '', endDate: '', usageLimit: '', isActive: true,

@@ -1,6 +1,5 @@
 const db = require('../models');
 
-// Get all branches
 const getAllBranches = async (req, res, next) => {
   try {
     const branches = await db.Branch.findAll({
@@ -16,7 +15,6 @@ const getAllBranches = async (req, res, next) => {
   }
 };
 
-// Get branch by ID with staff members
 const getBranchById = async (req, res, next) => {
   try {
     const branch = await db.Branch.findByPk(req.params.id, {
@@ -45,7 +43,6 @@ const getBranchById = async (req, res, next) => {
   }
 };
 
-// Create branch (admin only)
 const createBranch = async (req, res, next) => {
   try {
     const { name, address, phone, openTime, closeTime } = req.body;
@@ -67,7 +64,6 @@ const createBranch = async (req, res, next) => {
   }
 };
 
-// Update branch (admin only)
 const updateBranch = async (req, res, next) => {
   try {
     const branch = await db.Branch.findByPk(req.params.id);
@@ -103,7 +99,6 @@ const updateBranch = async (req, res, next) => {
   }
 };
 
-// Delete branch (admin only)
 const deleteBranch = async (req, res, next) => {
   try {
     const branch = await db.Branch.findByPk(req.params.id);

@@ -13,7 +13,6 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      // Connect to the socket server
       const socketUrl = import.meta.env.VITE_API_URL || 'https://salonhub-3cg8.onrender.com';
       const newSocket = io(socketUrl, {
         withCredentials: true,
@@ -25,13 +24,11 @@ export const SocketProvider = ({ children }) => {
 
       setSocket(newSocket);
 
-      // Join personal and role rooms
       newSocket.emit('join', user.id);
       if (user.role) {
         newSocket.emit('join_role', user.role);
       }
 
-      // Default notification listener for toasts
       newSocket.on('new_notification', (notification) => {
         toast.success(notification.title, {
           description: notification.message,

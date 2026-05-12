@@ -1,6 +1,5 @@
 const { google } = require('googleapis');
 
-// Xây dựng email theo chuẩn MIME và mã hóa Base64URL cho Gmail API
 const createEmailMessage = (to, subject, html) => {
   const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
   const messageParts = [

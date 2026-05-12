@@ -28,7 +28,6 @@ export const CartProvider = ({ children }) => {
       const res = await cartService.getCart();
       const items = res.data?.items || res.items || [];
       
-      // Count distinct product items as requested (e.g., 2 pants + 1 shirt = 2 items)
       setCartCount(items.length);
     } catch (error) {
       console.error('Failed to fetch cart:', error);
@@ -38,7 +37,6 @@ export const CartProvider = ({ children }) => {
     }
   }, [user]);
 
-  // Automatically refresh when user changes
   useEffect(() => {
     refreshCart();
   }, [refreshCart]);

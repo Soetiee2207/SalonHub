@@ -2,12 +2,10 @@ const db = require('../models');
 const { Op } = require('sequelize');
 const { createRoleNotification } = require('./notificationController');
 
-// Get all vouchers
 const getAllVouchers = async (req, res, next) => {
   try {
     let where = {};
 
-    // If not admin, only show active and valid date vouchers
     if (!req.user || req.user.role !== 'admin') {
       const today = new Date().toISOString().split('T')[0];
       where = {
@@ -31,7 +29,6 @@ const getAllVouchers = async (req, res, next) => {
   }
 };
 
-// Get voucher by code (public)
 const getVoucherByCode = async (req, res, next) => {
   try {
     const { code } = req.params;
@@ -66,7 +63,6 @@ const getVoucherByCode = async (req, res, next) => {
   }
 };
 
-// Create voucher (admin only)
 const createVoucher = async (req, res, next) => {
   try {
     const {
@@ -81,7 +77,6 @@ const createVoucher = async (req, res, next) => {
       isActive,
     } = req.body;
 
-    // Check if code already exists
     const existingVoucher = await db.Voucher.findOne({
       where: { code: code.toUpperCase() },
     });
@@ -110,7 +105,6 @@ const createVoucher = async (req, res, next) => {
       data: voucher,
     });
 
-    // --- REAL-TIME NOTIFICATION TO ALL CUSTOMERS ---
     await createRoleNotification('customer', {
         title: 'Mã giảm giá mới dành cho bạn!',
         message: `Nhận ngay ưu đãi ${voucher.discount}${voucher.discountType === 'percent' ? '%' : 'đ'} với mã: ${voucher.code}. Đặt lịch hoặc mua sắm ngay!`,
@@ -121,7 +115,6 @@ const createVoucher = async (req, res, next) => {
   }
 };
 
-// Update voucher (admin only)
 const updateVoucher = async (req, res, next) => {
   try {
     const voucher = await db.Voucher.findByPk(req.params.id);
@@ -167,7 +160,6 @@ const updateVoucher = async (req, res, next) => {
   }
 };
 
-// Delete voucher (admin only)
 const deleteVoucher = async (req, res, next) => {
   try {
     const voucher = await db.Voucher.findByPk(req.params.id);
@@ -190,7 +182,6 @@ const deleteVoucher = async (req, res, next) => {
   }
 };
 
-// Validate voucher for order amount
 const validateVoucher = async (req, res, next) => {
   try {
     const { code, orderAmount } = req.body;
@@ -243,7 +234,6 @@ const validateVoucher = async (req, res, next) => {
       });
     }
 
-    // Calculate discount
     let discountAmount = 0;
     if (voucher.discountType === 'percent') {
       discountAmount = (parseFloat(orderAmount) * parseFloat(voucher.discount)) / 100;
@@ -254,7 +244,6 @@ const validateVoucher = async (req, res, next) => {
       discountAmount = parseFloat(voucher.discount);
     }
 
-    // Discount should not exceed order amount
     if (discountAmount > parseFloat(orderAmount)) {
       discountAmount = parseFloat(orderAmount);
     }

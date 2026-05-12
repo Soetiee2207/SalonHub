@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     method: {
-      type: DataTypes.ENUM('cod', 'vnpay', 'cash', 'sepay'),
+      type: DataTypes.ENUM('cod', 'cash', 'sepay'),
       allowNull: false,
     },
     transactionId: {
@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('pending', 'success', 'failed', 'refunded'),
       defaultValue: 'pending',
     },
-    vnpayData: {
+    gatewayData: {
       type: DataTypes.JSON,
       allowNull: true,
     },

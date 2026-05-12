@@ -8,9 +8,6 @@ const WELCOME_MESSAGE = {
   text: 'Xin chào! 👋 Mình là Trợ lý ảo AI của SalonHub. Bạn cần mình tư vấn điều gì ạ?',
 };
 
-// ============================================================
-// ChatbotWidget Component
-// ============================================================
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
@@ -30,7 +27,6 @@ export default function ChatbotWidget() {
     const text = input.trim();
     if (!text) return;
 
-    // Add user message
     setMessages((prev) => [...prev, { from: 'user', text }]);
     setInput('');
     setIsTyping(true);

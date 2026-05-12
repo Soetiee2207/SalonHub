@@ -39,7 +39,6 @@ export default function Header() {
     }
   }, [user, location.pathname]);
 
-  // Luxury Cart Pop Animation Logic
   useEffect(() => {
     if (cartCount > prevCartCount.current) {
       setIsCartPopping(true);
@@ -49,7 +48,6 @@ export default function Header() {
     prevCartCount.current = cartCount;
   }, [cartCount]);
 
-  // Listen for real-time notifications via socket
   useEffect(() => {
     if (socket) {
       socket.on('new_notification', () => {

@@ -1,7 +1,6 @@
 const Groq = require('groq-sdk');
 const db = require('../models');
 
-// Simple Memory Cache for AI Context
 let aiContextCache = {
   data: "",
   lastFetched: 0
@@ -11,13 +10,11 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 phút
 
 async function getSalonContext() {
   const now = Date.now();
-  // Return cached data if valid
   if (aiContextCache.data && (now - aiContextCache.lastFetched < CACHE_TTL_MS)) {
     return aiContextCache.data;
   }
 
   try {
-    // Chỉ lấy những cột cần thiết
     const branches = await db.Branch.findAll({ attributes: ['name', 'address', 'phone'], raw: true });
     const services = await db.Service.findAll({ attributes: ['name', 'price'], raw: true });
     const products = await db.Product.findAll({ attributes: ['name', 'price'], raw: true });
@@ -68,10 +65,8 @@ exports.askChatbot = async (req, res) => {
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     
-    // Lấy dữ liệu thực từ Database (đã được Cache 5 phút)
     const dynamicData = await getSalonContext();
     
-    // Prompt định hướng: Đóng vai Chuyên viên tư vấn chuyên nghiệp
     const systemInstruction = `
 Bạn là một Chuyên viên tư vấn chuyên nghiệp, tận tâm và thân thiện của SalonHub. 
 Tên của bạn là: Trợ lý SalonHub.

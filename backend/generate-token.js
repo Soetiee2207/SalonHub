@@ -8,7 +8,6 @@ const oAuth2Client = new google.auth.OAuth2(
   'https://developers.google.com/oauthplayground' // URI bắt buộc
 );
 
-// URL cấp quyền truy cập Gmail
 const authUrl = oAuth2Client.generateAuthUrl({
   access_type: 'offline',
   scope: ['https://mail.google.com/'],

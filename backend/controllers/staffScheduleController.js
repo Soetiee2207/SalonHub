@@ -2,11 +2,6 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { StaffSchedule, User, Branch } = db;
 
-// ============================================================
-// GET /api/schedules
-// Lấy danh sách lịch làm việc — lọc theo userId, branchId
-// Admin: xem tất cả | Staff: chỉ xem lịch của mình
-// ============================================================
 const getSchedules = async (req, res, next) => {
   try {
     const { userId, branchId, dayOfWeek } = req.query;
@@ -14,7 +9,6 @@ const getSchedules = async (req, res, next) => {
 
     const where = {};
 
-    // Nếu là staff (không phải admin), chỉ xem lịch của chính mình
     if (!['admin'].includes(requestingUser.role)) {
       where.userId = requestingUser.id;
     } else if (userId) {
@@ -50,16 +44,10 @@ const getSchedules = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/schedules
-// Tạo lịch làm việc mới cho nhân viên
-// Quyền: admin
-// ============================================================
 const createSchedule = async (req, res, next) => {
   try {
     const { userId, branchId, dayOfWeek, startTime, endTime } = req.body;
 
-    // Validate bắt buộc
     if (userId === undefined || branchId === undefined || dayOfWeek === undefined || !startTime || !endTime) {
       return res.status(400).json({
         success: false,
@@ -67,7 +55,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Validate dayOfWeek (0 = Chủ nhật, 6 = Thứ 7)
     if (parseInt(dayOfWeek) < 0 || parseInt(dayOfWeek) > 6) {
       return res.status(400).json({
         success: false,
@@ -75,7 +62,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Validate thời gian
     if (startTime >= endTime) {
       return res.status(400).json({
         success: false,
@@ -83,7 +69,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Kiểm tra nhân viên tồn tại
     const staff = await User.findByPk(userId);
     if (!staff) {
       return res.status(404).json({
@@ -92,7 +77,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Kiểm tra nhân viên có phải là staff role không
     const staffRoles = ['service_staff', 'warehouse_staff', 'accountant', 'admin'];
     if (!staffRoles.includes(staff.role)) {
       return res.status(400).json({
@@ -101,7 +85,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Kiểm tra chi nhánh tồn tại
     const branch = await Branch.findByPk(branchId);
     if (!branch) {
       return res.status(404).json({
@@ -110,7 +93,6 @@ const createSchedule = async (req, res, next) => {
       });
     }
 
-    // Kiểm tra xung đột lịch (cùng nhân viên, cùng ngày, trùng giờ)
     const existing = await StaffSchedule.findOne({
       where: { userId, branchId, dayOfWeek },
     });
@@ -146,11 +128,6 @@ const createSchedule = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// PUT /api/schedules/:id
-// Cập nhật lịch làm việc
-// Quyền: admin
-// ============================================================
 const updateSchedule = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -197,11 +174,6 @@ const updateSchedule = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// DELETE /api/schedules/:id
-// Xóa lịch làm việc
-// Quyền: admin
-// ============================================================
 const deleteSchedule = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -225,12 +197,6 @@ const deleteSchedule = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/schedules/available-staff
-// Lấy danh sách nhân viên có lịch làm việc trong ngày cụ thể
-// Dùng cho màn hình đặt lịch dịch vụ — chọn thợ
-// Quyền: authenticated
-// ============================================================
 const getAvailableStaff = async (req, res, next) => {
   try {
     const { branchId, date } = req.query;
@@ -279,17 +245,11 @@ const getAvailableStaff = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// GET /api/schedules/staff/:userId
-// Xem toàn bộ lịch tuần của một nhân viên cụ thể
-// Quyền: admin, hoặc chính nhân viên đó
-// ============================================================
 const getStaffWeeklySchedule = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const requestingUser = req.user;
 
-    // Nhân viên chỉ xem lịch của mình
     if (requestingUser.role !== 'admin' && requestingUser.id !== parseInt(userId)) {
       return res.status(403).json({
         success: false,
@@ -316,7 +276,6 @@ const getStaffWeeklySchedule = async (req, res, next) => {
       order: [['dayOfWeek', 'ASC']],
     });
 
-    // Map dayOfWeek 0-6 thành tên ngày tiếng Việt
     const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
     return res.json({
@@ -338,31 +297,23 @@ const getStaffWeeklySchedule = async (req, res, next) => {
   }
 };
 
-// ============================================================
-// POST /api/schedules/staff/:userId
-// Cập nhật toàn bộ lịch tuần của một nhân viên (Bulk Set)
-// Quyền: admin
-// ============================================================
 const setStaffSchedules = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
     const { userId } = req.params;
     const { schedules } = req.body; // Array of { dayOfWeek, startTime, endTime }
 
-    // 1. Kiểm tra nhân viên tồn tại
     const staff = await User.findByPk(userId, { transaction });
     if (!staff) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Nhân viên không tồn tại' });
     }
 
-    // 2. Xóa toàn bộ lịch cũ
     await StaffSchedule.destroy({
       where: { userId },
       transaction
     });
 
-    // 3. Tạo lịch mới từ danh sách gửi lên
     const createdSchedules = [];
     if (schedules && Array.isArray(schedules)) {
       for (const item of schedules) {
@@ -389,7 +340,6 @@ const setStaffSchedules = async (req, res, next) => {
   }
 };
 
-// Helper: tên ngày tiếng Việt
 function getDayName(dayOfWeek) {
   const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
   return days[parseInt(dayOfWeek)] || 'Không xác định';

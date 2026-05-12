@@ -146,12 +146,10 @@ export default function Staff() {
   };
 
   const getSkills = (s) => {
-    // Ưu tiên dùng skilledServices nếu có (thường là mảng các object Service)
     const skillsData = s.skilledServices || s.skills || s.services || [];
     if (!Array.isArray(skillsData)) return [];
     
     return skillsData.map(sk => {
-      // Nếu sk là object Service (có name), dùng luôn. Nếu không thì tìm trong danh sách services
       if (sk.name) return sk.name;
       const svc = services.find(sv => sv.id === (sk.id || sk.serviceId?.id || sk.serviceId || sk));
       return svc?.name || '';

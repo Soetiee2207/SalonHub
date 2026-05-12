@@ -18,7 +18,7 @@ const statusLabels = {
 };
 
 const methodLabels = {
-  cash: 'Tiền mặt', vnpay: 'VNPay', momo: 'MoMo', bank_transfer: 'Chuyển khoản',
+  cash: 'Tiền mặt', sepay: 'SePay', cod: 'COD', bank_transfer: 'Chuyển khoản',
   credit_card: 'Thẻ tín dụng',
 };
 

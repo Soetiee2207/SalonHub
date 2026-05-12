@@ -1,12 +1,10 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const dbConfig = require('../config/database');
 
-// backend/models/index.js
 
 let sequelize;
 
 if (process.env.DATABASE_URL) {
-  // Khi chạy trên Render, dùng chuỗi DATABASE_URL sạch và ép thêm Option SSL
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'mysql',
     dialectOptions: {
@@ -23,7 +21,6 @@ if (process.env.DATABASE_URL) {
     logging: false
   });
 } else {
-  // Chạy local
   sequelize = new Sequelize(dbConfig.database, dbConfig.user, dbConfig.password, {
     host: dbConfig.host,
     port: dbConfig.port,
@@ -40,9 +37,7 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-// ... giữ nguyên phần Import models và Associations bên dưới ...
 
-// Import models
 const User = require('./User')(sequelize, DataTypes);
 const Branch = require('./Branch')(sequelize, DataTypes);
 const ServiceCategory = require('./ServiceCategory')(sequelize, DataTypes);
@@ -70,21 +65,16 @@ const ReturnRequest = require('./ReturnRequest')(sequelize, DataTypes);
 const OtpCode = require('./OtpCode')(sequelize, DataTypes);
 
 
-// ===================== ASSOCIATIONS =====================
 
-// User <-> Branch
 User.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 Branch.hasMany(User, { foreignKey: 'branchId', as: 'staff' });
 
-// Service <-> ServiceCategory
 Service.belongsTo(ServiceCategory, { foreignKey: 'categoryId', as: 'category' });
 ServiceCategory.hasMany(Service, { foreignKey: 'categoryId', as: 'services' });
 
-// Product <-> ProductCategory
 Product.belongsTo(ProductCategory, { foreignKey: 'categoryId', as: 'category' });
 ProductCategory.hasMany(Product, { foreignKey: 'categoryId', as: 'products' });
 
-// Appointment associations
 Appointment.belongsTo(User, { foreignKey: 'userId', as: 'customer' });
 Appointment.belongsTo(User, { foreignKey: 'staffId', as: 'staff' });
 Appointment.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
@@ -94,27 +84,22 @@ User.hasMany(Appointment, { foreignKey: 'staffId', as: 'staffAppointments' });
 Branch.hasMany(Appointment, { foreignKey: 'branchId', as: 'appointments' });
 Service.hasMany(Appointment, { foreignKey: 'serviceId', as: 'appointments' });
 
-// Order associations
 Order.belongsTo(User, { foreignKey: 'userId', as: 'customer' });
 Order.belongsTo(Voucher, { foreignKey: 'voucherId', as: 'voucher' });
 User.hasMany(Order, { foreignKey: 'userId', as: 'orders' });
 Voucher.hasMany(Order, { foreignKey: 'voucherId', as: 'orders' });
 
-// Order <-> OrderItem
 Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'items' });
 OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 
-// OrderItem <-> Product
 OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(OrderItem, { foreignKey: 'productId', as: 'orderItems' });
 
-// Cart associations
 Cart.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Cart.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 User.hasMany(Cart, { foreignKey: 'userId', as: 'cartItems' });
 Product.hasMany(Cart, { foreignKey: 'productId', as: 'cartItems' });
 
-// Review associations
 Review.belongsTo(User, { foreignKey: 'userId', as: 'customer' });
 Review.belongsTo(User, { foreignKey: 'staffId', as: 'staff' });
 Review.belongsTo(Appointment, { foreignKey: 'appointmentId', as: 'appointment' });
@@ -122,43 +107,35 @@ User.hasMany(Review, { foreignKey: 'userId', as: 'reviews' });
 User.hasMany(Review, { foreignKey: 'staffId', as: 'staffReviews' });
 Appointment.hasMany(Review, { foreignKey: 'appointmentId', as: 'reviews' });
 
-// ProductReview associations
 ProductReview.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 ProductReview.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 User.hasMany(ProductReview, { foreignKey: 'userId', as: 'productReviews' });
 Product.hasMany(ProductReview, { foreignKey: 'productId', as: 'reviews' });
 
-// Payment associations
 Payment.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 Payment.belongsTo(Appointment, { foreignKey: 'appointmentId', as: 'appointment' });
 Order.hasMany(Payment, { foreignKey: 'orderId', as: 'payments' });
 Appointment.hasMany(Payment, { foreignKey: 'appointmentId', as: 'payments' });
 
-// Notification associations
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 
-// StaffSchedule associations
 StaffSchedule.belongsTo(User, { foreignKey: 'userId', as: 'staff' });
 StaffSchedule.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 User.hasMany(StaffSchedule, { foreignKey: 'userId', as: 'schedules' });
 Branch.hasMany(StaffSchedule, { foreignKey: 'branchId', as: 'schedules' });
 
-// StaffSkill associations
 StaffSkill.belongsTo(User, { foreignKey: 'userId', as: 'staff' });
 StaffSkill.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
 User.hasMany(StaffSkill, { foreignKey: 'userId', as: 'skills' });
 Service.hasMany(StaffSkill, { foreignKey: 'serviceId', as: 'skilledStaff' });
 
-// User <-> Address
 User.hasMany(Address, { foreignKey: 'userId', as: 'addresses' });
 Address.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// Many-to-Many: User <-> Service through StaffSkill
 User.belongsToMany(Service, { through: StaffSkill, foreignKey: 'userId', otherKey: 'serviceId', as: 'skilledServices' });
 Service.belongsToMany(User, { through: StaffSkill, foreignKey: 'serviceId', otherKey: 'userId', as: 'skilledStaffMembers' });
 
-// InventoryTransaction associations
 InventoryTransaction.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 InventoryTransaction.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 InventoryTransaction.belongsTo(ProductBatch, { foreignKey: 'batchId', as: 'batch' });
@@ -166,28 +143,23 @@ Product.hasMany(InventoryTransaction, { foreignKey: 'productId', as: 'inventoryT
 User.hasMany(InventoryTransaction, { foreignKey: 'createdBy', as: 'inventoryActions' });
 ProductBatch.hasMany(InventoryTransaction, { foreignKey: 'batchId', as: 'inventoryTransactions' });
 
-// ProductBatch associations
 ProductBatch.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 Product.hasMany(ProductBatch, { foreignKey: 'productId', as: 'batches' });
 
-// Branch-level inventory tracking
 InventoryTransaction.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 Branch.hasMany(InventoryTransaction, { foreignKey: 'branchId', as: 'inventoryTransactions' });
 ProductBatch.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
 Branch.hasMany(ProductBatch, { foreignKey: 'branchId', as: 'productBatches' });
 
-// Accountant associations
 Payment.belongsTo(User, { as: 'reconciler', foreignKey: 'reconciledBy' });
 CashFlowTransaction.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
 RefundRequest.belongsTo(User, { as: 'processor', foreignKey: 'processedBy' });
 
-// Use polymorphic-like association for RefundRequest
 RefundRequest.belongsTo(Order, { foreignKey: 'targetId', constraints: false, as: 'order' });
 RefundRequest.belongsTo(Appointment, { foreignKey: 'targetId', constraints: false, as: 'appointment' });
 Order.hasMany(RefundRequest, { foreignKey: 'targetId', as: 'refunds', constraints: false });
 Appointment.hasMany(RefundRequest, { foreignKey: 'targetId', as: 'refunds', constraints: false });
 
-// Barber/Staff Experience associations
 Appointment.belongsTo(Order, { as: 'upsellOrder', foreignKey: 'orderId' });
 Order.hasOne(Appointment, { as: 'parentAppointment', foreignKey: 'orderId' });
 
@@ -198,13 +170,11 @@ Appointment.hasMany(CustomerServiceNote, { as: 'notes', foreignKey: 'appointment
 User.hasMany(CustomerServiceNote, { as: 'notesAsCustomer', foreignKey: 'customerId' });
 User.hasMany(CustomerServiceNote, { as: 'notesAsStaff', foreignKey: 'staffId' });
 
-// ReturnRequest associations
 ReturnRequest.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 ReturnRequest.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Order.hasOne(ReturnRequest, { foreignKey: 'orderId', as: 'returnRequest' });
 User.hasMany(ReturnRequest, { foreignKey: 'userId', as: 'returnRequests' });
 
-// ===================== EXPORT =====================
 
 const db = {
   sequelize,

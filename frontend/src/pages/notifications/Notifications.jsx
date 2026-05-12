@@ -84,7 +84,6 @@ export default function Notifications() {
         prev.map(n => (n.id === id) ? { ...n, isRead: true, read: true } : n)
       );
     } catch {
-      // silent
     }
   };
 
@@ -93,7 +92,6 @@ export default function Notifications() {
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
     } catch {
-      // silent
     }
   };
 
@@ -102,7 +100,6 @@ export default function Notifications() {
       await notificationService.delete(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch {
-      // silent
     }
   };
 

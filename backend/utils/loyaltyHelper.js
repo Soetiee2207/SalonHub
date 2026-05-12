@@ -13,16 +13,12 @@ const updateCustomerLoyalty = async (userId, pointsToAdd, transaction = null) =>
     const points = Math.floor(pointsToAdd);
     if (!userId || points <= 0) return;
 
-    // 1. Cộng điểm Atomic (Tránh tranh chấp dữ liệu)
-    // increment sẽ tự động thực hiện: UPDATE users SET loyaltyPoints = loyaltyPoints + points WHERE id = userId
     await User.increment('loyaltyPoints', {
       by: points,
       where: { id: userId },
       transaction
     });
 
-    // 2. Lấy thông tin user mới nhất để kiểm tra thăng hạng
-    // Phải dùng transaction nếu có để đảm bảo đọc được giá trị vừa cập nhật
     const user = await User.findByPk(userId, { transaction });
     if (!user) return;
 
@@ -31,7 +27,6 @@ const updateCustomerLoyalty = async (userId, pointsToAdd, transaction = null) =>
     if (currentPoints >= 2000) newRank = 'Diamond';
     else if (currentPoints >= 500) newRank = 'Gold';
 
-    // 3. Nếu thăng hạng, cập nhật và gửi thông báo
     if (newRank !== user.rank) {
       await User.update({ rank: newRank }, { 
         where: { id: userId },

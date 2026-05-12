@@ -15,10 +15,8 @@ const {
   updateUpsellItems,
 } = require('../controllers/appointmentController');
 
-// Public routes
 router.get('/available-slots', getAvailableSlots);
 
-// Protected routes (require authentication)
 router.post('/', authenticate, createAppointment);
 router.get('/my-appointments', authenticate, getMyAppointments);
 router.get('/staff-appointments', authenticate, authorize('staff', 'admin'), getStaffAppointments);

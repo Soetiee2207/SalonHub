@@ -7,7 +7,6 @@ import {
 import { dashboardService } from '../../services/dashboardService';
 import { formatPrice } from '../../utils/formatPrice';
 
-// Components
 import StatCard from '../../components/dashboard/StatCard';
 import WidgetFrame from '../../components/dashboard/WidgetFrame';
 import HotAlerts from '../../components/dashboard/HotAlerts';

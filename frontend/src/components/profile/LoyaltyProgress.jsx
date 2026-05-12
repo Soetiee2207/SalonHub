@@ -7,9 +7,6 @@ const TIERS = [
 ];
 
 export default function LoyaltyProgress({ points = 0 }) {
-  // Use mock only if explicitly zero and we want to show what's possible, 
-  // or just show empty state if that's the requirement.
-  // For now, let's show the empty state if points is 0 to encourage user.
 
   if (points === 0) {
     return (
@@ -36,7 +33,6 @@ export default function LoyaltyProgress({ points = 0 }) {
     );
   }
 
-  // Determine current tier
   let currentTierIdx = 0;
   for (let i = TIERS.length - 1; i >= 0; i--) {
     if (points >= TIERS[i].minPoints) {

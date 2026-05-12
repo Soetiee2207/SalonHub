@@ -16,7 +16,6 @@ const {
 } = require('../controllers/dashboardController');
 const { authenticate, authorize } = require('../middleware/auth');
 
-// All routes require admin or staff roles
 router.use(authenticate, authorize('admin', 'service_staff', 'warehouse_staff', 'accountant'));
 
 router.get('/overview', getOverview);

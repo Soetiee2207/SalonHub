@@ -208,7 +208,8 @@ export default function OrderDetail() {
               <div>
                 <p className="text-gray-500">Phương thức thanh toán</p>
                 <p className="font-medium">
-                  {order.paymentMethod === 'vnpay' ? 'VNPay' : 'Thanh toán khi nhận hàng'}
+                  {order.paymentMethod === 'sepay' ? 'Chuyển khoản (SePay)' : 
+                   order.paymentMethod === 'cash' ? 'Tiền mặt' : 'Thanh toán khi nhận hàng'}
                 </p>
               </div>
             </div>

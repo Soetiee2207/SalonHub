@@ -72,7 +72,6 @@ const statusMap = {
 };
 
 export default function UpcomingAppointments({ appointments = [] }) {
-  // Filter only upcoming pending/confirmed
   const now = new Date();
   const upcoming = appointments
     .filter((a) => {

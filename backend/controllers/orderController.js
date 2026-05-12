@@ -2,13 +2,10 @@ const crypto = require('crypto');
 const querystring = require('qs');
 const { Op } = require('sequelize');
 const db = require('../models');
-const vnpayConfig = require('../config/vnpay');
-const { generateVnpayUrl } = require('../utils/vnpayHelper');
 const { Order, OrderItem, Cart, Product, ProductCategory, Voucher, User, InventoryTransaction, Payment, ProductReview, ReturnRequest, sequelize } = db;
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
 const { createNotification, createRoleNotification } = require('./notificationController');
 
-// Create order from cart
 const createOrder = async (req, res, next) => {
   const t = await sequelize.transaction();
 
@@ -16,7 +13,6 @@ const createOrder = async (req, res, next) => {
     const userId = req.user.id;
     const { paymentMethod, address, phone, voucherCode, cartItemIds } = req.body;
 
-    // Get cart items
     const cartWhere = { userId };
     if (cartItemIds && Array.isArray(cartItemIds) && cartItemIds.length > 0) {
       cartWhere.id = { [Op.in]: cartItemIds };
@@ -32,34 +28,31 @@ const createOrder = async (req, res, next) => {
       await t.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Cart is empty.',
+        message: 'Giỏ hàng trống.',
       });
     }
 
-    // Validate stock for all items
     for (const item of cartItems) {
       if (!item.product || !item.product.isActive) {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: `Product "${item.product ? item.product.name : 'Unknown'}" is no longer available.`,
+          message: `Sản phẩm "${item.product ? item.product.name : 'Không xác định'}" hiện không khả dụng.`,
         });
       }
       if (item.quantity > item.product.stock) {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for "${item.product.name}". Available: ${item.product.stock}.`,
+          message: `Số lượng tồn kho không đủ cho "${item.product.name}". Còn lại: ${item.product.stock}.`,
         });
       }
     }
 
-    // Calculate subtotal
     let subtotal = cartItems.reduce((sum, item) => {
       return sum + (parseFloat(item.product.price) * item.quantity);
     }, 0);
 
-    // Apply voucher if provided
     let voucherId = null;
     let discountAmount = 0;
 
@@ -73,7 +66,7 @@ const createOrder = async (req, res, next) => {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: 'Invalid voucher code.',
+          message: 'Mã giảm giá không hợp lệ.',
         });
       }
 
@@ -82,7 +75,7 @@ const createOrder = async (req, res, next) => {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: 'Voucher has expired or is not yet active.',
+          message: 'Mã giảm giá đã hết hạn hoặc chưa được kích hoạt.',
         });
       }
 
@@ -90,7 +83,7 @@ const createOrder = async (req, res, next) => {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: 'Voucher usage limit reached.',
+          message: 'Mã giảm giá đã đạt giới hạn sử dụng.',
         });
       }
 
@@ -98,11 +91,10 @@ const createOrder = async (req, res, next) => {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: `Minimum order value for this voucher is ${voucher.minOrderValue}.`,
+          message: `Giá trị đơn hàng tối thiểu để sử dụng mã này là ${voucher.minOrderValue}.`,
         });
       }
 
-      // Calculate discount
       if (voucher.discountType === 'percent') {
         discountAmount = (subtotal * parseFloat(voucher.discount)) / 100;
         if (voucher.maxDiscount !== null && discountAmount > parseFloat(voucher.maxDiscount)) {
@@ -114,7 +106,6 @@ const createOrder = async (req, res, next) => {
 
       voucherId = voucher.id;
 
-      // Increment used count
       await voucher.update(
         { usedCount: voucher.usedCount + 1 },
         { transaction: t }
@@ -123,7 +114,6 @@ const createOrder = async (req, res, next) => {
 
     const totalAmount = Math.max(0, subtotal - discountAmount);
 
-    // Create order
     const order = await Order.create(
       {
         userId,
@@ -137,7 +127,6 @@ const createOrder = async (req, res, next) => {
       { transaction: t }
     );
 
-    // Create order items and reduce stock
     for (const item of cartItems) {
       await OrderItem.create(
         {
@@ -149,18 +138,12 @@ const createOrder = async (req, res, next) => {
         { transaction: t }
       );
 
-      const resStockBefore = item.product.reservedStock;
-      const resStockAfter = resStockBefore + item.quantity;
-
       await item.product.update(
-        { reservedStock: resStockAfter },
+        { reservedStock: item.product.reservedStock + item.quantity },
         { transaction: t }
       );
-
-      // Ghi chú: Chờ xuất kho khi đóng gói xong
     }
 
-    // Clear only selected items from cart
     const finalCartItemIds = cartItems.map(item => item.id);
     await Cart.destroy({ 
       where: { 
@@ -170,7 +153,6 @@ const createOrder = async (req, res, next) => {
       transaction: t 
     });
 
-    // Create Payment record as "pending"
     await Payment.create({
       userId,
       orderId: order.id,
@@ -182,7 +164,6 @@ const createOrder = async (req, res, next) => {
 
     await t.commit();
 
-    // Fetch the complete order
     const result = await Order.findByPk(order.id, {
       include: [
         {
@@ -194,28 +175,12 @@ const createOrder = async (req, res, next) => {
       ],
     });
 
-    const responseData = { order: result };
-
-    // Generate VNPay URL if payment method is vnpay
-    if (paymentMethod === 'vnpay') {
-      const vnpayUrl = generateVnpayUrl({
-        amount: order.totalAmount,
-        txnRef: `ORDER_${order.id}`,
-        orderInfo: `Thanh toan don hang ${order.id}`,
-        ipAddr: req.ip || '127.0.0.1'
-      });
-      responseData.paymentUrl = vnpayUrl;
-    }
-
-    // --- REAL-TIME NOTIFICATIONS ---
-    // 1. Notify Warehouse Staff
     await createRoleNotification('warehouse_staff', {
       title: 'Đơn hàng mới chờ xử lý',
       message: `Đơn hàng #${order.id} vừa được đặt thành công. Vui lòng kiểm tra và đóng gói. Tổng tiền: ${Math.floor(totalAmount).toLocaleString()}đ`,
       type: 'order'
     });
 
-    // 2. Notify Customer (Confirmed receipt of order request)
     await createNotification({
       userId,
       title: 'Đặt hàng thành công',
@@ -225,7 +190,7 @@ const createOrder = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      data: responseData,
+      data: { order: result },
     });
   } catch (error) {
     await t.rollback();
@@ -233,9 +198,6 @@ const createOrder = async (req, res, next) => {
   }
 };
 
-
-
-// Get my orders
 const getMyOrders = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -260,7 +222,6 @@ const getMyOrders = async (req, res, next) => {
       order: [['createdAt', 'DESC']],
     });
 
-    // For each order, check which items have been reviewed
     const ordersWithReviewInfo = await Promise.all(orders.map(async (order) => {
       const orderJson = order.toJSON();
       const itemsWithReviewInfo = await Promise.all(orderJson.items.map(async (item) => {
@@ -282,7 +243,6 @@ const getMyOrders = async (req, res, next) => {
   }
 };
 
-// Get order by ID
 const getOrderById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -314,7 +274,6 @@ const getOrderById = async (req, res, next) => {
       });
     }
 
-    // Customer can only see own orders
     if (user.role === 'customer' && order.userId !== user.id) {
       return res.status(403).json({
         success: false,
@@ -322,7 +281,6 @@ const getOrderById = async (req, res, next) => {
       });
     }
 
-    // Check which items in this order have been reviewed by the user
     const orderJson = order.toJSON();
     const itemsWithReviewInfo = await Promise.all(orderJson.items.map(async (item) => {
       const review = await ProductReview.findOne({
@@ -341,7 +299,6 @@ const getOrderById = async (req, res, next) => {
   }
 };
 
-// Get all orders (admin/staff)
 const getAllOrders = async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -375,7 +332,6 @@ const getAllOrders = async (req, res, next) => {
   }
 };
 
-// Update order status (admin/staff)
 const updateOrderStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -385,7 +341,7 @@ const updateOrderStatus = async (req, res, next) => {
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Trạng thái không hợp lệ. Phải là: ${validStatuses.join(', ')}`,
+        message: `Trạng thái không hợp lệ.`,
       });
     }
 
@@ -402,11 +358,8 @@ const updateOrderStatus = async (req, res, next) => {
     const oldStatus = order.status;
     const newStatus = status;
 
-    // Logic xử lý kho khi chuyển trạng thái
     const t = await sequelize.transaction();
     try {
-      // 1. Chuyển sang packing: Trừ tồn kho thực tế, trừ tồn kho tạm giữ
-      // Phương án B: Trừ kho chi nhánh có nhiều hàng nhất
       if (oldStatus !== 'packing' && newStatus === 'packing') {
         for (const item of order.items) {
           const product = await Product.findByPk(item.productId, { transaction: t });
@@ -420,7 +373,6 @@ const updateOrderStatus = async (req, res, next) => {
               reservedStock: resStockAfter
             }, { transaction: t });
 
-            // Tìm chi nhánh có nhiều hàng nhất cho sản phẩm này
             const branchStock = await db.ProductBatch.findAll({
               attributes: [
                 'branchId',
@@ -435,7 +387,6 @@ const updateOrderStatus = async (req, res, next) => {
 
             const targetBranchId = branchStock.length > 0 ? branchStock[0].branchId : null;
 
-            // Trừ batch FIFO từ chi nhánh có nhiều hàng nhất
             let remaining = item.quantity;
             const batchWhere = { productId: item.productId, quantity: { [Op.gt]: 0 } };
             if (targetBranchId) batchWhere.branchId = targetBranchId;
@@ -453,7 +404,6 @@ const updateOrderStatus = async (req, res, next) => {
               remaining -= deduct;
             }
 
-            // Ghi nhật ký xuất kho thực tế (có gắn branchId)
             await InventoryTransaction.create({
               productId: item.productId,
               type: 'export',
@@ -466,21 +416,10 @@ const updateOrderStatus = async (req, res, next) => {
               createdBy: req.user.id,
               branchId: targetBranchId,
             }, { transaction: t });
-
-            // Kiểm tra Tồn kho thấp → gửi cho NV kho cùng chi nhánh
-            if (stockAfter <= (product.minStock || 5) && targetBranchId) {
-              const { createBranchRoleNotification } = require('./notificationController');
-              await createBranchRoleNotification('warehouse_staff', targetBranchId, {
-                title: 'Cảnh báo: Tồn kho thấp từ Đơn hàng!',
-                message: `Sản phẩm "${product.name}" chỉ còn ${stockAfter} món sau khi đóng gói Đơn #${order.id}.`,
-                type: 'inventory',
-              });
-            }
           }
         }
       }
 
-      // 2. Chuyển sang cancelled: Hoàn lại tồn kho
       if (newStatus === 'cancelled') {
         const needsStockRestore = ['packing', 'shipping', 'delivered'].includes(oldStatus);
         const needsReservedReduce = ['pending', 'confirmed'].includes(oldStatus);
@@ -493,14 +432,13 @@ const updateOrderStatus = async (req, res, next) => {
               const stockAfter = stockBefore + item.quantity;
               await product.update({ stock: stockAfter }, { transaction: t });
               
-              // Ghi nhật ký nhập kho hoàn trả
               await InventoryTransaction.create({
                 productId: item.productId,
                 type: 'import',
                 quantity: item.quantity,
                 stockBefore,
                 stockAfter,
-                note: `Nhập kho hoàn trả (Đơn #${order.id} bị hủy sau khi đã đóng gói)`,
+                note: `Nhập kho hoàn trả (Đơn #${order.id} bị hủy)`,
                 referenceType: 'order',
                 referenceId: order.id,
                 createdBy: req.user.id
@@ -518,7 +456,6 @@ const updateOrderStatus = async (req, res, next) => {
       const updateData = { status: newStatus };
       await order.update(updateData, { transaction: t });
 
-      // --- REAL-TIME NOTIFICATION TO CUSTOMER ---
       const statusLabels = {
         confirmed: 'đã được xác nhận',
         packing: 'đang được đóng gói',
@@ -537,22 +474,9 @@ const updateOrderStatus = async (req, res, next) => {
         });
       }
 
-      // Tích điểm nếu đơn hàng mới chuyển sang trạng thái Thành công
       if (oldStatus !== 'completed' && newStatus === 'completed') {
         const totalAmount = parseFloat(order.totalAmount) || 0;
         await updateCustomerLoyalty(order.userId, totalAmount / 1000, t);
-      }
-
-      // Tự động khách yêu cầu hoàn tiền nếu đơn đã thanh toán hoàn tất (VNPay)
-      if (order.paymentStatus === 'paid' && newStatus === 'cancelled') {
-        const { RefundRequest } = db;
-        await RefundRequest.create({
-          type: 'order',
-          targetId: order.id,
-          amount: order.totalAmount,
-          reason: req.body.cancelReason || 'Hệ thống/Quản trị viên hủy đơn hàng sau khi hoàn tất thanh toán',
-          status: 'pending'
-        }, { transaction: t });
       }
 
       await t.commit();
@@ -582,7 +506,6 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-// Cancel order (customer cancels own pending order)
 const cancelOrder = async (req, res, next) => {
   const t = await sequelize.transaction();
 
@@ -619,7 +542,6 @@ const cancelOrder = async (req, res, next) => {
       });
     }
 
-    // Hoàn reservedStock
     for (const item of order.items) {
       const product = await Product.findByPk(item.productId, { transaction: t });
       if (product) {
@@ -628,18 +550,6 @@ const cancelOrder = async (req, res, next) => {
           { transaction: t }
         );
       }
-    }
-
-    // Tự động khách yêu cầu hoàn tiền nếu đơn đã thanh toán hoàn tất (VNPay)
-    if (order.paymentStatus === 'paid') {
-      const { RefundRequest } = db;
-      await RefundRequest.create({
-        type: 'order',
-        targetId: order.id,
-        amount: order.totalAmount,
-        reason: req.body.cancelReason || 'Khách hàng tự hủy đơn hàng sau khi hoàn tất thanh toán',
-        status: 'pending'
-      }, { transaction: t });
     }
 
     await order.update({ status: 'cancelled' }, { transaction: t });
@@ -666,7 +576,6 @@ const cancelOrder = async (req, res, next) => {
   }
 };
 
-// Check order status only
 const getOrderStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -694,7 +603,6 @@ const getOrderStatus = async (req, res, next) => {
   }
 };
 
-// Customer confirms receipt of order
 const confirmOrderReceipt = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
@@ -711,7 +619,6 @@ const confirmOrderReceipt = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
     }
 
-    // Only allow completion if shipping or delivered
     if (!['shipping', 'delivered'].includes(order.status)) {
       await t.rollback();
       return res.status(400).json({ 
@@ -722,14 +629,13 @@ const confirmOrderReceipt = async (req, res, next) => {
 
     await order.update({ status: 'completed' }, { transaction: t });
 
-    // Tích điểm thưởng cho khách hàng
     const totalAmount = parseFloat(order.totalAmount) || 0;
     await updateCustomerLoyalty(order.userId, totalAmount / 1000, t);
 
     await t.commit();
     res.json({
       success: true,
-      message: 'Xác nhận nhận hàng thành công. Chúc mừng sư huynh đã hoàn thành vận tiêu!',
+      message: 'Xác nhận nhận hàng thành công.',
       data: order
     });
   } catch (error) {

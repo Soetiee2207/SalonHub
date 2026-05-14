@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 3 - Phần 2.3: Đặc tả Use Case (14-19)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 850px; margin: 0 auto; background: white; padding: 50px 60px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 30px; margin-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11pt; table-layout: fixed; }
+        table, th, td { border: 1px solid #000; }
+        td { padding: 10px; vertical-align: top; word-wrap: break-word; }
+        
+        .bg-gray-label { background-color: #d9d9d9; font-weight: bold; width: 25%; }
+        .bg-gray-header { background-color: #d9d9d9; font-weight: bold; text-align: left; }
+        .bg-gray-sub { background-color: #d9d9d9; font-weight: bold; }
+        .label-bold { font-weight: bold; width: 25%; }
+        .post-cond-label { font-weight: bold; width: 20%; border-right: 1px solid #000; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 2.3/6)</h1>
+<p style="text-align:center; font-style:italic;">Đặc tả chi tiết Use Case: UC_14 - UC_19 (Tương tác & Công nghệ cao)</p>
+
+<hr style="margin: 20px 0;">
+
+<!-- ==================== UC_14 ==================== -->
+<h3>3.4.14. UC_14. Thanh toán đơn hàng (Checkout)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_14</td><td colspan="2" style="font-weight:bold;">Xác nhận đơn hàng và Thanh toán</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Khách hàng</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Khách hàng chọn phương thức thanh toán và xác nhận đặt mua sản phẩm trong giỏ hàng.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Đã có sản phẩm trong giỏ hàng.</td></tr>
+    <tr>
+        <td rowspan="2" class="label-bold">Hậu điều kiện</td>
+        <td class="post-cond-label">Thành công</td>
+        <td>- Tạo bản ghi Order, trừ tồn kho tạm thời, hiển thị thông báo thành công.</td>
+    </tr>
+    <tr>
+        <td class="post-cond-label">Lỗi</td>
+        <td>- Thông báo: "Sản phẩm vừa hết hàng" hoặc "Voucher không hợp lệ".</td>
+    </tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Nhập thông tin giao hàng và chọn Voucher</td><td>Tính toán phí ship và giảm giá</td></tr>
+    <tr><td></td><td>Chọn phương thức (COD/SePay) và nhấn "Đặt hàng"</td><td>Kiểm tra tồn kho và lưu đơn hàng vào DB</td></tr>
+    <tr><td></td><td></td><td>Nếu SePay: Hiển thị QR thanh toán mã đơn hàng SHxxx</td></tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện ngoại lệ</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Đối tượng</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Voucher hết hạn</td><td>Cảnh báo: "Mã giảm giá này đã hết lượt sử dụng"</td></tr>
+</table>
+
+<!-- ==================== UC_15 ==================== -->
+<h3>3.4.15. UC_15. Theo dõi trạng thái đơn hàng</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_15</td><td colspan="2" style="font-weight:bold;">Kiểm tra tiến trình giao vận</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Khách hàng</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Xem trạng thái cập nhật của đơn hàng từ khi đặt đến khi nhận thành công.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập "Đơn hàng của tôi"</td><td>Truy vấn thông tin từ bảng `Orders`</td></tr>
+    <tr><td></td><td>Xem chi tiết một đơn hàng</td><td>Hiển thị: Chờ xác nhận -> Đang đóng gói -> Đang giao -> Đã giao</td></tr>
+</table>
+
+<!-- ==================== UC_16 ==================== -->
+<h3>3.4.16. UC_16. Gửi đánh giá & Phản hồi</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_16</td><td colspan="2" style="font-weight:bold;">Đánh giá chất lượng Dịch vụ/Sản phẩm</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Khách hàng</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Người dùng gửi nhận xét và số sao (1-5) cho dịch vụ hoặc sản phẩm đã sử dụng.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Đơn hàng hoặc Lịch hẹn đã ở trạng thái 'completed'.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Chọn "Đánh giá" tại lịch sử</td><td>Hiển thị form nhập: Số sao, Nội dung, Ảnh đính kèm</td></tr>
+    <tr><td></td><td>Gửi đánh giá</td><td>Lưu vào bảng Reviews, tính lại Rating trung bình của đối tượng</td></tr>
+</table>
+
+<!-- ==================== UC_17 ==================== -->
+<h3>3.4.17. UC_17. Tư vấn trợ lý AI (Groq/Llama)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_17</td><td colspan="2" style="font-weight:bold;">Trò chuyện với Chatbot AI thông minh</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Khách hàng</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Trợ lý ảo tư vấn kiểu tóc, dịch vụ và giải đáp thắc mắc khách hàng tự động.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Nhập câu hỏi vào ô Chat</td><td>Gửi câu hỏi kèm Context (danh sách dịch vụ) lên Groq API</td></tr>
+    <tr><td></td><td></td><td>Nhận phản hồi từ Llama 3.3 và hiển thị cho người dùng</td></tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện ngoại lệ</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Đối tượng</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>API bị giới hạn (Rate limit)</td><td>Thông báo: "AI đang bận, vui lòng hỏi lại sau giây lát"</td></tr>
+</table>
+
+<!-- ==================== UC_18 ==================== -->
+<h3>3.4.18. UC_18. Nhận thông báo Real-time</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_18</td><td colspan="2" style="font-weight:bold;">Cập nhật thông báo tức thời</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Người dùng (Tất cả vai trò)</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Hệ thống đẩy thông báo ngay lập tức khi có biến động dữ liệu quan trọng.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Đang truy cập ứng dụng</td><td>Socket.io phát sự kiện (VD: 'new_order', 'payment_success')</td></tr>
+    <tr><td></td><td></td><td>Hiển thị Popup thông báo và âm thanh cảnh báo trên trình duyệt</td></tr>
+</table>
+
+<!-- ==================== UC_19 ==================== -->
+<h3>3.4.19. UC_19. Bán thêm sản phẩm (Upsell Items)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_19</td><td colspan="2" style="font-weight:bold;">Tư vấn bán hàng trực tiếp tại quầy</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Nhân viên (Staff)</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Nhân viên thêm các sản phẩm khách mua thêm trong quá trình làm tóc vào lịch hẹn hiện tại.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Khách hàng đang trong quá trình thực hiện dịch vụ.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Chọn "Thêm sản phẩm" trong chi tiết lịch hẹn</td><td>Hiển thị danh sách sản phẩm còn tồn kho</td></tr>
+    <tr><td></td><td>Nhập số lượng sản phẩm khách lấy</td><td>Gọi API /upsell để cập nhật vào đơn hàng của lịch hẹn</td></tr>
+    <tr><td></td><td></td><td>Cộng dồn số tiền vào tổng hóa đơn cuối cùng của khách</td></tr>
+</table>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; font-weight:bold;">— Hết Phần 2.3/6 — Còn tiếp Phần 2.4 —</p>
+
+</div>
+</body>
+</html>

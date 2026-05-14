@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 3 - Phần 2.6: Đặc tả Use Case (32-38)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 850px; margin: 0 auto; background: white; padding: 50px 60px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 30px; margin-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11pt; table-layout: fixed; }
+        table, th, td { border: 1px solid #000; }
+        td { padding: 10px; vertical-align: top; word-wrap: break-word; }
+        
+        .bg-gray-label { background-color: #d9d9d9; font-weight: bold; width: 25%; }
+        .bg-gray-header { background-color: #d9d9d9; font-weight: bold; text-align: left; }
+        .bg-gray-sub { background-color: #d9d9d9; font-weight: bold; }
+        .label-bold { font-weight: bold; width: 25%; }
+        .post-cond-label { font-weight: bold; width: 20%; border-right: 1px solid #000; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 2.6/6)</h1>
+<p style="text-align:center; font-style:italic;">Đặc tả chi tiết Use Case: UC_32 - UC_38 (Quản trị cấp cao)</p>
+
+<hr style="margin: 20px 0;">
+
+<!-- ==================== UC_32 ==================== -->
+<h3>3.4.32. UC_32. Quản lý hệ thống Chi nhánh (Branches)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_32</td><td colspan="2" style="font-weight:bold;">Thiết lập mạng lưới Salon</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thêm, sửa hoặc tạm dừng hoạt động của các chi nhánh trong chuỗi Salon.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Admin đăng nhập thành công.</td></tr>
+    <tr>
+        <td rowspan="2" class="label-bold">Hậu điều kiện</td>
+        <td class="post-cond-label">Thành công</td>
+        <td>- Thông tin chi nhánh mới được hiển thị trên bản đồ và trang đặt lịch của khách.</td>
+    </tr>
+    <tr>
+        <td class="post-cond-label">Lỗi</td>
+        <td>- Thông báo lỗi khi thiếu thông tin địa chỉ hoặc số điện thoại.</td>
+    </tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Nhấn "Thêm chi nhánh"</td><td>Hiển thị form: Tên, Địa chỉ, SĐT, Giờ mở/đóng cửa, Ảnh đại diện</td></tr>
+    <tr><td></td><td>Nhập tọa độ hoặc địa chỉ cụ thể</td><td>Lưu bản ghi vào bảng `Branches`</td></tr>
+    <tr><td></td><td>Lưu thông tin</td><td>Cập nhật trạng thái 'active' cho chi nhánh mới</td></tr>
+</table>
+
+<!-- ==================== UC_33 ==================== -->
+<h3>3.4.33. UC_33. Quản lý nhân viên & Phân quyền (RBAC)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_33</td><td colspan="2" style="font-weight:bold;">Quản trị tài khoản và Vai trò nhân sự</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Cấp tài khoản cho nhân viên mới và chỉ định vai trò (Staff, Warehouse, Accountant).</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Nhập thông tin nhân viên và chọn Role</td><td>Kiểm tra tính duy nhất của Email nhân viên</td></tr>
+    <tr><td></td><td>Chỉ định chi nhánh làm việc</td><td>Liên kết UserId với BranchId tương ứng</td></tr>
+    <tr><td></td><td>Nhấn "Tạo tài khoản"</td><td>Gửi mật khẩu mặc định qua email nhân viên</td></tr>
+</table>
+
+<!-- ==================== UC_34 ==================== -->
+<h3>3.4.34. UC_34. Cấu hình kỹ năng Stylist (Staff Skills)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_34</td><td colspan="2" style="font-weight:bold;">Định nghĩa năng lực chuyên môn cho thợ</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin, Quản lý chi nhánh</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thiết lập các loại dịch vụ mà một Stylist có thể thực hiện (VD: thợ chính chỉ cắt, thợ phụ chỉ gội).</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Chọn một Stylist cụ thể</td><td>Hiển thị danh sách toàn bộ các dịch vụ của Salon</td></tr>
+    <tr><td></td><td>Tích chọn các dịch vụ Stylist đảm nhận</td><td>Lưu mối quan hệ vào bảng trung gian `StaffSkills`</td></tr>
+    <tr><td></td><td></td><td>Lọc lại danh sách Stylist khi khách đặt dịch vụ tương ứng (UC_06)</td></tr>
+</table>
+
+<!-- ==================== UC_35 ==================== -->
+<h3>3.4.35. UC_35. Quản lý khách hàng</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_35</td><td colspan="2" style="font-weight:bold;">Theo dõi hồ sơ và hạng thành viên khách hàng</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin, Lễ tân</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Xem lịch sử sử dụng dịch vụ, tổng chi tiêu và cập nhật hạng thành viên (Bronze, Silver, Gold).</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Tra cứu khách hàng theo SĐT</td><td>Hiển thị thông tin cá nhân và lịch sử GD</td></tr>
+    <tr><td></td><td>Nhấn "Khóa tài khoản" (nếu vi phạm)</td><td>Cập nhật trạng thái `isBanned` = true</td></tr>
+</table>
+
+<!-- ==================== UC_36 ==================== -->
+<h3>3.4.36. UC_36. Theo dõi Dashboard Analytics</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_36</td><td colspan="2" style="font-weight:bold;">Phân tích dữ liệu kinh doanh tổng quát</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Xem biểu đồ doanh thu, tỷ lệ lấp đầy slot, dịch vụ bán chạy nhất theo thời gian thực.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập trang Tổng quan (Dashboard)</td><td>Aggregate dữ liệu từ toàn bộ hệ thống</td></tr>
+    <tr><td></td><td>Chọn xem theo từng chi nhánh</td><td>Hiển thị biểu đồ cột, đường và các chỉ số KPI (Revenue, Appointments, Orders)</td></tr>
+</table>
+
+<!-- ==================== UC_37 ==================== -->
+<h3>3.4.37. UC_37. Cấu hình tham số hệ thống (Settings)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_37</td><td colspan="2" style="font-weight:bold;">Thiết lập quy tắc vận hành chung</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thay đổi các tham số như: Số tiền đặt cọc tối thiểu, Thời gian hủy lịch tối đa, Tỷ lệ tích điểm...</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Thay đổi giá trị tham số cấu hình</td><td>Lưu vào bảng `SystemConfigs` hoặc biến môi trường</td></tr>
+    <tr><td></td><td>Nhấn "Áp dụng"</td><td>Hệ thống cập nhật logic vận hành ngay lập tức</td></tr>
+</table>
+
+<!-- ==================== UC_38 ==================== -->
+<h3>3.4.38. UC_38. Quản lý Nhật ký hệ thống (Logs)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_38</td><td colspan="2" style="font-weight:bold;">Giám sát hoạt động và bảo mật</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Truy vết các hành động nhạy cảm như xóa đơn hàng, thay đổi bảng lương, đăng nhập thất bại.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập mục "Audit Logs"</td><td>Hiển thị: Thời gian, UserId, Hành động, IP, Trạng thái</td></tr>
+    <tr><td></td><td>Lọc theo UserId hoặc Hành động</td><td>Hiển thị chi tiết nội dung thay đổi (Before/After)</td></tr>
+</table>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; font-weight:bold;">— Hoàn tất Chương 3 - Phần 2 (Đặc tả Use Case) —</p>
+
+</div>
+</body>
+</html>

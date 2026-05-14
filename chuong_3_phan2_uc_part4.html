@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 3 - Phần 2.4: Đặc tả Use Case (20-25)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 850px; margin: 0 auto; background: white; padding: 50px 60px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 30px; margin-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11pt; table-layout: fixed; }
+        table, th, td { border: 1px solid #000; }
+        td { padding: 10px; vertical-align: top; word-wrap: break-word; }
+        
+        .bg-gray-label { background-color: #d9d9d9; font-weight: bold; width: 25%; }
+        .bg-gray-header { background-color: #d9d9d9; font-weight: bold; text-align: left; }
+        .bg-gray-sub { background-color: #d9d9d9; font-weight: bold; }
+        .label-bold { font-weight: bold; width: 25%; }
+        .post-cond-label { font-weight: bold; width: 20%; border-right: 1px solid #000; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 2.4/6)</h1>
+<p style="text-align:center; font-style:italic;">Đặc tả chi tiết Use Case: UC_20 - UC_25 (Quản trị Kho & Hàng hóa)</p>
+
+<hr style="margin: 20px 0;">
+
+<!-- ==================== UC_20 ==================== -->
+<h3>3.4.20. UC_20. Nhập kho theo lô (Import Batches)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_20</td><td colspan="2" style="font-weight:bold;">Quản lý nhập hàng hóa vào kho</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Thủ kho (Warehouse Staff)</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thực hiện nhập thêm sản phẩm vào kho theo từng lô hàng (Batch) kèm theo Hạn sử dụng.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Thủ kho đã đăng nhập và truy cập module Kho.</td></tr>
+    <tr>
+        <td rowspan="2" class="label-bold">Hậu điều kiện</td>
+        <td class="post-cond-label">Thành công</td>
+        <td>- Tạo bản ghi ProductBatch, tăng tồn kho thực tế của sản phẩm.</td>
+    </tr>
+    <tr>
+        <td class="post-cond-label">Lỗi</td>
+        <td>- Thông báo: "Dữ liệu nhập hàng không hợp lệ".</td>
+    </tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Chọn sản phẩm cần nhập</td><td>Hiển thị lịch sử các lô hàng cũ</td></tr>
+    <tr><td></td><td>Nhập số lượng, giá nhập, ngày sản xuất và hạn dùng</td><td>Kiểm tra tính logic của ngày tháng</td></tr>
+    <tr><td></td><td>Nhấn "Xác nhận nhập kho"</td><td>Tạo bản ghi Batch mới, cập nhật tổng số lượng tồn kho</td></tr>
+</table>
+
+<!-- ==================== UC_21 ==================== -->
+<h3>3.4.21. UC_21. Quản lý nhà cung cấp</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_21</td><td colspan="2" style="font-weight:bold;">Quản trị danh sách đối tác cung ứng</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Thủ kho, Quản lý</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Lưu trữ và cập nhật thông tin liên hệ, hợp đồng với các nhà cung cấp mỹ phẩm.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập module "Nhà cung cấp"</td><td>Hiển thị danh sách các đối tác hiện tại</td></tr>
+    <tr><td></td><td>Nhấn "Thêm mới" hoặc "Chỉnh sửa"</td><td>Hiển thị form nhập: Tên NCC, SĐT, Địa chỉ, Email</td></tr>
+    <tr><td></td><td>Lưu thông tin</td><td>Cập nhật vào bảng Suppliers</td></tr>
+</table>
+
+<!-- ==================== UC_22 ==================== -->
+<h3>3.4.22. UC_22. Kiểm kê & Cảnh báo tồn kho</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_22</td><td colspan="2" style="font-weight:bold;">Theo dõi biến động và Cảnh báo hàng sắp hết</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Thủ kho</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Hệ thống tự động rà soát và hiển thị cảnh báo khi sản phẩm dưới ngưỡng an toàn.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập Dashboard Kho</td><td>Lọc danh sách sản phẩm có số lượng < ngưỡng thiết lập</td></tr>
+    <tr><td></td><td></td><td>Đánh dấu màu đỏ các sản phẩm sắp hết hoặc sắp hết hạn</td></tr>
+    <tr><td></td><td>Xuất báo cáo kiểm kê</td><td>Tạo file Excel/PDF chứa danh sách hàng cần nhập thêm</td></tr>
+</table>
+
+<!-- ==================== UC_23 ==================== -->
+<h3>3.4.23. UC_23. Xử lý hàng hoàn trả (Returns)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_23</td><td colspan="2" style="font-weight:bold;">Tiếp nhận và xử lý trả sản phẩm</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Thủ kho</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thực hiện nhập lại hàng vào kho khi khách hàng trả lại sản phẩm lỗi hoặc không hài lòng.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Tìm kiếm mã Đơn hàng (Order ID)</td><td>Hiển thị danh sách sản phẩm trong đơn đó</td></tr>
+    <tr><td></td><td>Chọn sản phẩm trả lại và lý do</td><td>Tạo bản ghi Return, cập nhật tồn kho (nếu hàng còn dùng được)</td></tr>
+    <tr><td></td><td></td><td>Gửi tín hiệu sang Kế toán để thực hiện Hoàn tiền (Refund)</td></tr>
+</table>
+
+<!-- ==================== UC_24 ==================== -->
+<h3>3.4.24. UC_24. Quản lý danh mục Dịch vụ</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_24</td><td colspan="2" style="font-weight:bold;">Thiết lập danh mục dịch vụ làm tóc</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin / Quản lý chi nhánh</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Thêm mới hoặc cập nhật các gói dịch vụ (Cắt, Uốn, Nhuộm...) và giá thành.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Nhấn "Thêm dịch vụ mới"</td><td>Hiển thị form: Tên dịch vụ, Mô tả, Giá, Thời gian (phút), Ảnh</td></tr>
+    <tr><td></td><td>Tải ảnh minh họa lên</td><td>Sử dụng Cloudinary/Local để lưu trữ ảnh</td></tr>
+    <tr><td></td><td>Lưu thông tin</td><td>Cập nhật vào bảng Services, hiển thị lên trang Booking khách hàng</td></tr>
+</table>
+
+<!-- ==================== UC_25 ==================== -->
+<h3>3.4.25. UC_25. Quản lý danh mục Sản phẩm</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_25</td><td colspan="2" style="font-weight:bold;">Quản trị danh mục mỹ phẩm bán lẻ</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Admin / Quản lý</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Định nghĩa các loại sản phẩm, đơn vị tính, thương hiệu để phục vụ bán lẻ.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập trang "Sản phẩm"</td><td>Hiển thị danh sách sản phẩm hiện có và trạng thái (Đang bán/Dừng bán)</td></tr>
+    <tr><td></td><td>Chỉnh sửa giá bán lẻ</td><td>Cập nhật giá mới và lưu vết lịch sử thay đổi giá</td></tr>
+</table>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; font-weight:bold;">— Hết Phần 2.4/6 — Còn tiếp Phần 2.5 —</p>
+
+</div>
+</body>
+</html>

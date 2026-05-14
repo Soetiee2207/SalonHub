@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 4 - Phần 2: Kiểm thử & Kết quả</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.8; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 820px; margin: 0 auto; background: white; padding: 60px 70px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 28px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 18px; margin-bottom: 6px; font-style: italic; }
+        p { text-align: justify; text-indent: 40px; margin-bottom: 8px; }
+        ul { margin-left: 60px; margin-bottom: 8px; }
+        ul li { margin-bottom: 4px; text-align: justify; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 25px 0; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-style: italic; font-size: 12pt; }
+        .pass { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 16px; margin: 16px 0; font-size: 12pt; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11pt; }
+        table th, table td { border: 1px solid #999; padding: 5px 8px; text-align: left; vertical-align: top; }
+        table th { background: #f0f0f0; font-weight: bold; }
+        .result { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 4. Cài đặt và Thử nghiệm (Phần 2/2)</h1>
+<p style="text-align:center; font-style:italic; text-indent:0;">Phần 2: Kiểm thử hệ thống — Kết quả demo</p>
+
+<hr>
+
+<!-- ==================== 4.3 ==================== -->
+<h2>4.3. Kiểm thử hệ thống</h2>
+
+<p>Hệ thống SalonHub được kiểm thử theo phương pháp kiểm thử hộp đen (Black-box Testing) dựa trên các kịch bản Use Case đã đặc tả ở Chương 3. Dưới đây là các bảng test case cho từng module chức năng chính.</p>
+
+<h3>4.3.1. Kiểm thử Module Xác thực</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_01</td><td>Đăng ký thành công</td><td>Họ tên, email hợp lệ, mật khẩu ≥6 ký tự</td><td>Tạo tài khoản, đăng nhập tự động, chuyển về trang chủ</td><td class="result">✓</td></tr>
+<tr><td>TC_02</td><td>Đăng ký email trùng</td><td>Email đã tồn tại</td><td>Thông báo lỗi "Email đã được sử dụng"</td><td class="result">✓</td></tr>
+<tr><td>TC_03</td><td>Đăng nhập đúng</td><td>Email + mật khẩu đúng</td><td>Nhận JWT, chuyển hướng theo role</td><td class="result">✓</td></tr>
+<tr><td>TC_04</td><td>Đăng nhập sai</td><td>Email đúng, mật khẩu sai</td><td>"Email hoặc mật khẩu không đúng"</td><td class="result">✓</td></tr>
+<tr><td>TC_05</td><td>Đăng nhập Google OAuth</td><td>Tài khoản Google</td><td>Tạo/cập nhật user, nhận JWT</td><td class="result">✓</td></tr>
+<tr><td>TC_06</td><td>Quên mật khẩu — gửi OTP</td><td>Email đã đăng ký</td><td>Gửi email OTP 6 số, lưu vào OtpCode</td><td class="result">✓</td></tr>
+<tr><td>TC_07</td><td>Quên mật khẩu — OTP sai</td><td>Nhập OTP không đúng</td><td>"Mã OTP không hợp lệ"</td><td class="result">✓</td></tr>
+<tr><td>TC_08</td><td>Đặt lại mật khẩu</td><td>OTP đúng + mật khẩu mới</td><td>Cập nhật hash, đăng nhập lại bình thường</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.2 — CẦN CHỤP] Ảnh chụp màn hình form Đăng ký + Đăng nhập + Google OAuth.
+</div>
+
+<h3>4.3.2. Kiểm thử Module Đặt lịch hẹn</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_09</td><td>Xem slot trống</td><td>Chọn chi nhánh, dịch vụ, stylist, ngày</td><td>Hiển thị danh sách slot 30 phút khả dụng</td><td class="result">✓</td></tr>
+<tr><td>TC_10</td><td>Slot đã đặt bị loại</td><td>Stylist đã có lịch 10:00-11:00</td><td>Slot 10:00, 10:30 không xuất hiện</td><td class="result">✓</td></tr>
+<tr><td>TC_11</td><td>Đặt lịch + chờ cọc</td><td>Chọn đầy đủ thông tin</td><td>Appointment status='awaiting_deposit', hiển thị QR SePay</td><td class="result">✓</td></tr>
+<tr><td>TC_12</td><td>Thanh toán cọc qua SePay</td><td>Chuyển khoản nội dung "AP{id}"</td><td>Webhook → status='pending', depositStatus='paid', thông báo Socket.io</td><td class="result">✓</td></tr>
+<tr><td>TC_13</td><td>Timeout chưa cọc</td><td>Không chuyển khoản trong thời gian quy định</td><td>Hệ thống tự động hủy, Payment status='failed'</td><td class="result">✓</td></tr>
+<tr><td>TC_14</td><td>Hủy lịch hẹn</td><td>Khách nhấn hủy + nhập lý do</td><td>status='cancelled', lưu cancelReason</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.3 — CẦN CHỤP] Ảnh chụp: Luồng đặt lịch (chọn chi nhánh → dịch vụ → stylist → slot giờ → QR thanh toán).<br>
+    [HÌNH 4.4 — CẦN CHỤP] Ảnh chụp: Thông báo "Thanh toán thành công" qua Socket.io sau khi nhận Webhook.
+</div>
+
+<h3>4.3.3. Kiểm thử Module Đơn hàng</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_15</td><td>Thêm sản phẩm vào giỏ</td><td>Chọn sản phẩm, số lượng</td><td>Cart item được tạo, badge giỏ hàng cập nhật</td><td class="result">✓</td></tr>
+<tr><td>TC_16</td><td>Đặt hàng COD</td><td>Giỏ hàng + địa chỉ + COD</td><td>Order status='pending', reservedStock tăng</td><td class="result">✓</td></tr>
+<tr><td>TC_17</td><td>Đặt hàng SePay</td><td>Giỏ hàng + SePay</td><td>Hiển thị QR → Webhook → status='confirmed'</td><td class="result">✓</td></tr>
+<tr><td>TC_18</td><td>Áp dụng Voucher</td><td>Mã voucher hợp lệ</td><td>Tính giảm giá, hiển thị tổng tiền mới</td><td class="result">✓</td></tr>
+<tr><td>TC_19</td><td>Voucher hết hạn</td><td>Mã voucher đã hết hạn</td><td>"Mã giảm giá đã hết hạn"</td><td class="result">✓</td></tr>
+<tr><td>TC_20</td><td>Sản phẩm hết hàng</td><td>Số lượng > stock khả dụng</td><td>Thông báo "Sản phẩm không đủ số lượng"</td><td class="result">✓</td></tr>
+<tr><td>TC_21</td><td>Admin cập nhật trạng thái</td><td>confirmed → packing → shipping</td><td>Trạng thái thay đổi, tự động xuất kho khi packing</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.5 — CẦN CHỤP] Ảnh chụp: Trang giỏ hàng → Checkout → Xác nhận đơn hàng.
+</div>
+
+<h3>4.3.4. Kiểm thử Module Thanh toán SePay Webhook</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_22</td><td>Webhook hợp lệ — Đơn hàng</td><td>POST /sepay-webhook, nội dung "SH123"</td><td>Order paymentStatus='paid', CashFlow receipt tạo tự động</td><td class="result">✓</td></tr>
+<tr><td>TC_23</td><td>Webhook hợp lệ — Lịch hẹn</td><td>Nội dung "AP456"</td><td>Appointment depositStatus='paid', status='pending'</td><td class="result">✓</td></tr>
+<tr><td>TC_24</td><td>Webhook API Key sai</td><td>Header Authorization không đúng</td><td>Response 401 Unauthorized</td><td class="result">✓</td></tr>
+<tr><td>TC_25</td><td>Webhook không tìm thấy mã</td><td>Nội dung không chứa SH/AP</td><td>Response 200, không xử lý gì</td><td class="result">✓</td></tr>
+<tr><td>TC_26</td><td>Webhook số tiền không khớp</td><td>Chuyển 50.000đ cho đơn 100.000đ</td><td>Response 200, không cập nhật trạng thái</td><td class="result">✓</td></tr>
+</table>
+
+<h3>4.3.5. Kiểm thử Module Kế toán</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_27</td><td>Xem sổ quỹ</td><td>Truy cập trang sổ quỹ</td><td>Hiển thị danh sách thu/chi, filter theo khoảng thời gian</td><td class="result">✓</td></tr>
+<tr><td>TC_28</td><td>Đối soát COD</td><td>Xác nhận giao dịch COD</td><td>Payment isReconciled=true, CashFlow receipt tạo</td><td class="result">✓</td></tr>
+<tr><td>TC_29</td><td>Phê duyệt hoàn tiền</td><td>Approve RefundRequest</td><td>CashFlow payment/refund tạo, Payment status='refunded'</td><td class="result">✓</td></tr>
+<tr><td>TC_30</td><td>Báo cáo tài chính</td><td>Chọn khoảng thời gian</td><td>Biểu đồ doanh thu/chi phí, tổng lợi nhuận ròng</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.6 — CẦN CHỤP] Ảnh chụp: Trang Đối soát thanh toán SePay/COD + Sổ quỹ.<br>
+    [HÌNH 4.7 — CẦN CHỤP] Ảnh chụp: Trang Báo cáo tài chính (biểu đồ + bảng số liệu).
+</div>
+
+<h3>4.3.6. Kiểm thử Module Kho hàng</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_31</td><td>Nhập kho theo lô</td><td>Sản phẩm, SL, giá nhập, nhà cung cấp, HSD</td><td>ProductBatch tạo, stock tăng, InventoryTransaction type='import'</td><td class="result">✓</td></tr>
+<tr><td>TC_32</td><td>Xuất kho tự động</td><td>Admin chuyển đơn sang 'packing'</td><td>stock giảm, InventoryTransaction type='export' ghi referenceType='order'</td><td class="result">✓</td></tr>
+<tr><td>TC_33</td><td>Cảnh báo hết hàng</td><td>stock ≤ minStock</td><td>Hiển thị cảnh báo đỏ trên giao diện quản trị</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.8 — CẦN CHỤP] Ảnh chụp: Form nhập kho theo lô + Lịch sử xuất nhập kho.
+</div>
+
+<h3>4.3.7. Kiểm thử Module Chatbot AI</h3>
+<table>
+<tr><th>TC</th><th>Mô tả</th><th>Đầu vào</th><th>Kết quả mong đợi</th><th>KQ</th></tr>
+<tr><td>TC_34</td><td>Hỏi giá dịch vụ</td><td>"Cắt tóc nam bao nhiêu tiền?"</td><td>Trả lời đúng giá từ database</td><td class="result">✓</td></tr>
+<tr><td>TC_35</td><td>Hỏi địa chỉ chi nhánh</td><td>"SalonHub có ở đâu?"</td><td>Liệt kê chi nhánh + địa chỉ + hotline từ database</td><td class="result">✓</td></tr>
+<tr><td>TC_36</td><td>Hỏi câu lạc đề</td><td>"Giải phương trình bậc 2"</td><td>Từ chối khéo léo, hướng về dịch vụ Salon</td><td class="result">✓</td></tr>
+<tr><td>TC_37</td><td>Groq API Key chưa cấu hình</td><td>Xóa biến GROQ_API_KEY</td><td>"Hệ thống chưa được cấu hình"</td><td class="result">✓</td></tr>
+</table>
+
+<div class="note">
+    [HÌNH 4.9 — CẦN CHỤP] Ảnh chụp: Chatbot widget trả lời tư vấn dịch vụ + từ chối câu hỏi lạc đề.
+</div>
+
+<hr>
+
+<!-- ==================== 4.4 ==================== -->
+<h2>4.4. Tổng hợp kết quả kiểm thử</h2>
+
+<table>
+<tr><th>Module</th><th>Số TC</th><th>Pass</th><th>Fail</th><th>Tỷ lệ</th></tr>
+<tr><td>Xác thực (Auth)</td><td>8</td><td>8</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Đặt lịch hẹn</td><td>6</td><td>6</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Đơn hàng</td><td>7</td><td>7</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Webhook SePay</td><td>5</td><td>5</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Kế toán</td><td>4</td><td>4</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Kho hàng</td><td>3</td><td>3</td><td>0</td><td class="result">100%</td></tr>
+<tr><td>Chatbot AI</td><td>4</td><td>4</td><td>0</td><td class="result">100%</td></tr>
+<tr style="font-weight:bold;"><td>Tổng cộng</td><td>37</td><td>37</td><td>0</td><td class="result">100%</td></tr>
+</table>
+
+<div class="pass">
+    <strong>Kết luận kiểm thử:</strong> Toàn bộ 37 test case đều đạt yêu cầu (Pass). Các module trọng tâm (Đặt lịch, Thanh toán SePay Webhook, Auto-Accounting, Chatbot AI) hoạt động ổn định và đúng theo đặc tả Use Case.
+</div>
+
+<hr>
+
+<!-- ==================== 4.5 ==================== -->
+<h2>4.5. Minh họa kết quả chạy thực tế (Demo)</h2>
+
+<p>Phần này trình bày một số kết quả chạy thực tế trên môi trường Production để minh họa hoạt động của hệ thống.</p>
+
+<h3>4.5.1. Kịch bản 1: Khách hàng đặt lịch + Thanh toán cọc tự động</h3>
+<div class="note">
+    [HÌNH 4.10 — CẦN CHỤP] Chuỗi ảnh minh họa:<br>
+    (a) Khách chọn dịch vụ + stylist + slot giờ.<br>
+    (b) Màn hình QR chuyển khoản SePay với nội dung "AP{id}".<br>
+    (c) Sau khi chuyển khoản thành công → Thông báo "Đặt lịch thành công" hiện lên qua Socket.io.<br>
+    (d) Trong trang Kế toán: CashFlowTransaction type='receipt' category='deposit' được tạo tự động.
+</div>
+
+<h3>4.5.2. Kịch bản 2: Khách mua hàng online + SePay</h3>
+<div class="note">
+    [HÌNH 4.11 — CẦN CHỤP] Chuỗi ảnh minh họa:<br>
+    (a) Khách chọn sản phẩm → Giỏ hàng → Checkout (chọn SePay).<br>
+    (b) QR thanh toán "SH{id}" → Chuyển khoản → Đơn hàng tự động confirmed.<br>
+    (c) Admin cập nhật: confirmed → packing (tự động xuất kho) → shipping (nhập tracking) → completed.
+</div>
+
+<h3>4.5.3. Kịch bản 3: Staff phục vụ khách tại Salon + Upsell</h3>
+<div class="note">
+    [HÌNH 4.12 — CẦN CHỤP] Chuỗi ảnh minh họa:<br>
+    (a) Staff xem lịch hẹn được phân công → Bắt đầu phục vụ (in_progress).<br>
+    (b) Staff bán thêm sản phẩm (tạo Upsell Order).<br>
+    (c) Hoàn thành dịch vụ → Thanh toán tổng → Tự động hạch toán.
+</div>
+
+<h3>4.5.4. Kịch bản 4: Chatbot AI tư vấn</h3>
+<div class="note">
+    [HÌNH 4.13 — CẦN CHỤP] Chuỗi ảnh minh họa:<br>
+    (a) Khách hỏi "Dịch vụ cắt tóc nam giá bao nhiêu?" → Bot trả lời đúng giá từ DB.<br>
+    (b) Khách hỏi "SalonHub có chi nhánh nào?" → Bot liệt kê chi nhánh + địa chỉ.<br>
+    (c) Khách hỏi lạc đề → Bot từ chối khéo léo.
+</div>
+
+<hr>
+
+<h2>Kết luận Chương 4</h2>
+
+<p>Chương này đã trình bày toàn bộ quá trình cài đặt và kiểm thử hệ thống SalonHub, với các kết quả đạt được:</p>
+<ul>
+    <li><strong>Môi trường triển khai:</strong> Hệ thống được triển khai thành công trên kiến trúc cloud hiện đại gồm Vercel (Frontend), Render (Backend) và Aiven (MySQL), hoạt động ổn định 24/7.</li>
+    <li><strong>Hiện thực 7 module trọng tâm:</strong> Bao gồm thuật toán kiểm tra slot trống chống double-booking, xử lý Webhook SePay với Database Transaction đảm bảo toàn vẹn, tự động hạch toán sổ quỹ, quản lý kho với Reserved Stock, Chatbot AI tích hợp Llama 3.3 70B, thông báo real-time qua Socket.io, và Background Job hủy lịch hẹn quá hạn.</li>
+    <li><strong>Kiểm thử toàn diện:</strong> Thực hiện 37 test case kiểm thử hộp đen trên 7 module chức năng chính, tất cả đều đạt kết quả Pass (tỷ lệ 100%).</li>
+    <li><strong>Demo thực tế:</strong> Minh họa 4 kịch bản vận hành end-to-end: đặt lịch + cọc SePay, mua hàng online, phục vụ tại Salon + upsell, và tư vấn qua Chatbot AI.</li>
+</ul>
+<p>Kết quả kiểm thử khẳng định hệ thống SalonHub đáp ứng đầy đủ các yêu cầu chức năng và phi chức năng đã đề ra trong Chương 3, sẵn sàng đưa vào vận hành thực tế.</p>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; text-indent:0; font-weight:bold;">— Hết Chương 4 —</p>
+
+</div>
+</body>
+</html>

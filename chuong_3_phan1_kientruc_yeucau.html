@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chương 3 - Phân tích và Thiết kế hệ thống</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.8; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 800px; margin: 0 auto; background: white; padding: 60px 70px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 28px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 18px; margin-bottom: 6px; font-style: italic; }
+        h4 { font-size: 13pt; font-weight: bold; margin-top: 12px; margin-bottom: 4px; }
+        p { text-align: justify; text-indent: 40px; margin-bottom: 8px; }
+        ul, ol { margin-left: 60px; margin-bottom: 8px; }
+        ul li, ol li { margin-bottom: 4px; text-align: justify; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 25px 0; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-style: italic; font-size: 12pt; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12pt; }
+        table th, table td { border: 1px solid #999; padding: 6px 10px; text-align: left; }
+        table th { background: #f0f0f0; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 1/4)</h1>
+<p style="text-align:center; font-style:italic; text-indent:0;">Phần 1: Kiến trúc tổng thể — Yêu cầu hệ thống — Tác nhân</p>
+
+<hr>
+
+<!-- ==================== 3.1 ==================== -->
+<h2>3.1. Kiến trúc tổng thể hệ thống</h2>
+
+<p>Hệ thống SalonHub được thiết kế theo kiến trúc Client-Server, phân tách rõ ràng thành ba tầng (Three-tier Architecture):</p>
+
+<ul>
+    <li><strong>Tầng Trình bày (Presentation Tier):</strong> Ứng dụng React.js chạy trên trình duyệt, giao tiếp với Backend thông qua RESTful API và Socket.io. Được triển khai trên nền tảng Vercel.</li>
+    <li><strong>Tầng Xử lý nghiệp vụ (Business Logic Tier):</strong> Server Node.js/Express.js xử lý toàn bộ logic: xác thực, phân quyền, đặt lịch, thanh toán, quản lý kho, kế toán, và chatbot AI. Được triển khai trên nền tảng Render.</li>
+    <li><strong>Tầng Dữ liệu (Data Tier):</strong> Cơ sở dữ liệu MySQL lưu trữ toàn bộ dữ liệu hệ thống, truy cập thông qua Sequelize ORM. Được lưu trữ trên Aiven Cloud.</li>
+</ul>
+
+<p>Ngoài ra, hệ thống tích hợp các dịch vụ bên ngoài (Third-party Services):</p>
+<ul>
+    <li><strong>SePay:</strong> Cổng thanh toán tự động qua Webhook.</li>
+    <li><strong>Google OAuth 2.0:</strong> Đăng nhập bằng tài khoản Google.</li>
+    <li><strong>Gmail API:</strong> Gửi email OTP xác thực và thông báo.</li>
+    <li><strong>Groq Cloud (Llama 3.3 70B):</strong> Chatbot tư vấn AI.</li>
+</ul>
+
+<div class="note">
+    [HÌNH 3.1 — CẦN VẼ] Sơ đồ kiến trúc tổng thể hệ thống.<br>
+    Nội dung: Vẽ 3 tầng (React → Express → MySQL) ở giữa, xung quanh là các dịch vụ bên ngoài (SePay, Google OAuth, Gmail API, Groq Cloud) với các mũi tên chỉ chiều giao tiếp. Ghi rõ giao thức: HTTP/HTTPS, WebSocket, Webhook.
+</div>
+
+<hr>
+
+<!-- ==================== 3.2 ==================== -->
+<h2>3.2. Phân tích yêu cầu hệ thống</h2>
+
+<h3>3.2.1. Yêu cầu chức năng</h3>
+
+<p>Dựa trên phân tích nghiệp vụ của hệ thống quản lý Salon, các yêu cầu chức năng được phân nhóm theo từng vai trò người dùng như sau:</p>
+
+<h4>A. Yêu cầu đối với Khách hàng (Customer)</h4>
+<ol>
+    <li>Đăng ký tài khoản bằng email/mật khẩu hoặc đăng nhập qua Google OAuth 2.0.</li>
+    <li>Xác thực email thông qua mã OTP gửi qua Gmail API.</li>
+    <li>Quản lý thông tin cá nhân: cập nhật họ tên, số điện thoại, avatar, sổ địa chỉ.</li>
+    <li>Duyệt danh sách dịch vụ theo danh mục, xem chi tiết giá và thời gian thực hiện.</li>
+    <li>Đặt lịch hẹn: chọn chi nhánh, dịch vụ, nhân viên (stylist), ngày giờ, và thanh toán đặt cọc qua chuyển khoản SePay.</li>
+    <li>Xem lịch sử và quản lý lịch hẹn cá nhân (hủy lịch kèm lý do).</li>
+    <li>Duyệt sản phẩm, thêm vào giỏ hàng, đặt đơn hàng với các phương thức thanh toán COD hoặc SePay.</li>
+    <li>Theo dõi trạng thái đơn hàng (đang xử lý, đóng gói, vận chuyển, hoàn thành).</li>
+    <li>Yêu cầu hoàn trả đơn hàng (Return Request) kèm lý do.</li>
+    <li>Đánh giá dịch vụ sau khi hoàn thành lịch hẹn (rating + bình luận).</li>
+    <li>Đánh giá sản phẩm sau khi nhận hàng.</li>
+    <li>Nhận thông báo theo thời gian thực (Socket.io): xác nhận thanh toán, cập nhật lịch hẹn, trạng thái đơn hàng.</li>
+    <li>Tương tác với Chatbot AI để được tư vấn dịch vụ và sản phẩm.</li>
+    <li>Tích lũy điểm thưởng (Loyalty Points) và xếp hạng thành viên (Silver → Gold → Diamond).</li>
+    <li>Sử dụng mã giảm giá (Voucher) khi đặt hàng.</li>
+</ol>
+
+<h4>B. Yêu cầu đối với Nhân viên dịch vụ (Staff / Stylist)</h4>
+<ol>
+    <li>Đăng nhập vào trang quản trị với vai trò Staff.</li>
+    <li>Xem lịch làm việc cá nhân theo ngày/tuần.</li>
+    <li>Xem danh sách lịch hẹn được phân công.</li>
+    <li>Cập nhật trạng thái phục vụ: bắt đầu, hoàn thành, ghi chú dịch vụ (Customer Service Note).</li>
+    <li>Cập nhật trạng thái làm việc cá nhân (Available / Break / Busy).</li>
+    <li>Bán thêm sản phẩm tại quầy cho khách đang phục vụ (Upsell Order gắn với Appointment).</li>
+    <li>Thanh toán cho khách tại quầy bằng tiền mặt hoặc SePay.</li>
+</ol>
+
+<h4>C. Yêu cầu đối với Thủ kho (Warehouse Staff)</h4>
+<ol>
+    <li>Quản lý sản phẩm: thêm, sửa, xóa sản phẩm và danh mục sản phẩm.</li>
+    <li>Nhập kho: tạo phiếu nhập kho theo lô (Batch), ghi nhận giá nhập, nhà cung cấp, hạn sử dụng.</li>
+    <li>Xuất kho: ghi nhận xuất kho cho đơn hàng hoặc điều chỉnh thủ công.</li>
+    <li>Theo dõi tồn kho thực tế, cảnh báo khi số lượng dưới mức tối thiểu (minStock).</li>
+    <li>Xem lịch sử xuất nhập kho chi tiết.</li>
+</ol>
+
+<h4>D. Yêu cầu đối với Kế toán (Accountant)</h4>
+<ol>
+    <li>Xem báo cáo tài chính tổng quan: doanh thu dịch vụ, doanh thu bán lẻ, chi phí, lợi nhuận ròng.</li>
+    <li>Xem biểu đồ doanh thu/chi phí theo ngày hoặc khoảng thời gian tùy chọn.</li>
+    <li>Quản lý sổ quỹ (Cash Flow): ghi nhận các khoản thu/chi thực tế.</li>
+    <li>Đối soát thanh toán SePay/COD: xác nhận các giao dịch chưa đối soát.</li>
+    <li>Xử lý yêu cầu hoàn tiền (Refund Request): phê duyệt hoặc từ chối.</li>
+    <li>Xem chi tiết chứng từ liên quan (đơn hàng, lịch hẹn, phiếu nhập kho).</li>
+</ol>
+
+<h4>E. Yêu cầu đối với Quản trị viên (Admin)</h4>
+<ol>
+    <li>Toàn quyền truy cập tất cả chức năng của các vai trò khác.</li>
+    <li>Quản lý chi nhánh (Branch): thêm, sửa, xóa chi nhánh.</li>
+    <li>Quản lý dịch vụ và danh mục dịch vụ.</li>
+    <li>Quản lý tài khoản nhân viên: thêm mới, phân quyền (staff, warehouse_staff, accountant), gán chi nhánh, kích hoạt/vô hiệu hóa.</li>
+    <li>Quản lý lịch làm việc của nhân viên (Staff Schedule).</li>
+    <li>Quản lý kỹ năng nhân viên (Staff Skill): gán dịch vụ cho từng stylist.</li>
+    <li>Quản lý khách hàng: xem danh sách, chỉnh sửa thông tin, xem lịch sử giao dịch.</li>
+    <li>Quản lý đơn hàng: xem, cập nhật trạng thái, nhập mã vận đơn.</li>
+    <li>Quản lý lịch hẹn: xem tổng quan, phân công nhân viên, cập nhật trạng thái.</li>
+    <li>Quản lý voucher: tạo mã giảm giá với điều kiện (giá trị tối thiểu, số lần sử dụng, thời hạn).</li>
+    <li>Xem dashboard thống kê toàn diện: doanh thu, số lịch hẹn, đơn hàng, khách hàng mới, sản phẩm bán chạy.</li>
+    <li>Quản lý đánh giá: duyệt, ẩn hoặc phản hồi đánh giá của khách hàng.</li>
+    <li>Xử lý yêu cầu hoàn trả (Return Request).</li>
+</ol>
+
+<h4>F. Yêu cầu đối với Hệ thống (System Actor)</h4>
+<ol>
+    <li>Tự động nhận và xử lý Webhook từ SePay khi có giao dịch chuyển khoản.</li>
+    <li>Tự động cập nhật trạng thái thanh toán và ghi nhận vào sổ quỹ (Auto-accounting).</li>
+    <li>Tự động hủy lịch hẹn nếu khách không thanh toán đặt cọc trong thời gian quy định (Deposit Timeout Job).</li>
+    <li>Tự động gửi thông báo qua Socket.io cho các bên liên quan khi có sự kiện mới.</li>
+    <li>Tự động tính điểm thưởng và nâng hạng thành viên khi khách hoàn thành giao dịch.</li>
+</ol>
+
+<div class="note">
+    [BẢNG 3.1 — CẦN VẼ] Ma trận chức năng theo vai trò.<br>
+    Nội dung: Bảng với cột = Vai trò (Customer, Staff, Warehouse, Accountant, Admin), hàng = Các nhóm chức năng (Đặt lịch, Đơn hàng, Kho, Kế toán, Quản trị...), ô = ✓ hoặc ✗.
+</div>
+
+<h3>3.2.2. Yêu cầu phi chức năng</h3>
+
+<h4>A. Tính bảo mật (Security)</h4>
+<ul>
+    <li>Mật khẩu được băm bằng Bcrypt (cost factor 10) trước khi lưu trữ.</li>
+    <li>Xác thực người dùng thông qua JWT, token có thời hạn sử dụng.</li>
+    <li>Phân quyền truy cập API theo vai trò: Middleware kiểm tra role trước khi cho phép truy cập tài nguyên.</li>
+    <li>Webhook SePay được xác thực bằng API Key trong Header Authorization.</li>
+    <li>Kết nối cơ sở dữ liệu qua SSL/TLS để mã hóa dữ liệu truyền tải.</li>
+</ul>
+
+<h4>B. Tính hiệu năng (Performance)</h4>
+<ul>
+    <li>Thời gian phản hồi API trung bình dưới 500ms.</li>
+    <li>Hỗ trợ nhiều người dùng truy cập đồng thời nhờ cơ chế Non-blocking I/O của Node.js.</li>
+    <li>Cache dữ liệu ngữ cảnh AI trong 5 phút để giảm truy vấn database.</li>
+    <li>Connection Pooling cho MySQL để tái sử dụng kết nối.</li>
+</ul>
+
+<h4>C. Tính khả dụng (Availability)</h4>
+<ul>
+    <li>Hệ thống hoạt động 24/7 để nhận Webhook thanh toán bất kỳ lúc nào.</li>
+    <li>Frontend và Backend được triển khai trên các nền tảng cloud (Vercel, Render) có cơ chế auto-restart.</li>
+</ul>
+
+<h4>D. Tính khả chuyển và Bảo trì (Portability & Maintainability)</h4>
+<ul>
+    <li>Mã nguồn tuân theo mô hình Controller - Service - Model, dễ bảo trì và mở rộng.</li>
+    <li>Frontend chia thành các Component tái sử dụng.</li>
+    <li>Sử dụng biến môi trường (.env) cho tất cả cấu hình nhạy cảm, dễ dàng chuyển đổi giữa các môi trường Development và Production.</li>
+</ul>
+
+<h4>E. Tính đáp ứng giao diện (Responsiveness)</h4>
+<ul>
+    <li>Giao diện tương thích trên Desktop, Tablet và Mobile.</li>
+    <li>Sử dụng Tailwind CSS với các breakpoint responsive.</li>
+</ul>
+
+<hr>
+
+<!-- ==================== 3.3 ==================== -->
+<h2>3.3. Xác định các tác nhân hệ thống (Actors)</h2>
+
+<p>Hệ thống SalonHub có 6 tác nhân tham gia, bao gồm 5 tác nhân con người và 1 tác nhân hệ thống:</p>
+
+<table>
+    <tr>
+        <th>STT</th>
+        <th>Tác nhân</th>
+        <th>Mô tả</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td><strong>Khách hàng (Customer)</strong></td>
+        <td>Người sử dụng dịch vụ Salon: đặt lịch, mua sản phẩm, đánh giá. Có hệ thống tích điểm và xếp hạng thành viên.</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td><strong>Nhân viên dịch vụ (Staff)</strong></td>
+        <td>Stylist/Barber trực tiếp phục vụ khách. Xem lịch làm việc, cập nhật trạng thái phục vụ, bán thêm sản phẩm tại quầy.</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td><strong>Thủ kho (Warehouse Staff)</strong></td>
+        <td>Quản lý xuất nhập tồn kho sản phẩm, tạo phiếu nhập kho theo lô, theo dõi hạn sử dụng.</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td><strong>Kế toán (Accountant)</strong></td>
+        <td>Quản lý tài chính: đối soát thanh toán SePay/COD, quản lý sổ quỹ, xử lý hoàn tiền, xem báo cáo doanh thu.</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td><strong>Quản trị viên (Admin)</strong></td>
+        <td>Toàn quyền quản lý hệ thống: chi nhánh, nhân viên, dịch vụ, khách hàng, voucher, dashboard thống kê.</td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <td><strong>Hệ thống SePay (System)</strong></td>
+        <td>Tác nhân bên ngoài: tự động gửi Webhook khi phát hiện giao dịch chuyển khoản vào tài khoản Salon.</td>
+    </tr>
+</table>
+
+<div class="note">
+    [HÌNH 3.2 — CẦN VẼ] Sơ đồ Use Case tổng quát của hệ thống SalonHub.<br>
+    Nội dung: Vẽ 6 actor ở hai bên (Customer, Staff, Warehouse bên trái — Accountant, Admin, SePay bên phải), ở giữa là hình chữ nhật "Hệ thống SalonHub" chứa các use case chính nhóm theo module: Đặt lịch, Mua hàng, Quản lý kho, Kế toán, Quản trị, Chatbot AI. Dùng &lt;&lt;include&gt;&gt; và &lt;&lt;extend&gt;&gt; khi cần.
+</div>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; text-indent:0;">— Hết Phần 1/4 — Tiếp theo: Phần 2 (Đặc tả Use Case chi tiết) —</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 3 - Phần 3: Thiết kế CSDL</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.8; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 820px; margin: 0 auto; background: white; padding: 60px 70px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 28px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 18px; margin-bottom: 6px; font-style: italic; }
+        p { text-align: justify; text-indent: 40px; margin-bottom: 8px; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 25px 0; }
+        .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-style: italic; font-size: 12pt; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 11pt; }
+        table th, table td { border: 1px solid #999; padding: 5px 8px; text-align: left; vertical-align: top; }
+        table th { background: #f0f0f0; font-weight: bold; }
+        .tname { font-size: 13pt; font-weight: bold; margin-top: 16px; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 3/4)</h1>
+<p style="text-align:center; font-style:italic; text-indent:0;">Phần 3: Thiết kế Cơ sở dữ liệu</p>
+
+<hr>
+
+<h2>3.5. Thiết kế Cơ sở dữ liệu</h2>
+
+<h3>3.5.1. Sơ đồ thực thể mối quan hệ (ERD)</h3>
+<p>Cơ sở dữ liệu SalonHub gồm 25 bảng, được thiết kế theo mô hình quan hệ với các ràng buộc khóa ngoại chặt chẽ. Dưới đây là mô tả tổng quan các nhóm thực thể:</p>
+<ul style="margin-left:60px;">
+    <li><strong>Nhóm Người dùng:</strong> Users, Addresses, OtpCodes</li>
+    <li><strong>Nhóm Dịch vụ:</strong> ServiceCategories, Services, StaffSkills, StaffSchedules</li>
+    <li><strong>Nhóm Sản phẩm:</strong> ProductCategories, Products, ProductBatches, Carts</li>
+    <li><strong>Nhóm Đặt lịch:</strong> Appointments, CustomerServiceNotes, Reviews</li>
+    <li><strong>Nhóm Đơn hàng:</strong> Orders, OrderItems, ProductReviews, ReturnRequests, Vouchers</li>
+    <li><strong>Nhóm Kho:</strong> InventoryTransactions, ProductBatches</li>
+    <li><strong>Nhóm Tài chính:</strong> Payments, CashFlowTransactions, RefundRequests</li>
+    <li><strong>Nhóm Hệ thống:</strong> Branches, Notifications</li>
+</ul>
+
+<div class="note">
+    [HÌNH 3.7 — CẦN VẼ] Sơ đồ ERD (Entity Relationship Diagram) toàn bộ hệ thống.<br>
+    Vẽ 25 bảng với các trường chính, khóa chính (PK), khóa ngoại (FK), và đường quan hệ 1-N, N-N. Gợi ý: dùng Draw.io hoặc MySQL Workbench để reverse-engineer từ database.
+</div>
+
+<h3>3.5.2. Mô tả chi tiết các bảng dữ liệu</h3>
+
+<!-- ===== USERS ===== -->
+<p class="tname">Bảng 3.2: users</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã người dùng</td></tr>
+<tr><td>fullName</td><td>VARCHAR</td><td>NOT NULL</td><td>Họ và tên</td></tr>
+<tr><td>email</td><td>VARCHAR</td><td>NOT NULL, UNIQUE</td><td>Email đăng nhập</td></tr>
+<tr><td>googleId</td><td>VARCHAR</td><td>UNIQUE, NULL</td><td>ID tài khoản Google (OAuth)</td></tr>
+<tr><td>password</td><td>VARCHAR</td><td>NULL</td><td>Mật khẩu đã băm Bcrypt</td></tr>
+<tr><td>phone</td><td>VARCHAR</td><td>UNIQUE, NULL</td><td>Số điện thoại</td></tr>
+<tr><td>avatar</td><td>VARCHAR</td><td>NULL</td><td>URL ảnh đại diện</td></tr>
+<tr><td>role</td><td>ENUM</td><td>NOT NULL</td><td>'customer','staff','admin','warehouse_staff','service_staff','accountant'</td></tr>
+<tr><td>branchId</td><td>INT</td><td>FK → branches</td><td>Chi nhánh làm việc (nhân viên)</td></tr>
+<tr><td>loyaltyPoints</td><td>INT</td><td>DEFAULT 0</td><td>Điểm tích lũy</td></tr>
+<tr><td>rank</td><td>ENUM</td><td>DEFAULT 'Silver'</td><td>'Silver','Gold','Diamond'</td></tr>
+<tr><td>workStatus</td><td>ENUM</td><td>DEFAULT 'available'</td><td>'available','break','busy'</td></tr>
+<tr><td>isEmailVerified</td><td>BOOLEAN</td><td>DEFAULT false</td><td>Đã xác thực email chưa</td></tr>
+<tr><td>isActive</td><td>BOOLEAN</td><td>DEFAULT true</td><td>Tài khoản còn hoạt động</td></tr>
+</table>
+
+<!-- ===== BRANCHES ===== -->
+<p class="tname">Bảng 3.3: branches</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã chi nhánh</td></tr>
+<tr><td>name</td><td>VARCHAR</td><td>NOT NULL</td><td>Tên chi nhánh</td></tr>
+<tr><td>address</td><td>VARCHAR</td><td>NOT NULL</td><td>Địa chỉ</td></tr>
+<tr><td>phone</td><td>VARCHAR</td><td>NULL</td><td>Hotline chi nhánh</td></tr>
+<tr><td>isActive</td><td>BOOLEAN</td><td>DEFAULT true</td><td>Trạng thái hoạt động</td></tr>
+</table>
+
+<!-- ===== SERVICES ===== -->
+<p class="tname">Bảng 3.4: services</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã dịch vụ</td></tr>
+<tr><td>name</td><td>VARCHAR</td><td>NOT NULL</td><td>Tên dịch vụ</td></tr>
+<tr><td>description</td><td>TEXT</td><td>NULL</td><td>Mô tả chi tiết</td></tr>
+<tr><td>price</td><td>BIGINT</td><td>NOT NULL</td><td>Giá dịch vụ (VNĐ)</td></tr>
+<tr><td>duration</td><td>INT</td><td>NOT NULL</td><td>Thời gian thực hiện (phút)</td></tr>
+<tr><td>image</td><td>VARCHAR</td><td>NULL</td><td>Ảnh minh họa</td></tr>
+<tr><td>categoryId</td><td>INT</td><td>FK → service_categories</td><td>Danh mục dịch vụ</td></tr>
+<tr><td>isActive</td><td>BOOLEAN</td><td>DEFAULT true</td><td>Còn cung cấp không</td></tr>
+</table>
+
+<!-- ===== APPOINTMENTS ===== -->
+<p class="tname">Bảng 3.5: appointments</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã lịch hẹn</td></tr>
+<tr><td>userId</td><td>INT</td><td>FK → users</td><td>Khách hàng</td></tr>
+<tr><td>staffId</td><td>INT</td><td>FK → users, NULL</td><td>Nhân viên phục vụ</td></tr>
+<tr><td>branchId</td><td>INT</td><td>FK → branches</td><td>Chi nhánh</td></tr>
+<tr><td>serviceId</td><td>INT</td><td>FK → services</td><td>Dịch vụ</td></tr>
+<tr><td>date</td><td>DATE</td><td>NOT NULL</td><td>Ngày hẹn</td></tr>
+<tr><td>startTime</td><td>VARCHAR</td><td>NOT NULL</td><td>Giờ bắt đầu (VD: "09:00")</td></tr>
+<tr><td>endTime</td><td>VARCHAR</td><td>NULL</td><td>Giờ kết thúc dự kiến</td></tr>
+<tr><td>status</td><td>ENUM</td><td>DEFAULT 'awaiting_deposit'</td><td>'awaiting_deposit','pending','confirmed','in_progress','completed','cancelled'</td></tr>
+<tr><td>depositAmount</td><td>DECIMAL(10,2)</td><td>NULL</td><td>Số tiền đặt cọc</td></tr>
+<tr><td>depositStatus</td><td>ENUM</td><td>DEFAULT 'pending'</td><td>'pending','paid','refunded'</td></tr>
+<tr><td>totalPrice</td><td>DECIMAL(10,2)</td><td>NULL</td><td>Tổng tiền dịch vụ</td></tr>
+<tr><td>orderId</td><td>INT</td><td>FK → orders, NULL</td><td>Đơn hàng upsell gắn kèm</td></tr>
+<tr><td>note</td><td>TEXT</td><td>NULL</td><td>Ghi chú của khách</td></tr>
+<tr><td>cancelReason</td><td>TEXT</td><td>NULL</td><td>Lý do hủy</td></tr>
+<tr><td>commissionAmount</td><td>DECIMAL(10,2)</td><td>DEFAULT 0</td><td>Hoa hồng nhân viên</td></tr>
+</table>
+
+<!-- ===== ORDERS ===== -->
+<p class="tname">Bảng 3.6: orders</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã đơn hàng</td></tr>
+<tr><td>userId</td><td>INT</td><td>FK → users</td><td>Khách đặt hàng</td></tr>
+<tr><td>totalAmount</td><td>DECIMAL(10,2)</td><td>NOT NULL</td><td>Tổng tiền</td></tr>
+<tr><td>status</td><td>ENUM</td><td>DEFAULT 'pending'</td><td>'pending','confirmed','packing','shipping','delivered','completed','cancelled'</td></tr>
+<tr><td>trackingCode</td><td>VARCHAR</td><td>NULL</td><td>Mã vận đơn</td></tr>
+<tr><td>paymentMethod</td><td>ENUM</td><td>NOT NULL</td><td>'cod','cash','sepay'</td></tr>
+<tr><td>paymentStatus</td><td>ENUM</td><td>DEFAULT 'pending'</td><td>'pending','paid','refunded'</td></tr>
+<tr><td>address</td><td>VARCHAR</td><td>NULL</td><td>Địa chỉ giao hàng</td></tr>
+<tr><td>phone</td><td>VARCHAR</td><td>NULL</td><td>SĐT nhận hàng</td></tr>
+<tr><td>voucherId</td><td>INT</td><td>FK → vouchers, NULL</td><td>Mã giảm giá</td></tr>
+<tr><td>discountAmount</td><td>DECIMAL(10,2)</td><td>DEFAULT 0</td><td>Số tiền giảm</td></tr>
+<tr><td>appointmentId</td><td>INT</td><td>NULL</td><td>Lịch hẹn gốc (nếu là upsell)</td></tr>
+</table>
+
+<!-- ===== PAYMENTS ===== -->
+<p class="tname">Bảng 3.7: payments</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã thanh toán</td></tr>
+<tr><td>orderId</td><td>INT</td><td>FK → orders, NULL</td><td>Đơn hàng liên quan</td></tr>
+<tr><td>appointmentId</td><td>INT</td><td>FK → appointments, NULL</td><td>Lịch hẹn liên quan</td></tr>
+<tr><td>amount</td><td>DECIMAL(10,2)</td><td>NOT NULL</td><td>Số tiền</td></tr>
+<tr><td>method</td><td>ENUM</td><td>NOT NULL</td><td>'cod','cash','sepay'</td></tr>
+<tr><td>transactionId</td><td>VARCHAR</td><td>NULL</td><td>Mã giao dịch từ SePay</td></tr>
+<tr><td>status</td><td>ENUM</td><td>DEFAULT 'pending'</td><td>'pending','success','failed','refunded'</td></tr>
+<tr><td>gatewayData</td><td>JSON</td><td>NULL</td><td>Dữ liệu gốc từ Webhook</td></tr>
+<tr><td>isReconciled</td><td>BOOLEAN</td><td>DEFAULT false</td><td>Đã đối soát chưa</td></tr>
+<tr><td>reconciledAt</td><td>DATETIME</td><td>NULL</td><td>Thời điểm đối soát</td></tr>
+<tr><td>reconciledBy</td><td>INT</td><td>FK → users, NULL</td><td>Người đối soát</td></tr>
+</table>
+
+<!-- ===== PRODUCTS ===== -->
+<p class="tname">Bảng 3.8: products</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã sản phẩm</td></tr>
+<tr><td>name</td><td>VARCHAR</td><td>NOT NULL</td><td>Tên sản phẩm</td></tr>
+<tr><td>description</td><td>TEXT</td><td>NULL</td><td>Mô tả</td></tr>
+<tr><td>price</td><td>BIGINT</td><td>NOT NULL</td><td>Giá bán (VNĐ)</td></tr>
+<tr><td>stock</td><td>INT</td><td>DEFAULT 0</td><td>Tồn kho thực tế</td></tr>
+<tr><td>reservedStock</td><td>INT</td><td>DEFAULT 0</td><td>Số lượng đang giữ cho đơn chưa hoàn tất</td></tr>
+<tr><td>minStock</td><td>INT</td><td>DEFAULT 5</td><td>Ngưỡng cảnh báo hết hàng</td></tr>
+<tr><td>image</td><td>VARCHAR</td><td>NULL</td><td>Ảnh sản phẩm</td></tr>
+<tr><td>categoryId</td><td>INT</td><td>FK → product_categories</td><td>Danh mục</td></tr>
+<tr><td>expiryDate</td><td>DATE</td><td>NULL</td><td>Hạn sử dụng</td></tr>
+<tr><td>isActive</td><td>BOOLEAN</td><td>DEFAULT true</td><td>Còn bán không</td></tr>
+</table>
+
+<!-- ===== INVENTORY_TRANSACTIONS ===== -->
+<p class="tname">Bảng 3.9: inventory_transactions</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã phiếu kho</td></tr>
+<tr><td>productId</td><td>INT</td><td>FK → products</td><td>Sản phẩm</td></tr>
+<tr><td>batchId</td><td>INT</td><td>FK → product_batches, NULL</td><td>Lô hàng</td></tr>
+<tr><td>type</td><td>ENUM</td><td>NOT NULL</td><td>'import','export','adjust'</td></tr>
+<tr><td>quantity</td><td>INT</td><td>NOT NULL, MIN 1</td><td>Số lượng</td></tr>
+<tr><td>price</td><td>DECIMAL(10,2)</td><td>NULL</td><td>Giá nhập/xuất</td></tr>
+<tr><td>stockBefore</td><td>INT</td><td>NOT NULL</td><td>Tồn kho trước giao dịch</td></tr>
+<tr><td>stockAfter</td><td>INT</td><td>NOT NULL</td><td>Tồn kho sau giao dịch</td></tr>
+<tr><td>referenceType</td><td>ENUM</td><td>NULL</td><td>'order','manual','appointment'</td></tr>
+<tr><td>referenceId</td><td>INT</td><td>NULL</td><td>ID đơn hàng/lịch hẹn liên quan</td></tr>
+<tr><td>createdBy</td><td>INT</td><td>FK → users</td><td>Người thao tác</td></tr>
+<tr><td>branchId</td><td>INT</td><td>FK → branches, NULL</td><td>Chi nhánh</td></tr>
+</table>
+
+<!-- ===== CASHFLOW ===== -->
+<p class="tname">Bảng 3.10: cash_flow_transactions</p>
+<table>
+<tr><th>Trường</th><th>Kiểu</th><th>Ràng buộc</th><th>Mô tả</th></tr>
+<tr><td>id</td><td>INT</td><td>PK, AI</td><td>Mã bút toán</td></tr>
+<tr><td>type</td><td>ENUM</td><td>NOT NULL</td><td>'receipt' (thu) hoặc 'payment' (chi)</td></tr>
+<tr><td>amount</td><td>DECIMAL(10,2)</td><td>NOT NULL</td><td>Số tiền</td></tr>
+<tr><td>category</td><td>ENUM</td><td>NOT NULL</td><td>'service','retail','deposit','refund','import','salary','other'</td></tr>
+<tr><td>method</td><td>ENUM</td><td>NOT NULL</td><td>'cash','bank'</td></tr>
+<tr><td>status</td><td>ENUM</td><td>DEFAULT 'completed'</td><td>'pending','completed','cancelled'</td></tr>
+<tr><td>referenceType</td><td>VARCHAR</td><td>NULL</td><td>'order','appointment','inventory_import'</td></tr>
+<tr><td>referenceId</td><td>INT</td><td>NULL</td><td>ID chứng từ gốc</td></tr>
+<tr><td>note</td><td>TEXT</td><td>NULL</td><td>Ghi chú bút toán</td></tr>
+<tr><td>createdBy</td><td>INT</td><td>FK → users</td><td>Người tạo</td></tr>
+</table>
+
+<h3>3.5.3. Các bảng phụ trợ</h3>
+<p>Ngoài các bảng chính trên, hệ thống còn có các bảng phụ trợ sau (cấu trúc đơn giản hơn):</p>
+
+<div class="note">
+    [BẢNG 3.11 đến 3.19 — CẦN VẼ] Mô tả các bảng còn lại theo cùng format. Bao gồm:<br>
+    • <strong>order_items</strong>: orderId, productId, quantity, price<br>
+    • <strong>carts</strong>: userId, productId, quantity<br>
+    • <strong>product_batches</strong>: productId, batchNumber, quantity, importPrice, supplier, expiryDate, branchId<br>
+    • <strong>service_categories / product_categories</strong>: id, name, description<br>
+    • <strong>staff_skills</strong>: userId (FK), serviceId (FK) — bảng trung gian N-N<br>
+    • <strong>staff_schedules</strong>: userId, branchId, dayOfWeek, startTime, endTime, isOff<br>
+    • <strong>reviews</strong>: userId, staffId, appointmentId, rating, comment<br>
+    • <strong>product_reviews</strong>: userId, productId, rating, comment<br>
+    • <strong>vouchers</strong>: code, discountType, discountValue, minOrderValue, maxUses, usedCount, expiryDate<br>
+    • <strong>addresses</strong>: userId, fullAddress, phone, isDefault<br>
+    • <strong>notifications</strong>: userId, title, message, type, isRead<br>
+    • <strong>otp_codes</strong>: email, code, type, expiresAt, payload<br>
+    • <strong>refund_requests</strong>: type, targetId, amount, reason, status, processedBy<br>
+    • <strong>return_requests</strong>: orderId, userId, reason, status<br>
+    • <strong>customer_service_notes</strong>: customerId, staffId, appointmentId, note, hairType, preferences
+</div>
+
+<h3>3.5.4. Các mối quan hệ chính</h3>
+<p>Dưới đây là tổng hợp các mối quan hệ quan trọng giữa các thực thể:</p>
+<ul style="margin-left:60px;">
+    <li><strong>User — Appointment:</strong> 1-N (Một khách hàng có nhiều lịch hẹn). User cũng quan hệ 1-N với Appointment qua staffId (một nhân viên phục vụ nhiều lịch).</li>
+    <li><strong>User — Order:</strong> 1-N (Một khách có nhiều đơn hàng).</li>
+    <li><strong>User — Branch:</strong> N-1 (Nhiều nhân viên thuộc một chi nhánh).</li>
+    <li><strong>User ↔ Service:</strong> N-N qua bảng trung gian StaffSkill (Nhân viên có nhiều kỹ năng, dịch vụ có nhiều nhân viên).</li>
+    <li><strong>Appointment — Service:</strong> N-1 (Nhiều lịch hẹn cho một dịch vụ).</li>
+    <li><strong>Appointment — Branch:</strong> N-1 (Nhiều lịch hẹn tại một chi nhánh).</li>
+    <li><strong>Appointment — Order:</strong> 1-1 tùy chọn (Lịch hẹn có thể gắn kèm một đơn upsell).</li>
+    <li><strong>Order — OrderItem:</strong> 1-N (Một đơn hàng có nhiều mặt hàng).</li>
+    <li><strong>OrderItem — Product:</strong> N-1 (Nhiều mặt hàng cùng một sản phẩm).</li>
+    <li><strong>Payment — Order / Appointment:</strong> N-1 (Nhiều giao dịch cho một đơn hàng/lịch hẹn).</li>
+    <li><strong>Product — ProductBatch:</strong> 1-N (Một sản phẩm có nhiều lô nhập).</li>
+    <li><strong>Product — InventoryTransaction:</strong> 1-N (Một sản phẩm có nhiều phiếu xuất nhập).</li>
+</ul>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; text-indent:0;">— Hết Phần 3/4 — Tiếp theo: Phần 4 (Thiết kế giao diện & API) —</p>
+
+</div>
+</body>
+</html>

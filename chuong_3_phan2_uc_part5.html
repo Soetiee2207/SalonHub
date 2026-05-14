@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 3 - Phần 2.5: Đặc tả Use Case (26-31)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.6; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 850px; margin: 0 auto; background: white; padding: 50px 60px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 25px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 30px; margin-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 11pt; table-layout: fixed; }
+        table, th, td { border: 1px solid #000; }
+        td { padding: 10px; vertical-align: top; word-wrap: break-word; }
+        
+        .bg-gray-label { background-color: #d9d9d9; font-weight: bold; width: 25%; }
+        .bg-gray-header { background-color: #d9d9d9; font-weight: bold; text-align: left; }
+        .bg-gray-sub { background-color: #d9d9d9; font-weight: bold; }
+        .label-bold { font-weight: bold; width: 25%; }
+        .post-cond-label { font-weight: bold; width: 20%; border-right: 1px solid #000; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 3. Phân tích và Thiết kế hệ thống (Phần 2.5/6)</h1>
+<p style="text-align:center; font-style:italic;">Đặc tả chi tiết Use Case: UC_26 - UC_31 (Tài chính & Kế toán)</p>
+
+<hr style="margin: 20px 0;">
+
+<!-- ==================== UC_26 ==================== -->
+<h3>3.4.26. UC_26. Đối soát thanh toán tự động (SePay)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_26</td><td colspan="2" style="font-weight:bold;">Kiểm tra và đối soát các giao dịch số</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Kế toán (Accountant)</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Hệ thống liệt kê các giao dịch nhận được từ SePay và đối soát khớp với mã lịch hẹn/đơn hàng.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Kế toán đăng nhập thành công.</td></tr>
+    <tr>
+        <td rowspan="2" class="label-bold">Hậu điều kiện</td>
+        <td class="post-cond-label">Thành công</td>
+        <td>- Các bản ghi Payment được xác nhận trạng thái 'completed' đồng bộ với ngân hàng.</td>
+    </tr>
+    <tr>
+        <td class="post-cond-label">Lỗi</td>
+        <td>- Phát hiện giao dịch sai lệch số tiền hoặc sai nội dung (Cảnh báo đỏ).</td>
+    </tr>
+    
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Truy cập trang "Đối soát SePay"</td><td>Tải danh sách các giao dịch từ bảng `Payments` và Webhook log</td></tr>
+    <tr><td></td><td>Rà soát các giao dịch được đánh dấu "Auto-matched"</td><td>Hiển thị chi tiết: Mã giao dịch ngân hàng, Số tiền, Mã đơn hàng khớp</td></tr>
+    <tr><td></td><td>Nhấn xác nhận các giao dịch nghi vấn (Manual match)</td><td>Cập nhật trạng thái thanh toán và lưu vết người xác nhận</td></tr>
+</table>
+
+<!-- ==================== UC_27 ==================== -->
+<h3>3.4.27. UC_27. Quản lý sổ quỹ thu/chi (Cash Flow)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_27</td><td colspan="2" style="font-weight:bold;">Theo dõi dòng tiền thực tế tại salon</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Kế toán, Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Ghi lại các khoản thu (bán sản phẩm, dịch vụ) và các khoản chi (nhập kho, trả lương, điện nước).</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Vào mục "Sổ quỹ"</td><td>Tính toán số dư đầu kỳ và cuối kỳ</td></tr>
+    <tr><td></td><td>Tạo phiếu thu/phiếu chi thủ công</td><td>Lưu bản ghi vào bảng `CashFlowTransactions`</td></tr>
+    <tr><td></td><td>Lọc giao dịch theo ngày/loại hình</td><td>Hiển thị biểu đồ biến động dòng tiền</td></tr>
+</table>
+
+<!-- ==================== UC_28 ==================== -->
+<h3>3.4.28. UC_28. Phê duyệt hoàn tiền (Refunds)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_28</td><td colspan="2" style="font-weight:bold;">Xử lý yêu cầu hoàn tiền cho khách hàng</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Kế toán</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Xét duyệt các yêu cầu hoàn tiền từ khách hàng đã hủy lịch hẹn (đúng quy định) hoặc trả hàng.</td></tr>
+    <tr><td class="label-bold">Tiền điều kiện</td><td colspan="2">- Có yêu cầu hoàn tiền đang ở trạng thái 'pending_refund'.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Kiểm tra lý do và bằng chứng hoàn tiền</td><td>Hiển thị số tiền gốc và số tiền dự kiến hoàn</td></tr>
+    <tr><td></td><td>Nhấn "Phê duyệt hoàn tiền"</td><td>Cập nhật trạng thái `refunded`, tạo phiếu chi trong sổ quỹ</td></tr>
+    <tr><td></td><td></td><td>Gửi thông báo thành công cho Khách hàng</td></tr>
+</table>
+
+<!-- ==================== UC_29 ==================== -->
+<h3>3.4.29. UC_29. Quản lý mã giảm giá (Vouchers)</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_29</td><td colspan="2" style="font-weight:bold;">Phát hành và quản lý chương trình khuyến mãi</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Quản lý, Kế toán</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Tạo các mã Voucher giảm giá theo % hoặc số tiền cố định để kích cầu.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Thiết lập: Mã code, Mức giảm, Số lượng, Hạn dùng</td><td>Kiểm tra tính hợp lệ của mã (không trùng)</td></tr>
+    <tr><td></td><td>Lưu Voucher</td><td>Lưu vào bảng Vouchers và kích hoạt trên hệ thống đặt hàng</td></tr>
+</table>
+
+<!-- ==================== UC_30 ==================== -->
+<h3>3.4.30. UC_30. Báo cáo & Thống kê tài chính</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_30</td><td colspan="2" style="font-weight:bold;">Xuất báo cáo doanh thu định kỳ</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Kế toán, Admin</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Tổng hợp dữ liệu kinh doanh thành các bảng biểu báo cáo theo tuần/tháng/quý.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Chọn khoảng thời gian báo cáo</td><td>Aggregate dữ liệu từ `Orders`, `Appointments` và `Payments`</td></tr>
+    <tr><td></td><td>Nhấn "Xuất báo cáo"</td><td>Tạo file Excel/PDF trình bày doanh thu, lợi nhuận, chi phí</td></tr>
+</table>
+
+<!-- ==================== UC_31 ==================== -->
+<h3>3.4.31. UC_31. Quản lý địa chỉ & Vận chuyển</h3>
+<table>
+    <tr><td class="bg-gray-label">UC_31</td><td colspan="2" style="font-weight:bold;">Quản trị thông tin giao nhận</td></tr>
+    <tr><td class="label-bold">Tác nhân</td><td colspan="2">Khách hàng, Kế toán (để tính phí ship)</td></tr>
+    <tr><td class="label-bold">Mô tả</td><td colspan="2">Lưu trữ danh sách địa chỉ nhận hàng của khách hàng phục vụ luồng E-commerce.</td></tr>
+    <tr><td colspan="3" class="bg-gray-header">Luồng sự kiện chính</td></tr>
+    <tr class="bg-gray-sub"><td></td><td>Tác nhân</td><td>Hệ thống</td></tr>
+    <tr><td></td><td>Thêm địa chỉ nhận hàng mới</td><td>Lưu thông tin: Tỉnh/Thành, Quận/Huyện, Xã/Phường, Địa chỉ chi tiết</td></tr>
+    <tr><td></td><td>Đặt làm địa chỉ mặc định</td><td>Ưu tiên hiển thị khi khách thực hiện Checkout đơn hàng</td></tr>
+</table>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; font-weight:bold;">— Hết Phần 2.5/6 — Còn tiếp Phần 2.6 —</p>
+
+</div>
+</body>
+</html>

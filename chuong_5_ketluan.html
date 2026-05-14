@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chương 5 - Kết luận và Hướng phát triển</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Serif', 'Times New Roman', serif; font-size: 13pt; line-height: 1.8; color: #1a1a1a; background: #f5f5f0; padding: 40px 20px; }
+        .page { max-width: 820px; margin: 0 auto; background: white; padding: 60px 70px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        h1 { font-size: 17pt; text-align: center; text-transform: uppercase; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        h2 { font-size: 15pt; font-weight: bold; margin-top: 28px; margin-bottom: 10px; }
+        h3 { font-size: 14pt; font-weight: bold; margin-top: 18px; margin-bottom: 6px; font-style: italic; }
+        p { text-align: justify; text-indent: 40px; margin-bottom: 8px; }
+        ul, ol { margin-left: 60px; margin-bottom: 8px; }
+        ul li, ol li { margin-bottom: 4px; text-align: justify; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 25px 0; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+<h1>Chương 5. Kết luận và Hướng phát triển</h1>
+
+<hr>
+
+<!-- ==================== 5.1 ==================== -->
+<h2>5.1. Kết luận</h2>
+
+<p>Sau quá trình nghiên cứu, phân tích, thiết kế và hiện thực, khóa luận đã hoàn thành việc xây dựng hệ thống <strong>SalonHub — Hệ thống quản lý Salon tóc trực tuyến</strong> với đầy đủ các chức năng cốt lõi đáp ứng nhu cầu thực tế của một cơ sở kinh doanh dịch vụ làm đẹp. Cụ thể, các kết quả đạt được bao gồm:</p>
+
+<h3>5.1.1. Về mặt chức năng</h3>
+<ul>
+    <li><strong>Hệ thống đặt lịch trực tuyến:</strong> Khách hàng có thể đặt lịch hẹn 24/7 với đầy đủ tùy chọn: chi nhánh, dịch vụ, stylist, khung giờ. Thuật toán kiểm tra slot trống đảm bảo không xảy ra tình trạng double-booking.</li>
+    <li><strong>Thanh toán tự động qua SePay Webhook:</strong> Đây là điểm nổi bật nhất của hệ thống — loại bỏ hoàn toàn thao tác xác nhận thanh toán thủ công. Khi khách chuyển khoản, hệ thống tự động xác nhận trong vài giây nhờ cơ chế Webhook và thông báo kết quả cho khách qua Socket.io.</li>
+    <li><strong>Tự động hạch toán (Auto-Accounting):</strong> Mỗi giao dịch SePay thành công được tự động ghi nhận vào sổ quỹ, giảm thiểu sai sót và tiết kiệm thời gian cho bộ phận kế toán.</li>
+    <li><strong>Quản lý kho hàng chuyên nghiệp:</strong> Hỗ trợ nhập kho theo lô (batch), theo dõi giá nhập, nhà cung cấp, hạn sử dụng, cảnh báo hết hàng, và xuất kho tự động khi đóng gói đơn hàng.</li>
+    <li><strong>Chatbot AI tư vấn:</strong> Tích hợp mô hình Llama 3.3 70B qua Groq Cloud, sử dụng kỹ thuật Prompt Engineering và Context Injection từ dữ liệu thực tế, giúp khách hàng được tư vấn chính xác về giá dịch vụ và thông tin chi nhánh.</li>
+    <li><strong>Hệ thống phân quyền đa vai trò:</strong> 6 vai trò (Customer, Staff, Warehouse Staff, Accountant, Admin, System) với phân quyền chặt chẽ qua JWT và Middleware.</li>
+</ul>
+
+<h3>5.1.2. Về mặt kỹ thuật</h3>
+<ul>
+    <li>Ứng dụng thành công kiến trúc Client-Server với RESTful API, đảm bảo tính module hóa và dễ bảo trì.</li>
+    <li>Sử dụng các công nghệ hiện đại và phổ biến: React.js, Node.js, Express.js, MySQL, Sequelize ORM, Socket.io, Tailwind CSS, Zustand.</li>
+    <li>Triển khai thành công trên môi trường cloud (Vercel + Render + Aiven), hoạt động ổn định.</li>
+    <li>Cơ sở dữ liệu gồm 25 bảng với quan hệ chặt chẽ, hỗ trợ Transaction ACID cho các thao tác tài chính.</li>
+    <li>Toàn bộ 37 test case kiểm thử hộp đen đều đạt kết quả Pass (100%).</li>
+</ul>
+
+<hr>
+
+<!-- ==================== 5.2 ==================== -->
+<h2>5.2. Hạn chế</h2>
+
+<p>Bên cạnh những kết quả đạt được, hệ thống vẫn còn một số hạn chế cần được cải thiện:</p>
+<ol>
+    <li><strong>Chưa có ứng dụng di động (Mobile App):</strong> Hiện tại hệ thống chỉ hoạt động trên trình duyệt web. Mặc dù giao diện đã responsive, nhưng trải nghiệm trên ứng dụng di động gốc (Native App) sẽ tốt hơn về push notification và hiệu suất.</li>
+    <li><strong>Chatbot AI chưa hỗ trợ ngữ cảnh hội thoại:</strong> Hiện tại mỗi câu hỏi được xử lý độc lập (zero-context). Chatbot chưa nhớ lịch sử hội thoại, dẫn đến khách phải nhắc lại thông tin khi hỏi nhiều câu liên tiếp.</li>
+    <li><strong>Chưa tích hợp thanh toán quốc tế:</strong> Hệ thống chỉ hỗ trợ thanh toán nội địa qua chuyển khoản ngân hàng Việt Nam (SePay) và COD. Chưa hỗ trợ các cổng thanh toán quốc tế như Stripe, PayPal.</li>
+    <li><strong>Báo cáo tài chính còn cơ bản:</strong> Các biểu đồ và báo cáo tài chính hiện mới ở mức tổng quan. Chưa có khả năng xuất báo cáo Excel/PDF hoặc phân tích chuyên sâu (so sánh năm, dự báo).</li>
+    <li><strong>Hệ thống thông báo chưa hỗ trợ SMS:</strong> Thông báo chỉ qua Socket.io (trong app) và Email. Chưa tích hợp SMS để nhắc lịch hẹn cho khách.</li>
+</ol>
+
+<hr>
+
+<!-- ==================== 5.3 ==================== -->
+<h2>5.3. Hướng phát triển</h2>
+
+<p>Dựa trên các hạn chế đã nhận diện và xu hướng công nghệ hiện tại, hệ thống SalonHub có thể được phát triển thêm theo các hướng sau:</p>
+
+<h3>5.3.1. Phát triển ứng dụng di động</h3>
+<p>Xây dựng ứng dụng di động bằng React Native hoặc Flutter, tận dụng lại hệ thống API Backend hiện có. Ứng dụng di động sẽ hỗ trợ push notification nhắc lịch hẹn, quét QR thanh toán nhanh hơn, và cải thiện trải nghiệm đặt lịch cho khách hàng.</p>
+
+<h3>5.3.2. Nâng cấp Chatbot AI</h3>
+<ul>
+    <li><strong>Hội thoại có ngữ cảnh:</strong> Lưu lịch sử tin nhắn trong phiên (session) và gửi cùng với câu hỏi mới, giúp chatbot nhớ ngữ cảnh hội thoại.</li>
+    <li><strong>Đặt lịch qua chatbot:</strong> Cho phép khách hàng đặt lịch trực tiếp thông qua hội thoại với AI, thay vì phải điền form.</li>
+    <li><strong>Phân tích cảm xúc:</strong> Tự động phát hiện khách hàng không hài lòng và chuyển sang nhân viên hỗ trợ thật.</li>
+</ul>
+
+<h3>5.3.3. Tích hợp thêm dịch vụ bên ngoài</h3>
+<ul>
+    <li><strong>SMS nhắc lịch:</strong> Tích hợp API SMS (Twilio, eSMS) để gửi tin nhắn nhắc lịch hẹn trước 1 giờ.</li>
+    <li><strong>Thanh toán quốc tế:</strong> Tích hợp Stripe hoặc PayPal cho khách hàng nước ngoài.</li>
+    <li><strong>Google Calendar:</strong> Đồng bộ lịch hẹn vào Google Calendar của khách hàng.</li>
+</ul>
+
+<h3>5.3.4. Mở rộng module phân tích dữ liệu</h3>
+<ul>
+    <li>Xây dựng dashboard phân tích nâng cao: so sánh doanh thu theo tháng/quý/năm, phân tích khách hàng trung thành, dự báo doanh thu.</li>
+    <li>Xuất báo cáo tài chính dạng PDF/Excel phục vụ nộp thuế và kiểm toán.</li>
+    <li>Hệ thống gợi ý dịch vụ (Recommendation) dựa trên lịch sử sử dụng của khách hàng.</li>
+</ul>
+
+<h3>5.3.5. Tối ưu hiệu năng và bảo mật</h3>
+<ul>
+    <li>Triển khai Redis Cache để giảm tải database cho các truy vấn thường xuyên.</li>
+    <li>Áp dụng Rate Limiting cho API để chống tấn công DDoS.</li>
+    <li>Triển khai CI/CD pipeline tự động hóa quy trình kiểm thử và triển khai.</li>
+    <li>Sử dụng Docker container hóa để đảm bảo tính nhất quán giữa các môi trường.</li>
+</ul>
+
+<p style="text-align:center; margin-top:30px; font-style:italic; text-indent:0; font-weight:bold;">— Hết Chương 5 —</p>
+
+</div>
+</body>
+</html>

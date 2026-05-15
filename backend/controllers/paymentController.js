@@ -283,6 +283,7 @@ const sepayWebhook = async (req, res, next) => {
             referenceId: appointment.id,
             note: `Tiền đặt cọc lịch hẹn #${appointment.id}`,
             createdBy: null,
+            branchId: appointment.branchId || 1, // Thêm dòng này để tránh lỗi schema mới
           }, { transaction: t });
 
         } else {

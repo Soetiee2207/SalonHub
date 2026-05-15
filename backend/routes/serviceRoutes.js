@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const cache = require('../middleware/cacheMiddleware');
 const {
   getAllServices,
   getServiceById,
@@ -15,7 +16,7 @@ const {
 const { authenticate, authorize } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 
-router.get('/', getAllServices);
+router.get('/', cache('services', 3600), getAllServices);
 router.get('/categories', getAllCategories);
 router.get('/:id', getServiceById);
 

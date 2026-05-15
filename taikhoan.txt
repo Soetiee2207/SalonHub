@@ -1,20 +1,22 @@
-DANH SÁCH TÀI KHOẢN HỆ THỐNG SALONHUB (Kiểm thử thực tế)
+DANH SÁCH TÀI KHOẢN HỆ THỐNG SALONHUB (Dữ liệu thực tế từ Database)
 ------------------------------------------------------
 Mật khẩu mặc định: 123456
 
-[VAI TRÒ QUẢN LÝ]
+[VAI TRÒ QUẢN TRỊ & QUẢN LÝ]
 - Admin: admin@salonhub.vn (System Administrator)
-- Kế toán: accountant@salonhub.vn
-- Thủ kho: warehouse@salonhub.vn
+- Kế toán CS1: ketoancs1@salonhub.vn (Lê Thị Minh Anh)
+- Kế toán CS2: ketoancs2@salonhub.vn (Hoàng Thùy Linh)
+- Thủ kho CS1: khocs1@salonhub.vn (Phạm Gia Bách)
+- Thủ kho CS2: khocs2@salonhub.vn (Nguyễn Đình Trọng)
 
 [VAI TRÒ NHÂN VIÊN (STAFF)]
-- Thợ chính: minh@salonhub.vn (Nguyễn Nhật Minh)
-- Thợ màu: anh@salonhub.vn (Nguyễn Chung Anh)
-- Barber: hieu@salonhub.vn (Đỗ Minh Hiếu)
+- Thợ cắt CS1: thocatcs11@salonhub.vn (Chu Hữu Hưng)
+- Thợ cắt CS1: thocatcs12@salonhub.vn (Đỗ Minh Hiếu)
+- Thợ cắt CS2: thocatcs21@salonhub.vn (Nguyễn Nhật Minh)
+- Thợ cắt CS2: thocatcs22@salonhub.vn (Trần Nhật Nam)
 
 [VAI TRÒ KHÁCH HÀNG]
-- Khách 1: nguyenvana@gmail.com (Nguyễn Văn A)
-- Khách 2: nguyennhatanh@gmail.com (Nguyễn Nhật Ánh)
+- Khách hàng: nhatminhthcslt@gmail.com (Minh Nguyễn Nhật)
 
 ---
 

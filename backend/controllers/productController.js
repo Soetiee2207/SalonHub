@@ -1,6 +1,21 @@
 const { Op } = require('sequelize');
 const db = require('../models');
 const { Product, ProductCategory, ProductReview, sequelize } = db;
+const redis = require('../config/redis');
+
+// Helper to clear products cache
+const clearProductsCache = async () => {
+  if (!redis) return;
+  try {
+    const keys = await redis.keys('products:*');
+    if (keys.length > 0) {
+      await redis.del(keys);
+      console.log('🧹 [Redis] Products cache cleared.');
+    }
+  } catch (err) {
+    console.error('❌ Redis Clear Error:', err.message);
+  }
+};
 
 const getAllProducts = async (req, res, next) => {
   try {
@@ -101,6 +116,8 @@ const createProduct = async (req, res, next) => {
       image,
     });
 
+    await clearProductsCache();
+
     res.status(201).json({
       success: true,
       data: product,
@@ -133,6 +150,7 @@ const updateProduct = async (req, res, next) => {
     if (req.file) updateData.image = req.file.path;
 
     await product.update(updateData);
+    await clearProductsCache();
 
     const result = await Product.findByPk(id, {
       include: [{ model: ProductCategory, as: 'category' }],
@@ -160,6 +178,7 @@ const deleteProduct = async (req, res, next) => {
     }
 
     await product.update({ isActive: false });
+    await clearProductsCache();
 
     res.json({
       success: true,
@@ -262,6 +281,7 @@ const deleteCategory = async (req, res, next) => {
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
       await transaction.commit();
+      await clearProductsCache();
 
       res.json({
         success: true,
@@ -303,6 +323,7 @@ const bulkDeleteProducts = async (req, res, next) => {
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
       await transaction.commit();
+      await clearProductsCache();
 
       res.status(200).json({
         success: true,

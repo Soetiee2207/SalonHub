@@ -1,5 +1,20 @@
 const db = require('../models');
 const { Op } = require('sequelize');
+const redis = require('../config/redis');
+
+// Helper to clear services cache
+const clearServicesCache = async () => {
+  if (!redis) return;
+  try {
+    const keys = await redis.keys('services:*');
+    if (keys.length > 0) {
+      await redis.del(keys);
+      console.log('🧹 [Redis] Services cache cleared.');
+    }
+  } catch (err) {
+    console.error('❌ Redis Clear Error:', err.message);
+  }
+};
 
 const getAllServices = async (req, res, next) => {
   try {
@@ -69,6 +84,7 @@ const createService = async (req, res, next) => {
     }
 
     const service = await db.Service.create(serviceData);
+    await clearServicesCache();
 
     res.status(201).json({
       success: true,
@@ -106,6 +122,7 @@ const updateService = async (req, res, next) => {
     }
 
     await service.update(updateData);
+    await clearServicesCache();
 
     const updatedService = await db.Service.findByPk(service.id, {
       include: [{ model: db.ServiceCategory, as: 'category' }],
@@ -132,6 +149,7 @@ const deleteService = async (req, res, next) => {
     }
 
     await service.update({ isActive: false });
+    await clearServicesCache();
 
     res.status(200).json({
       success: true,
@@ -234,6 +252,7 @@ const deleteCategory = async (req, res, next) => {
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
       await transaction.commit();
+      await clearServicesCache();
 
       res.status(200).json({
         success: true,
@@ -275,6 +294,7 @@ const bulkDeleteServices = async (req, res, next) => {
 
       await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
       await transaction.commit();
+      await clearServicesCache();
 
       res.status(200).json({
         success: true,

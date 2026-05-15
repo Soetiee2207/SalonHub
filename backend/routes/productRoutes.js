@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const cache = require('../middleware/cacheMiddleware');
 const { authenticate, authorize } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/upload');
 const {
@@ -15,7 +16,7 @@ const {
   deleteCategory,
 } = require('../controllers/productController');
 
-router.get('/', getAllProducts);
+router.get('/', cache('products', 3600), getAllProducts);
 router.get('/categories', getAllCategories);
 router.get('/:id', getProductById);
 

@@ -1,0 +1,25 @@
+DANH SÁCH TÀI KHOẢN HỆ THỐNG SALONHUB (Kiểm thử thực tế)
+------------------------------------------------------
+Mật khẩu mặc định: 123456
+
+[VAI TRÒ QUẢN LÝ]
+- Admin: admin@salonhub.vn (System Administrator)
+- Kế toán: accountant@salonhub.vn
+- Thủ kho: warehouse@salonhub.vn
+
+[VAI TRÒ NHÂN VIÊN (STAFF)]
+- Thợ chính: minh@salonhub.vn (Nguyễn Nhật Minh)
+- Thợ màu: anh@salonhub.vn (Nguyễn Chung Anh)
+- Barber: hieu@salonhub.vn (Đỗ Minh Hiếu)
+
+[VAI TRÒ KHÁCH HÀNG]
+- Khách 1: nguyenvana@gmail.com (Nguyễn Văn A)
+- Khách 2: nguyennhatanh@gmail.com (Nguyễn Nhật Ánh)
+
+---
+
+THÔNG TIN THANH TOÁN (BANK TRANSFER)
+- Ngân hàng: TPBank (Ngân hàng Tiên Phong)
+- Số tài khoản: 88886352274
+- Tên chủ tài khoản: NGUYEN NHAT MINH
+- Phương thức: Quét mã QR hoặc Chuyển khoản nhanh 24/7

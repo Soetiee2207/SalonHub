@@ -89,6 +89,23 @@ const getFinancialStats = async (req, res, next) => {
         }
     }) || 0;
 
+    // Doanh thu theo chi nhánh
+    const branches = await Branch.findAll({ attributes: ['id', 'name'], raw: true });
+    const revenueByBranch = await Promise.all(branches.map(async (b) => {
+      const appts = await Appointment.findAll({ where: { branchId: b.id }, attributes: ['id'], raw: true });
+      const apptIds = appts.map(a => a.id);
+      
+      const rev = await Payment.sum('amount', {
+        where: {
+          appointmentId: { [Op.in]: apptIds.length > 0 ? apptIds : [0] },
+          status: 'success',
+          ...dateFilter
+        }
+      }) || 0;
+      
+      return { id: b.id, name: b.name, revenue: rev };
+    }));
+
     return res.json({
       success: true,
       data: {
@@ -96,7 +113,8 @@ const getFinancialStats = async (req, res, next) => {
           total: serviceRevenue + retailRevenue,
           service: serviceRevenue,
           retail: retailRevenue,
-          byMethod: totalPayments
+          byMethod: totalPayments,
+          byBranch: revenueByBranch
         },
         expenses: {
             total: totalExpenses,

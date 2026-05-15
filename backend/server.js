@@ -14,6 +14,8 @@ const io = new Server(server, {
     origin: [
       'https://salonhub-soe.vercel.app',
       'http://localhost:3000',
+      'http://localhost:5173',
+      'https://salonhub-3cg8.onrender.com', // Địa chỉ Backend của bạn (đôi khi cần thiết)
     ],
     methods: ['GET', 'POST'],
     credentials: true,

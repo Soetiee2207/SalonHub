@@ -40,6 +40,8 @@ app.get('/api/health', (req, res) => {
 const allowedOrigins = [
   'https://salonhub-soe.vercel.app',
   'http://localhost:3000',
+  'http://localhost:5173',
+  'https://salonhub-3cg8.onrender.com',
 ];
 
 app.use(cors({

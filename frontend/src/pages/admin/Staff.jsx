@@ -91,12 +91,17 @@ export default function Staff() {
   };
 
   const handleDelete = async () => {
+    const oldStaff = [...staffList];
+    const targetId = deleteId;
+    // Optimistic Update
+    setStaffList(prev => prev.filter(s => s.id !== targetId));
+    setDeleteId(null);
+
     try {
-      await staffService.delete(deleteId);
+      await staffService.delete(targetId);
       toast.success('Xóa nhân viên thành công');
-      setDeleteId(null);
-      fetchData();
     } catch (err) {
+      setStaffList(oldStaff); // Rollback
       toast.error(err.message || 'Lỗi xóa nhân viên');
     }
   };

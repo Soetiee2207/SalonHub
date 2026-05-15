@@ -59,11 +59,17 @@ export default function Customers() {
 
   const handleDelete = async (customer) => {
     if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của ${customer.fullName}? Mọi dữ liệu lịch sử liên quan cũng sẽ bị xóa sạch!`)) return;
+    
+    const oldCustomers = [...customers];
+    const targetId = customer.id;
+    // Optimistic Update
+    setCustomers(prev => prev.filter(c => c.id !== targetId));
+
     try {
-      await customerService.delete(customer.id);
+      await customerService.delete(targetId);
       toast.success('Đã xóa khách hàng thành công');
-      fetchCustomers(search);
     } catch (err) {
+      setCustomers(oldCustomers); // Rollback
       toast.error(err.message || 'Lỗi khi xóa khách hàng');
     }
   };
@@ -72,12 +78,17 @@ export default function Customers() {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${selectedIds.length} khách hàng đã chọn? Hành động này không thể hoàn tác!`)) return;
     
+    const oldCustomers = [...customers];
+    const targets = [...selectedIds];
+    // Optimistic Update
+    setCustomers(prev => prev.filter(c => !targets.includes(c.id)));
+    setSelectedIds([]);
+
     try {
-      await customerService.bulkDelete(selectedIds);
-      toast.success(`Đã xóa thành công ${selectedIds.length} khách hàng`);
-      setSelectedIds([]);
-      fetchCustomers(search);
+      await customerService.bulkDelete(targets);
+      toast.success(`Đã xóa thành công ${targets.length} khách hàng`);
     } catch (err) {
+      setCustomers(oldCustomers); // Rollback
       toast.error(err.message || 'Lỗi khi xóa hàng loạt');
     }
   };

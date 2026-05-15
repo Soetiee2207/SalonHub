@@ -7,6 +7,7 @@ const {
 } = db;
 const { createNotification } = require('./notificationController');
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');
+const socketService = require('../services/socketService');
 
 const SLOT_INTERVAL_MINUTES = 30;
 
@@ -278,6 +279,7 @@ const createAppointment = async (req, res, next) => {
     });
 
     await notifyAppointmentCreated(fullAppointment);
+    socketService.broadcast('new_appointment', fullAppointment);
 
     const responseData = { ...fullAppointment.toJSON() };
     if (!isWalkIn) {
@@ -543,6 +545,7 @@ const updateAppointmentStatus = async (req, res, next) => {
     });
 
     await notifyStatusChanged(updatedAppointment, status, cancelReason);
+    socketService.broadcast('appointment_updated', updatedAppointment);
 
     return res.status(200).json({
       success: true,
@@ -586,6 +589,7 @@ const cancelAppointment = async (req, res, next) => {
     }
 
     await notifyStatusChanged(appointment, 'cancelled', cancelReason);
+    socketService.broadcast('appointment_updated', { id: appointment.id, status: 'cancelled' });
 
     return res.status(200).json({ success: true, data: appointment });
   } catch (error) {
@@ -781,6 +785,7 @@ const checkoutAppointment = async (req, res, next) => {
 
     await transaction.commit();
     const updatedAppt = await Appointment.findByPk(id, { include: APPOINTMENT_INCLUDES });
+    socketService.broadcast('appointment_updated', updatedAppt);
     responseData.appointment = updatedAppt;
 
     return res.status(200).json({ success: true, data: responseData });

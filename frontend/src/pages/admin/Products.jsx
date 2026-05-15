@@ -95,12 +95,17 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async () => {
+    const oldProducts = [...products];
+    const targetId = deleteId;
+    // Optimistic Update
+    setProducts(prev => prev.filter(p => p.id !== targetId));
+    setDeleteId(null);
+
     try {
-      await productService.delete(deleteId);
+      await productService.delete(targetId);
       toast.success('Xóa sản phẩm thành công');
-      setDeleteId(null);
-      fetchData();
     } catch (err) {
+      setProducts(oldProducts); // Rollback
       toast.error(err.message || 'Lỗi xóa sản phẩm');
     }
   };
@@ -109,12 +114,17 @@ export default function AdminProducts() {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedIds.length} sản phẩm đã chọn cùng toàn bộ dữ liệu kho, đánh giá liên quan? Hành động này không thể hoàn tác!`)) return;
 
+    const oldProducts = [...products];
+    const targets = [...selectedIds];
+    // Optimistic Update
+    setProducts(prev => prev.filter(p => !targets.includes(p.id)));
+    setSelectedIds([]);
+
     try {
-      await productService.bulkDelete(selectedIds);
-      toast.success(`Đã xóa thành công ${selectedIds.length} sản phẩm`);
-      setSelectedIds([]);
-      fetchData();
+      await productService.bulkDelete(targets);
+      toast.success(`Đã xóa thành công ${targets.length} sản phẩm`);
     } catch (err) {
+      setProducts(oldProducts);
       toast.error(err.message || 'Lỗi khi xóa hàng loạt');
     }
   };

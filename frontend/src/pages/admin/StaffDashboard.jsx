@@ -13,6 +13,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 import moment from 'moment';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSocket } from '../../contexts/SocketContext';
 
 import ServiceConsole from '../../components/staff/ServiceConsole';
 import CustomerHistoryModal from '../../components/staff/CustomerHistoryModal';
@@ -27,6 +28,7 @@ export default function StaffDashboard() {
   const [selectedAppt, setSelectedAppt] = useState(null); // The one being served
   const [showHistory, setShowHistory] = useState(null); // Customer ID
   const [showQuickBook, setShowQuickBook] = useState(false);
+  const socket = useSocket();
 
   const fetchData = async () => {
     try {
@@ -57,6 +59,18 @@ export default function StaffDashboard() {
 
   useEffect(() => { fetchData(); }, []);
 
+  useEffect(() => {
+    if (socket) {
+      const handleUpdate = () => fetchData();
+      socket.on('appointment_updated', handleUpdate);
+      socket.on('new_appointment', handleUpdate);
+      return () => {
+        socket.off('appointment_updated', handleUpdate);
+        socket.off('new_appointment', handleUpdate);
+      };
+    }
+  }, [socket]);
+
   const handleStatusChange = async (newStatus) => {
     try {
       await staffService.updateStatus(newStatus);
@@ -68,11 +82,16 @@ export default function StaffDashboard() {
   };
 
   const handleCheckIn = async (apptId) => {
+    // Optimistic Update
+    const oldAppointments = [...appointments];
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: 'in_progress' } : a));
+    
     try {
       await staffService.checkIn(apptId);
       toast.success('Check-in thành công! Chào mừng khách.');
-      fetchData();
+      // fetchData() sẽ được gọi bởi Socket hoặc ta có thể chủ động gọi nếu muốn chắc chắn
     } catch (err) {
+      setAppointments(oldAppointments);
       toast.error('Lỗi Check-in');
     }
   };

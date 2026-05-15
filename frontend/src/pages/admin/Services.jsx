@@ -94,12 +94,17 @@ export default function AdminServices() {
   };
 
   const handleDelete = async () => {
+    const oldServices = [...services];
+    const targetId = deleteId;
+    // Optimistic Update
+    setServices(prev => prev.filter(s => s.id !== targetId));
+    setDeleteId(null);
+
     try {
-      await serviceService.delete(deleteId);
+      await serviceService.delete(targetId);
       toast.success('Xóa dịch vụ thành công');
-      setDeleteId(null);
-      fetchData();
     } catch (err) {
+      setServices(oldServices); // Rollback
       toast.error(err.message || 'Lỗi xóa dịch vụ');
     }
   };
@@ -108,12 +113,17 @@ export default function AdminServices() {
     if (selectedIds.length === 0) return;
     if (!window.confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN ${selectedIds.length} dịch vụ đã chọn cùng toàn bộ lịch hẹn, đánh giá và thanh toán liên quan? Hành động này không thể hoàn tác!`)) return;
 
+    const oldServices = [...services];
+    const targets = [...selectedIds];
+    // Optimistic Update
+    setServices(prev => prev.filter(s => !targets.includes(s.id)));
+    setSelectedIds([]);
+
     try {
-      await serviceService.bulkDelete(selectedIds);
-      toast.success(`Đã xóa thành công ${selectedIds.length} dịch vụ`);
-      setSelectedIds([]);
-      fetchData();
+      await serviceService.bulkDelete(targets);
+      toast.success(`Đã xóa thành công ${targets.length} dịch vụ`);
     } catch (err) {
+      setServices(oldServices);
       toast.error(err.message || 'Lỗi khi xóa hàng loạt');
     }
   };

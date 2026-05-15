@@ -9,6 +9,7 @@ import { formatPrice } from '../../utils/formatPrice';
 
 import AppointmentCalendar from '../../components/dashboard/AppointmentCalendar';
 import BankTransferModal from '../../components/common/BankTransferModal';
+import { useSocket } from '../../contexts/SocketContext';
 
 const statusColors = {
   awaiting_deposit: 'bg-violet-100 text-violet-700 border-violet-200',
@@ -50,6 +51,7 @@ export default function AdminAppointments() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [showBankModal, setShowBankModal] = useState(false);
   const [createdResult, setCreatedResult] = useState(null);
+  const socket = useSocket();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -81,23 +83,49 @@ export default function AdminAppointments() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (socket) {
+      const handleUpdate = () => {
+        // Có thể fetch lại hoặc chỉ fetch phần bị đổi, 
+        // nhưng đơn giản nhất là refresh lại list
+        fetchData(); 
+      };
+      socket.on('appointment_updated', handleUpdate);
+      socket.on('new_appointment', handleUpdate);
+      return () => {
+        socket.off('appointment_updated', handleUpdate);
+        socket.off('new_appointment', handleUpdate);
+      };
+    }
+  }, [socket, fetchData]);
+
   const handleStatusUpdate = async (id, newStatus) => {
+    // Optimistic Update: Cập nhật giao diện ngay lập tức
+    const oldAppointments = [...appointments];
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+
     try {
       await appointmentService.updateStatus(id, { status: newStatus });
       toast.success('Cập nhật trạng thái thành công');
-      fetchData();
+      // Không cần fetchData() nữa vì ta đã update state rồi, 
+      // Socket sẽ lo việc đồng bộ cho các máy khác.
     } catch (err) {
+      setAppointments(oldAppointments); // Rollback nếu lỗi
       toast.error(err.message || 'Lỗi cập nhật');
     }
   };
 
   const handleCancel = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn hủy lịch hẹn này?')) return;
+    
+    const oldAppointments = [...appointments];
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'cancelled' } : a));
+
     try {
       await appointmentService.cancel(id);
       toast.success('Hủy lịch hẹn thành công');
-      fetchData();
     } catch (err) {
+      setAppointments(oldAppointments);
       toast.error(err.message || 'Lỗi hủy lịch hẹn');
     }
   };

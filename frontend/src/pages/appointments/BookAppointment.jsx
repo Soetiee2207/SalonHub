@@ -10,6 +10,7 @@ import { branchService } from '../../services/branchService';
 import { staffService } from '../../services/staffService';
 import { appointmentService } from '../../services/appointmentService';
 import BankTransferModal from '../../components/common/BankTransferModal';
+import { useSocket } from '../../contexts/SocketContext';
 
 import { formatPrice } from '../../utils/formatPrice';
 
@@ -66,6 +67,7 @@ export default function BookAppointment() {
   const [showBankModal, setShowBankModal] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState(null);
   const [depositInfo, setDepositInfo] = useState(null);
+  const socket = useSocket();
 
   const next7Days = getNext7Days();
 
@@ -125,6 +127,27 @@ export default function BookAppointment() {
         .finally(() => setLoading(false));
     }
   }, [currentStep, selectedDate, selectedBranch, selectedStaff, selectedService]);
+
+  useEffect(() => {
+    if (socket && currentStep === 3 && selectedDate && selectedBranch && selectedService) {
+      const handleUpdate = () => {
+        appointmentService.getAvailableSlots({
+          branchId: selectedBranch.id,
+          staffId: selectedStaff?.id,
+          serviceId: selectedService.id,
+          date: formatDate(selectedDate),
+        }).then((res) => setAvailableSlots(res.data || res || []));
+      };
+
+      socket.on('appointment_updated', handleUpdate);
+      socket.on('new_appointment', handleUpdate);
+
+      return () => {
+        socket.off('appointment_updated', handleUpdate);
+        socket.off('new_appointment', handleUpdate);
+      };
+    }
+  }, [socket, currentStep, selectedDate, selectedBranch, selectedStaff, selectedService]);
 
   const canGoNext = () => {
     switch (currentStep) {

@@ -4,6 +4,8 @@ import {
   FiShoppingBag, FiAlertCircle, FiInfo, FiGift
 } from 'react-icons/fi';
 import { notificationService } from '../../services/notificationService';
+import { useNotification } from '../../contexts/NotificationContext';
+import { useSocket } from '../../contexts/SocketContext';
 
 /* ---------- Helpers ---------- */
 function timeAgo(dateStr) {
@@ -61,6 +63,8 @@ function SkeletonNotification() {
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { refreshUnreadCount, markAllReadOptimistic } = useNotification();
+  const socket = useSocket();
 
   const fetchNotifications = useCallback(() => {
     setLoading(true);
@@ -83,15 +87,18 @@ export default function Notifications() {
       setNotifications(prev =>
         prev.map(n => (n.id === id) ? { ...n, isRead: true, read: true } : n)
       );
+      refreshUnreadCount();
     } catch {
     }
   };
 
   const handleMarkAllRead = async () => {
     try {
+      markAllReadOptimistic(); // Cập nhật Header ngay lập tức
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
     } catch {
+      refreshUnreadCount(); // Nếu lỗi thì fetch lại số chuẩn
     }
   };
 
@@ -99,12 +106,13 @@ export default function Notifications() {
     try {
       await notificationService.delete(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
+      refreshUnreadCount();
     } catch {
     }
   };
 
   const isUnread = (n) => !(n.isRead || n.read);
-  const unreadCount = notifications.filter(isUnread).length;
+  const { unreadCount } = useNotification(); // Lấy từ context để đồng bộ
 
   return (
     <div className="max-w-3xl mx-auto space-y-5">

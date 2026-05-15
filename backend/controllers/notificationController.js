@@ -60,6 +60,7 @@ const markAsRead = async (req, res, next) => {
     }
 
     await notification.update({ isRead: true });
+    socketService.sendToUser(req.user.id, 'notifications_updated', { id: req.params.id });
 
     res.status(200).json({
       success: true,
@@ -76,6 +77,7 @@ const markAllAsRead = async (req, res, next) => {
       { isRead: true },
       { where: { userId: req.user.id, isRead: false } }
     );
+    socketService.sendToUser(req.user.id, 'notifications_updated', { all: true });
 
     res.status(200).json({
       success: true,

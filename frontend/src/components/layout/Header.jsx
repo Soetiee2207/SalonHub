@@ -4,6 +4,7 @@ import { FiUser, FiShoppingCart, FiBell, FiMenu, FiX, FiLogOut, FiSettings, FiCa
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { useCart } from '../../contexts/CartContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { notificationService } from '../../services/notificationService';
 
 export default function Header() {
@@ -13,31 +14,13 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { cartCount } = useCart();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotification();
   const [isCartPopping, setIsCartPopping] = useState(false);
   const prevCartCount = useRef(cartCount);
   const dropdownRef = useRef(null);
   const socket = useSocket();
 
-  const fetchUnreadCount = () => {
-    notificationService.getUnreadCount()
-      .then(res => {
-        const count = res.data?.totalUnread || res.totalUnread || 0;
-        setUnreadCount(count);
-      })
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    if (user) {
-      notificationService.getUnreadCount()
-        .then(res => {
-          const count = res.data?.totalUnread || res.totalUnread || 0;
-          setUnreadCount(count);
-        })
-        .catch(() => {});
-    }
-  }, [user, location.pathname]);
+  // Logic fetch notification đã được chuyển sang NotificationContext
 
   useEffect(() => {
     if (cartCount > prevCartCount.current) {
@@ -47,23 +30,6 @@ export default function Header() {
     }
     prevCartCount.current = cartCount;
   }, [cartCount]);
-
-  useEffect(() => {
-    if (socket) {
-      socket.on('new_notification', () => {
-        fetchUnreadCount();
-      });
-
-      socket.on('new_role_notification', () => {
-        fetchUnreadCount();
-      });
-
-      return () => {
-        socket.off('new_notification');
-        socket.off('new_role_notification');
-      };
-    }
-  }, [socket]);
 
   useEffect(() => {
     const handleClick = (e) => {

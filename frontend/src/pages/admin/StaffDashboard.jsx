@@ -21,7 +21,7 @@ import QuickBookingModal from '../../components/staff/QuickBookingModal';
 
 export default function StaffDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ todayTotal: 0, pending: 0, completed: 0, workStatus: 'available', averageRating: 5.0 });
+  const [stats, setStats] = useState({ todayTotal: 0, pending: 0, completed: 0, averageRating: 5.0 });
   const [appointments, setAppointments] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,15 +71,6 @@ export default function StaffDashboard() {
     }
   }, [socket]);
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-      await staffService.updateStatus(newStatus);
-      setStats(prev => ({ ...prev, workStatus: newStatus }));
-      toast.success(`Đã chuyển sang trạng thái: ${newStatus.toUpperCase()}`);
-    } catch (err) {
-      toast.error('Lỗi cập nhật trạng thái');
-    }
-  };
 
   const handleCheckIn = async (apptId) => {
     // Optimistic Update
@@ -111,9 +102,6 @@ export default function StaffDashboard() {
                <div className="w-12 h-12 rounded-2xl bg-[#8B5E3C] flex items-center justify-center text-white shadow-lg shadow-orange-100 overflow-hidden">
                  {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <FiUser size={24} />}
                </div>
-               <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                 stats.workStatus === 'available' ? 'bg-emerald-500' : stats.workStatus === 'break' ? 'bg-amber-500' : 'bg-rose-500'
-               }`} />
              </div>
              <div>
                <h1 className="text-xl font-black text-[#5C4033] tracking-tight">Xin chào, {user?.fullName?.split(' ').pop()}!</h1>
@@ -270,30 +258,39 @@ export default function StaffDashboard() {
         {/* Right Column: Customer Vault & Evaluates */}
         <div className="lg:col-span-4 space-y-8">
            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden h-full">
-              <div className="absolute top-0 right-0 p-8 text-slate-50">
-                 <FiLayout size={120} />
+              <div className="absolute -top-6 -right-6 text-orange-50/50 rotate-12">
+                 <FiLayout size={180} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-6">Tàng Thư Khách Hàng</h3>
+              <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-6 relative z-10">Tàng Thư Khách Hàng</h3>
               <p className="text-sm text-slate-400 font-medium leading-relaxed mb-8 relative z-10">
                 Lưu giữ bí kíp, công thức nhuộm màu và sở thích "độc bản" của từng vị thượng khách.
               </p>
               
-              <div className="space-y-4">
-                 <button 
-                   onClick={() => toast.success('Tính năng đang đồng bộ...')} 
-                   className="w-full p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center justify-between group hover:bg-orange-50 hover:border-orange-100 transition-all text-left cursor-pointer"
-                 >
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-orange-500 shadow-sm">
-                          <FiSearch />
-                       </div>
-                       <div>
-                          <p className="font-black text-slate-700 tracking-tighter uppercase">Tra cứu nhanh</p>
-                          <p className="text-[10px] font-bold text-slate-400">SĐT hoặc Mã QR</p>
-                       </div>
-                    </div>
-                    <FiArrowRight className="text-slate-300 group-hover:translate-x-1 group-hover:text-orange-500 transition-all" />
-                 </button>
+              <div className="space-y-4 relative z-10">
+                 <div className="relative group">
+                    <input 
+                      type="text" 
+                      placeholder="Tìm SĐT khách hàng..."
+                      className="w-full p-6 pl-14 bg-slate-50 rounded-3xl border border-slate-100 outline-none focus:ring-2 focus:ring-orange-200 transition-all text-sm font-bold"
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          const phone = e.target.value;
+                          if (!phone) return;
+                          try {
+                            const res = await staffService.searchCustomer(phone);
+                            if (res.data?.id || res.id) {
+                              setShowHistory(res.data?.id || res.id);
+                            } else {
+                              toast.error('Không tìm thấy khách hàng');
+                            }
+                          } catch (err) {
+                            toast.error('Lỗi tìm kiếm');
+                          }
+                        }
+                      }}
+                    />
+                    <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500" size={20} />
+                 </div>
 
                  <div className="p-6 rounded-3xl border border-slate-100/50 bg-gradient-to-br from-white to-orange-50/30">
                     <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">Gần đây nhất</p>

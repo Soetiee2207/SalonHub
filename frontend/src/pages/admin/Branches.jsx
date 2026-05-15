@@ -83,12 +83,17 @@ export default function Branches() {
   };
 
   const handleDelete = async () => {
+    const oldBranches = [...branches];
+    const targetId = deleteId;
+    // Optimistic Update
+    setBranches(prev => prev.filter(b => b.id !== targetId));
+    setDeleteId(null);
+
     try {
-      await branchService.delete(deleteId);
+      await branchService.delete(targetId);
       toast.success('Xóa chi nhánh thành công');
-      setDeleteId(null);
-      fetchData();
     } catch (err) {
+      setBranches(oldBranches); // Rollback
       toast.error(err.message || 'Lỗi xóa chi nhánh');
     }
   };

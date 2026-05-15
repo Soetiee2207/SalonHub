@@ -257,6 +257,31 @@ const deleteStaff = async (req, res, next) => {
   }
 };
 
+const searchCustomer = async (req, res, next) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp số điện thoại' });
+    }
+
+    const customer = await User.findOne({
+      where: { 
+        phone: { [Op.like]: `%${phone}%` },
+        role: 'customer'
+      },
+      attributes: ['id', 'fullName', 'phone', 'email', 'avatar']
+    });
+
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy khách hàng' });
+    }
+
+    res.json({ success: true, data: customer });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   updateWorkStatus,
   getCustomerHistoryDetail,
@@ -265,5 +290,6 @@ module.exports = {
   getAllStaff,
   createStaff,
   updateStaff,
-  deleteStaff
+  deleteStaff,
+  searchCustomer
 };

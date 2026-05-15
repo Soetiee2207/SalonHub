@@ -8,7 +8,8 @@ const {
   getAllStaff,
   createStaff,
   updateStaff,
-  deleteStaff
+  deleteStaff,
+  searchCustomer
 } = require('../controllers/staffController');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -20,6 +21,7 @@ router.use(authenticate, authorize('admin', 'staff', 'service_staff'));
 router.get('/stats', getStaffDashboardStats);
 router.put('/status', updateWorkStatus);
 router.get('/customer-history/:customerId', getCustomerHistoryDetail);
+router.get('/search-customer', searchCustomer);
 router.post('/customer-notes', saveCustomerServiceNote);
 
 router.post('/', authorize('admin'), createStaff);

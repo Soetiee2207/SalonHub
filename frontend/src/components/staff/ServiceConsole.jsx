@@ -232,8 +232,14 @@ export default function ServiceConsole({ appointment, onClose, onSuccess }) {
                        <FiScissors size={24} />
                     </div>
                     <div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dịch vụ chính</p>
+                       <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Dịch vụ chính</p>
                        <p className="font-bold text-slate-800">{appointment.service?.name}</p>
+                       {appointment.note && (
+                         <div className="mt-3 p-4 bg-orange-50 rounded-2xl border border-orange-100">
+                            <p className="text-[10px] font-black text-orange-500 uppercase tracking-tighter mb-1">Ghi chú từ khách:</p>
+                            <p className="text-xs text-slate-600 font-bold italic leading-relaxed">"{appointment.note}"</p>
+                         </div>
+                       )}
                     </div>
                  </div>
                  <p className="font-black text-slate-800">{formatPrice(appointment.totalPrice)}</p>

@@ -81,12 +81,17 @@ export default function Vouchers() {
   };
 
   const handleDelete = async () => {
+    const oldVouchers = [...vouchers];
+    const targetId = deleteId;
+    // Optimistic Update
+    setVouchers(prev => prev.filter(v => v.id !== targetId));
+    setDeleteId(null);
+
     try {
-      await voucherService.delete(deleteId);
+      await voucherService.delete(targetId);
       toast.success('Xóa voucher thành công');
-      setDeleteId(null);
-      fetchData();
     } catch (err) {
+      setVouchers(oldVouchers); // Rollback
       toast.error(err.message || 'Lỗi xóa voucher');
     }
   };

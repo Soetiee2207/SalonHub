@@ -9,6 +9,7 @@ export const staffService = {
   getStats: () => api.get('/staff/stats'),
   updateStatus: (status) => api.put('/staff/status', { status }),
   getCustomerHistory: (customerId) => api.get(`/staff/customer-history/${customerId}`),
+  searchCustomer: (phone) => api.get('/staff/search-customer', { params: { phone } }),
   saveNote: (data) => api.post('/staff/customer-notes', data),
   
   getSchedules: (staffId) => api.get(`/schedules/staff/${staffId}`),

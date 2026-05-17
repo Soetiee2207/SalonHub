@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   FiFileText, FiDownload, FiBarChart2, FiPieChart, 
   FiCalendar, FiPrinter, FiFilter, FiCheckCircle, FiRefreshCcw,
-  FiTrendingUp, FiTrendingDown, FiDollarSign, FiShoppingBag, FiActivity
+  FiTrendingUp, FiTrendingDown, FiDollarSign, FiShoppingBag, FiActivity,
+  FiFile, FiCreditCard, FiCornerUpLeft, FiX
 } from 'react-icons/fi';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -19,7 +20,9 @@ const COLORS = ['#8B5E3C', '#D4A574', '#F5E6D3', '#E5E7EB', '#10B981', '#F59E0B'
 
 export default function FinancialReports() {
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [stats, setStats] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [dateRange, setDateRange] = useState({ 
     startDate: moment().startOf('month').format('YYYY-MM-DD'), 
     endDate: moment().format('YYYY-MM-DD') 
@@ -39,42 +42,217 @@ export default function FinancialReports() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const exportToExcel = async () => {
+  const exportPLReport = async () => {
     if (!stats) return;
     try {
-      setLoading(true);
+      setExportLoading(true);
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Báo cáo P&L Chi tiết');
+      const worksheet = workbook.addWorksheet('Báo cáo Tài chính Tổng hợp');
 
-      // Styles & Header (Keeping the previous logic but enhanced)
-      worksheet.mergeCells('A1:E1');
+      worksheet.mergeCells('A1:C1');
       worksheet.getCell('A1').value = 'BÁO CÁO KẾT QUẢ KINH DOANH CHUYÊN SÂU';
-      worksheet.getCell('A1').font = { size: 16, bold: true };
+      worksheet.getCell('A1').font = { size: 16, bold: true, color: { argb: 'FF1E293B' } };
       worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-      worksheet.addRow(['Thời gian:', `${dateRange.startDate} đến ${dateRange.endDate}`]);
+      worksheet.mergeCells('A2:C2');
+      worksheet.getCell('A2').value = `Giai đoạn: ${dateRange.startDate} đến ${dateRange.endDate}`;
+      worksheet.getCell('A2').font = { size: 11, italic: true, color: { argb: 'FF64748B' } };
+      worksheet.getCell('A2').alignment = { horizontal: 'center' };
       worksheet.addRow([]);
 
-      // Section: Summary
-      worksheet.addRow(['CHỈ TIÊU TỔNG QUÁT']).font = { bold: true };
-      worksheet.addRow(['Tổng doanh thu', stats.revenue.total]);
-      worksheet.addRow(['Tổng chi phí', stats.expenses.total + stats.expenses.cogs]);
-      worksheet.addRow(['Lợi nhuận ròng', stats.netProfit]);
+      const addHeaderRow = (title, color) => {
+        const row = worksheet.addRow([title, '', '']);
+        worksheet.mergeCells(`A${row.number}:C${row.number}`);
+        row.getCell(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+        return row;
+      };
+
+      const addDataRow = (label, value, bold = false) => {
+        const row = worksheet.addRow([label, value, '']);
+        row.getCell(1).font = { bold };
+        row.getCell(2).font = { bold };
+        row.getCell(2).numFmt = '#,##0';
+        return row;
+      };
+
+      // 1. DOANH THU
+      addHeaderRow('I. DOANH THU (REVENUE)', 'FF3B82F6'); // Blue
+      addDataRow('  1. Doanh thu Dịch vụ', stats.revenue.service);
+      addDataRow('  2. Doanh thu Bán lẻ sản phẩm', stats.revenue.retail);
+      addDataRow('  3. Khấu trừ ưu đãi (Vouchers/Discounts)', -stats.revenue.discounts);
+      const netRev = stats.revenue.total - stats.revenue.discounts;
+      const rowNetRev = addDataRow('TỔNG DOANH THU THUẦN', netRev, true);
+      rowNetRev.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      rowNetRev.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
       worksheet.addRow([]);
 
-      // Section: By Branch
-      worksheet.addRow(['DOANH THU THEO CHI NHÁNH']).font = { bold: true };
+      // 2. CHI PHÍ
+      addHeaderRow('II. CHI PHÍ (EXPENSES)', 'FFEF4444'); // Red
+      addDataRow('  1. Giá vốn hàng bán (COGS)', -stats.expenses.cogs);
+      addDataRow('  2. Chi phí Mặt bằng (Rent)', -(stats.expenses.breakdown?.rent || 0));
+      addDataRow('  3. Chi phí Lương (Salary)', -(stats.expenses.breakdown?.salary || 0));
+      addDataRow('  4. Chi phí Điện nước (Utilities)', -(stats.expenses.breakdown?.utilities || 0));
+      addDataRow('  5. Hoàn tiền khách hàng (Refunds)', -(stats.expenses.breakdown?.refund || 0));
+      addDataRow('  6. Thanh toán NCC (Supplier Payments)', -(stats.expenses.breakdown?.supplier_payment || 0));
+      addDataRow('  7. Chi phí khác (Other)', -(stats.expenses.breakdown?.other || 0));
+      const totalExp = stats.expenses.total + stats.expenses.cogs;
+      const rowTotalExp = addDataRow('TỔNG CHI PHÍ HOẠT ĐỘNG', -totalExp, true);
+      rowTotalExp.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      rowTotalExp.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      worksheet.addRow([]);
+
+      // 3. LỢI NHUẬN
+      addHeaderRow('III. LỢI NHUẬN (PROFIT)', 'FF10B981'); // Emerald
+      const netProfit = netRev - totalExp;
+      const rowProfit = addDataRow('LỢI NHUẬN RÒNG (NET PROFIT)', netProfit, true);
+      rowProfit.font = { size: 12, bold: true, color: { argb: netProfit >= 0 ? 'FF059669' : 'FFDC2626' } };
+      
+      const margin = netRev > 0 ? (netProfit / netRev) * 100 : 0;
+      const rowMargin = worksheet.addRow(['BIÊN LỢI NHUẬN (PROFIT MARGIN)', `${margin.toFixed(2)}%`, '']);
+      rowMargin.font = { bold: true };
+      worksheet.addRow([]);
+
+      // 4. PHÂN TÍCH DÒNG TIỀN THEO PHƯƠNG THỨC
+      addHeaderRow('IV. DÒNG TIỀN THEO PHƯƠNG THỨC THANH TOÁN', 'FF8B5E3C'); // Brown
+      stats.revenue.byMethod.forEach(m => {
+          addDataRow(`  - ${m.method.toUpperCase()}`, m.total);
+      });
+      worksheet.addRow([]);
+
+      // 5. HIỆU SUẤT CHI NHÁNH
+      addHeaderRow('V. HIỆU SUẤT THEO CHI NHÁNH', 'FF6366F1'); // Indigo
       stats.revenue.byBranch.forEach(b => {
-        worksheet.addRow([b.name, b.revenue]);
+          addDataRow(`  - ${b.name}`, b.revenue);
       });
 
+      // Borders
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 3 && row.getCell(1).value !== null && row.getCell(1).value !== '') {
+            row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                if (colNumber <= 2) {
+                    cell.border = {
+                        top: {style:'thin', color: {argb:'FFE2E8F0'}},
+                        left: {style:'thin', color: {argb:'FFE2E8F0'}},
+                        bottom: {style:'thin', color: {argb:'FFE2E8F0'}},
+                        right: {style:'thin', color: {argb:'FFE2E8F0'}}
+                    };
+                }
+            });
+        }
+      });
+
+      worksheet.getColumn(1).width = 50;
+      worksheet.getColumn(2).width = 25;
+
       const buffer = await workbook.xlsx.writeBuffer();
-      saveAs(new Blob([buffer]), `Bao_Cao_SalonHub_${moment().format('DDMMYYYY')}.xlsx`);
-      toast.success('Xuất file thành công');
+      saveAs(new Blob([buffer]), `Bao_Cao_TC_Tong_Hop_${moment().format('DDMMYYYY')}.xlsx`);
+      toast.success('Xuất báo cáo tài chính thành công');
+      setShowExportModal(false);
     } catch (err) {
-      toast.error('Lỗi xuất file');
+      toast.error('Lỗi xuất báo cáo');
     } finally {
-      setLoading(false);
+      setExportLoading(false);
+    }
+  };
+
+  const exportReconciliationReport = async () => {
+    try {
+      setExportLoading(true);
+      const res = await accountantService.getReconciliation({ ...dateRange, all: true });
+      const payments = res.data || [];
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Đối soát SEPay');
+
+      worksheet.mergeCells('A1:G1');
+      worksheet.getCell('A1').value = 'BIÊN BẢN ĐỐI SOÁT DÒNG TIỀN KỸ THUẬT SỐ (SEPAY)';
+      worksheet.getCell('A1').font = { size: 14, bold: true };
+      worksheet.getCell('A1').alignment = { horizontal: 'center' };
+      worksheet.addRow(['Kỳ đối soát:', `${dateRange.startDate} đến ${dateRange.endDate}`]);
+      worksheet.addRow([]);
+
+      const headerRow = worksheet.addRow(['Mã GD', 'Ngày GD', 'Mã Đơn/Lịch', 'Số Tiền', 'Phương Thức', 'Trạng Thái', 'Đối Soát']);
+      headerRow.eachCell(c => {
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+      });
+
+      payments.forEach(p => {
+        const refId = p.orderId ? `ĐH #${p.orderId}` : `LH #${p.appointmentId}`;
+        worksheet.addRow([
+          p.id,
+          moment(p.createdAt).format('DD/MM/YYYY HH:mm'),
+          refId,
+          p.amount,
+          p.method.toUpperCase(),
+          p.status === 'success' ? 'Thành công' : 'Chờ xử lý',
+          p.isReconciled ? 'Đã khớp' : 'Lệch/Chưa khớp'
+        ]);
+      });
+
+      worksheet.getColumn(2).width = 20;
+      worksheet.getColumn(4).width = 15;
+      worksheet.getColumn(4).numFmt = '#,##0';
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), `Bien_Ban_Doi_Soat_SEPay_${moment().format('DDMMYYYY')}.xlsx`);
+      toast.success('Xuất biên bản đối soát thành công');
+      setShowExportModal(false);
+    } catch (err) {
+      toast.error('Lỗi xuất biên bản đối soát');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportRefundReport = async () => {
+    try {
+      setExportLoading(true);
+      const res = await accountantService.getRefunds(dateRange);
+      const refunds = res.data || [];
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Chứng từ Hoàn tiền');
+
+      worksheet.mergeCells('A1:G1');
+      worksheet.getCell('A1').value = 'CHỨNG TỪ CHI HOÀN TIỀN (REFUND VOUCHERS)';
+      worksheet.getCell('A1').font = { size: 14, bold: true };
+      worksheet.getCell('A1').alignment = { horizontal: 'center' };
+      worksheet.addRow(['Kỳ báo cáo:', `${dateRange.startDate} đến ${dateRange.endDate}`]);
+      worksheet.addRow([]);
+
+      const headerRow = worksheet.addRow(['Mã YC', 'Ngày YC', 'Loại', 'Mã Tham Chiếu', 'Số Tiền', 'Lý Do', 'Trạng Thái']);
+      headerRow.eachCell(c => {
+        c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
+      });
+
+      refunds.forEach(r => {
+        worksheet.addRow([
+          r.id,
+          moment(r.createdAt).format('DD/MM/YYYY HH:mm'),
+          r.type === 'order' ? 'Đơn hàng' : 'Lịch hẹn',
+          `#${r.targetId}`,
+          r.amount,
+          r.reason,
+          r.status === 'completed' || r.status === 'approved' ? 'Đã chi hoàn' : 'Đang chờ'
+        ]);
+      });
+
+      worksheet.getColumn(2).width = 20;
+      worksheet.getColumn(5).width = 15;
+      worksheet.getColumn(5).numFmt = '#,##0';
+      worksheet.getColumn(6).width = 40;
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), `Chung_Tu_Hoan_Tien_${moment().format('DDMMYYYY')}.xlsx`);
+      toast.success('Xuất chứng từ hoàn tiền thành công');
+      setShowExportModal(false);
+    } catch (err) {
+      toast.error('Lỗi xuất chứng từ');
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -99,7 +277,7 @@ export default function FinancialReports() {
   return (
     <div className="max-w-7xl mx-auto px-6 pb-20 space-y-8 animate-fade-in">
       {/* Header & Filters */}
-      <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row justify-between items-center gap-8">
+      <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row justify-between items-center gap-8 relative z-10">
         <div>
           <h1 className="text-4xl font-black text-slate-800 tracking-tighter flex items-center gap-4">
              <div className="w-16 h-16 rounded-[1.5rem] bg-slate-900 text-white flex items-center justify-center shadow-2xl shadow-slate-200">
@@ -129,10 +307,10 @@ export default function FinancialReports() {
           </div>
           <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
           <button 
-            onClick={exportToExcel}
-            className="px-6 py-3 bg-white text-slate-700 rounded-2xl text-xs font-black shadow-sm hover:shadow-md transition-all flex items-center gap-2 border-0 cursor-pointer"
+            onClick={() => setShowExportModal(true)}
+            className="px-6 py-3 bg-white text-slate-700 rounded-2xl text-xs font-black shadow-sm hover:shadow-md transition-all flex items-center gap-2 border-0 cursor-pointer group"
           >
-            <FiDownload /> XUẤT EXCEL
+            <FiDownload className="group-hover:-translate-y-1 transition-transform" /> TẢI BÁO CÁO
           </button>
           <button 
             onClick={fetchData}
@@ -157,14 +335,14 @@ export default function FinancialReports() {
               value={stats.revenue.total} 
               icon={FiDollarSign} 
               color="indigo" 
-              subtitle={`Dịch vụ: ${formatPrice(stats.revenue.service)} | Bán lẻ: ${formatPrice(stats.revenue.retail)}`}
+              subtitle={`Giảm giá: ${formatPrice(stats.revenue.discounts)} | Thuần: ${formatPrice(stats.revenue.total - stats.revenue.discounts)}`}
             />
             <SummaryCard 
               title="Tổng chi phí" 
               value={stats.expenses.total + stats.expenses.cogs} 
               icon={FiShoppingBag} 
               color="rose" 
-              subtitle={`Giá vốn: ${formatPrice(stats.expenses.cogs)} | Vận hành: ${formatPrice(stats.expenses.operating)}`}
+              subtitle={`Cố định: ${formatPrice(stats.expenses.fixed)} | Nhập: ${formatPrice(stats.expenses.cogs)}`}
             />
             <SummaryCard 
               title="Lợi nhuận ròng" 
@@ -275,69 +453,75 @@ export default function FinancialReports() {
                </div>
             </div>
           </div>
-
-          {/* Bottom Row: Branches & Methods */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-             {/* Branch Performance */}
-             <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-8">Hiệu Suất Chi Nhánh</h3>
-                <div className="h-[300px]">
-                   <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stats.revenue.byBranch} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                        <XAxis type="number" hide />
-                        <YAxis 
-                          dataKey="name" 
-                          type="category" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{fontSize: 12, fontWeight: 'black', fill: '#334155'}}
-                          width={100}
-                        />
-                        <Tooltip cursor={{fill: '#f8fafc'}} />
-                        <Bar dataKey="revenue" fill="#8B5E3C" radius={[0, 20, 20, 0]} barSize={40} />
-                      </BarChart>
-                   </ResponsiveContainer>
-                </div>
-             </div>
-
-             {/* Payment Methods */}
-             <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
-                <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-8">Phương Thức Thanh Toán</h3>
-                <div className="grid grid-cols-2 gap-8 items-center h-full">
-                   <div className="h-[200px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                         <PieChart>
-                            <Pie
-                              data={stats.revenue.byMethod}
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={70}
-                              dataKey="total"
-                              nameKey="method"
-                            >
-                              {stats.revenue.byMethod.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                         </PieChart>
-                      </ResponsiveContainer>
-                   </div>
-                   <div className="space-y-3">
-                      {stats.revenue.byMethod.map((m, i) => (
-                        <div key={i} className="flex flex-col gap-1">
-                           <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                              <span className="text-[10px] font-black text-slate-400 uppercase">{m.method}</span>
-                           </div>
-                           <p className="text-sm font-black text-slate-800 ml-4">{formatPrice(m.total)}</p>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-             </div>
-          </div>
         </>
+      )}
+
+      {/* Export Selection Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-lg w-full shadow-2xl animate-scale-up">
+             <div className="flex justify-between items-start mb-8">
+               <div>
+                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">Trích Xuất Báo Cáo</h2>
+                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Chọn định dạng báo cáo cần tải về</p>
+               </div>
+               <button onClick={() => setShowExportModal(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors border-0 cursor-pointer">
+                 <FiX />
+               </button>
+             </div>
+
+             <div className="space-y-4">
+                <button 
+                  onClick={exportPLReport}
+                  disabled={exportLoading}
+                  className="w-full p-4 rounded-2xl border-2 border-slate-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all flex items-center gap-4 text-left border-0 cursor-pointer group"
+                >
+                   <div className="p-3 bg-white shadow-sm text-indigo-500 rounded-xl group-hover:scale-110 transition-transform">
+                     <FiFileText size={20} />
+                   </div>
+                   <div className="flex-1">
+                      <h4 className="font-black text-slate-800 tracking-tight">Báo cáo Tài chính Tổng hợp</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Doanh thu thuần, chi phí cố định, biên lợi nhuận</p>
+                   </div>
+                </button>
+
+                <button 
+                  onClick={exportReconciliationReport}
+                  disabled={exportLoading}
+                  className="w-full p-4 rounded-2xl border-2 border-slate-100 hover:border-blue-200 hover:bg-blue-50 transition-all flex items-center gap-4 text-left border-0 cursor-pointer group"
+                >
+                   <div className="p-3 bg-white shadow-sm text-blue-500 rounded-xl group-hover:scale-110 transition-transform">
+                     <FiCreditCard size={20} />
+                   </div>
+                   <div className="flex-1">
+                      <h4 className="font-black text-slate-800 tracking-tight">Biên bản Đối soát Dòng tiền</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Giao dịch SEPay vs Hóa đơn hệ thống</p>
+                   </div>
+                </button>
+
+                <button 
+                  onClick={exportRefundReport}
+                  disabled={exportLoading}
+                  className="w-full p-4 rounded-2xl border-2 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all flex items-center gap-4 text-left border-0 cursor-pointer group"
+                >
+                   <div className="p-3 bg-white shadow-sm text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
+                     <FiCornerUpLeft size={20} />
+                   </div>
+                   <div className="flex-1">
+                      <h4 className="font-black text-slate-800 tracking-tight">Chứng từ Chi Hoàn tiền</h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Ghi nhận ngân sách hoàn trả cho khách hàng</p>
+                   </div>
+                </button>
+             </div>
+             
+             {exportLoading && (
+               <div className="mt-6 flex items-center justify-center gap-2 text-indigo-500">
+                 <FiRefreshCcw className="animate-spin" />
+                 <span className="text-xs font-bold uppercase tracking-widest">Đang tạo tệp Excel...</span>
+               </div>
+             )}
+          </div>
+        </div>
       )}
     </div>
   );

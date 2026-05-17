@@ -74,6 +74,20 @@ const getFinancialStats = async (req, res, next) => {
       }
     }) || 0;
 
+    const expensesBreakdownRaw = await CashFlowTransaction.findAll({
+      where: { type: 'payment', status: { [Op.in]: ['completed', 'pending'] }, ...dateFilter },
+      attributes: ['category', [sequelize.fn('SUM', sequelize.col('amount')), 'total']],
+      group: ['category'],
+      raw: true
+    });
+    
+    const expensesBreakdown = expensesBreakdownRaw.reduce((acc, curr) => {
+        acc[curr.category] = Number(curr.total) || 0;
+        return acc;
+    }, { utilities: 0, rent: 0, salary: 0, supplier_payment: 0, refund: 0, other: 0 });
+
+    const fixedOperatingCosts = expensesBreakdown.utilities + expensesBreakdown.rent + expensesBreakdown.salary;
+
     const ordersWithPayments = await Payment.findAll({
         where: { orderId: { [Op.ne]: null }, status: 'success', ...dateFilter },
         attributes: ['orderId'],
@@ -87,6 +101,12 @@ const getFinancialStats = async (req, res, next) => {
             referenceType: 'order',
             referenceId: { [Op.in]: paidOrderIds.length > 0 ? paidOrderIds : [0] }
         }
+    }) || 0;
+
+    const totalDiscounts = await Order.sum('discountAmount', {
+      where: {
+        id: { [Op.in]: paidOrderIds.length > 0 ? paidOrderIds : [0] }
+      }
     }) || 0;
 
     // Doanh thu theo chi nhánh
@@ -114,12 +134,15 @@ const getFinancialStats = async (req, res, next) => {
           service: serviceRevenue,
           retail: retailRevenue,
           byMethod: totalPayments,
-          byBranch: revenueByBranch
+          byBranch: revenueByBranch,
+          discounts: totalDiscounts
         },
         expenses: {
             total: totalExpenses,
             cogs: cogs,
-            operating: totalExpenses - cogs > 0 ? totalExpenses - cogs : 0
+            fixed: fixedOperatingCosts,
+            operating: totalExpenses - cogs > 0 ? totalExpenses - cogs : 0,
+            breakdown: expensesBreakdown
         },
         netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs,
         chartData: await getChartData(startDate, endDate)
@@ -218,18 +241,30 @@ const createCashFlow = async (req, res, next) => {
 
 const getReconciliation = async (req, res, next) => {
   try {
+    const { startDate, endDate, all } = req.query;
     const isAdmin = req.user.role === 'admin';
     const branchId = req.user.branchId;
 
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+    }
+
+    const whereCondition = {
+      ...dateFilter,
+      [Op.or]: [
+        { method: 'sepay', status: 'success' },
+        { method: 'cod' },
+        { method: 'cash' }
+      ]
+    };
+
+    if (!all || all !== 'true') {
+      whereCondition.isReconciled = false;
+    }
+
     const payments = await Payment.findAll({
-      where: {
-        isReconciled: false,
-        [Op.or]: [
-          { method: 'sepay', status: 'success' },
-          { method: 'cod' },
-          { method: 'cash' }
-        ]
-      },
+      where: whereCondition,
       include: [
           { model: Order, as: 'order', attributes: ['id', 'totalAmount', 'status'] },
           { 
@@ -307,7 +342,14 @@ const reconcilePayment = async (req, res, next) => {
 
 const getRefundRequests = async (req, res, next) => {
   try {
+    const { startDate, endDate } = req.query;
+    const where = {};
+    if (startDate && endDate) {
+      where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+    }
+
     const rawRefunds = await RefundRequest.findAll({
+      where,
       order: [['createdAt', 'DESC']],
       include: [
           { model: User, as: 'processor', attributes: ['fullName'] }

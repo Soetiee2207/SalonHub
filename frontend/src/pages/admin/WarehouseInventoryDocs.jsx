@@ -67,10 +67,30 @@ export default function WarehouseInventoryDocs() {
   const handleProductChange = (e) => {
     const pId = e.target.value;
     const product = products.find(p => String(p.id) === String(pId));
+    
+    let autoExpiryDate = '';
+    if (product && product.batches && product.batches.length > 0) {
+      // Lấy lô hàng có hạn sử dụng gần nhất
+      const batchesWithExpiry = product.batches.filter(b => b.expiryDate).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      if (batchesWithExpiry.length > 0) {
+        const lastBatch = batchesWithExpiry[0];
+        const createdAt = new Date(lastBatch.createdAt);
+        const expiryDate = new Date(lastBatch.expiryDate);
+        const shelfLifeDays = Math.ceil((expiryDate - createdAt) / (1000 * 60 * 60 * 24));
+        
+        if (shelfLifeDays > 0) {
+          const newExpiry = new Date();
+          newExpiry.setDate(newExpiry.getDate() + shelfLifeDays);
+          autoExpiryDate = newExpiry.toISOString().split('T')[0];
+        }
+      }
+    }
+
     setFormData({ 
       ...formData, 
       productId: pId,
-      currentPrice: product?.price || 0 
+      currentPrice: product?.price || 0,
+      expiryDate: autoExpiryDate
     });
   };
 

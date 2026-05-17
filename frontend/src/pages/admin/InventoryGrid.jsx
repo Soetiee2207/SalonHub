@@ -235,6 +235,11 @@ export default function InventoryGrid() {
                                      }`}>
                                        {batch.expiryDate ? new Date(batch.expiryDate).toLocaleDateString('vi-VN') : 'Không thời hạn'}
                                      </p>
+                                     {getExpiryStatus(batch.expiryDate) === 'expired' && (
+                                       <span className="ml-1 px-2 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-sm border border-rose-200 animate-pulse">
+                                         Đã hết hạn
+                                       </span>
+                                     )}
                                   </div>
                                 </div>
 

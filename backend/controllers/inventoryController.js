@@ -550,7 +550,10 @@ const getWarehouseStats = async (req, res, next) => {
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
     
     const batchWhere = {
-      expiryDate: { [Op.between]: [new Date(), thirtyDaysLater] },
+      expiryDate: { 
+        [Op.ne]: null,
+        [Op.lte]: thirtyDaysLater 
+      },
       quantity: { [Op.gt]: 0 },
     };
     if (!isAdmin && branchId) batchWhere.branchId = branchId;

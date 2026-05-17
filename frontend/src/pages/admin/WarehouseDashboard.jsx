@@ -201,38 +201,41 @@ function ExpiringAlerts({ items, loading }) {
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
       <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
         <FiClock className="text-amber-500" />
-        Hàng sắp tẩu hỏa (Hết hạn trong 30 ngày)
+        Hàng sắp tẩu hỏa / Đã quá hạn
       </h3>
 
       {items && items.length > 0 ? (
         <div className="space-y-4">
-          {items.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-amber-50/50 border border-amber-100/50 hover:bg-amber-50 transition-all">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-white border border-amber-200 flex items-center justify-center overflow-hidden">
-                  {item.product?.image ? (
-                    <img src={item.product.image} alt={item.product?.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <FiBox className="text-amber-400" />
-                  )}
+            {items.map((item, idx) => {
+              const isExpired = new Date(item.expiryDate) < new Date();
+              const daysLeft = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+              return (
+              <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isExpired ? 'bg-rose-50/50 border-rose-200 hover:bg-rose-50' : 'bg-amber-50/50 border-amber-100/50 hover:bg-amber-50'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg bg-white border flex items-center justify-center overflow-hidden ${isExpired ? 'border-rose-200' : 'border-amber-200'}`}>
+                    {item.product?.image ? (
+                      <img src={item.product.image} alt={item.product?.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <FiBox className={isExpired ? 'text-rose-400' : 'text-amber-400'} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{item.product?.name}</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${isExpired ? 'text-rose-600' : 'text-amber-600'}`}>
+                      Lô: {item.batchNumber} • Còn {item.quantity} sản phẩm
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-800">{item.product?.name}</p>
-                  <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
-                    Lô: {item.batchNumber} • Còn {item.quantity} sản phẩm
+                <div className="text-right">
+                  <p className={`text-xs font-black bg-white px-3 py-1 rounded-full border inline-block ${isExpired ? 'text-rose-600 border-rose-200' : 'text-amber-500 border-amber-100'}`}>
+                    {isExpired ? 'ĐÃ HẾT HẠN: ' : 'HẠN SỬ DỤNG: '} {new Date(item.expiryDate).toLocaleDateString('vi-VN')}
+                  </p>
+                  <p className={`text-[10px] uppercase font-bold mt-1 ${isExpired ? 'text-rose-500' : 'text-gray-400'}`}>
+                    {isExpired ? 'CẦN XUẤT HỦY NGAY!' : `${daysLeft} ngày còn lại`}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-black text-rose-500 bg-white px-3 py-1 rounded-full border border-rose-100 inline-block">
-                  HẾT HẠN: {new Date(item.expiryDate).toLocaleDateString('vi-VN')}
-                </p>
-                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">
-                  {Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))} ngày còn lại
-                </p>
-              </div>
-            </div>
-          ))}
+            )})}
         </div>
       ) : (
         <div className="h-40 flex flex-col items-center justify-center text-center">
@@ -311,24 +314,6 @@ export default function WarehouseDashboard() {
         </div>
       </div>
 
-      {/* Footer Banner */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
-          <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
-            <FiCheckCircle size={32} className="text-green-400" />
-          </div>
-          <div>
-            <h4 className="text-lg font-bold">Hệ thống kho đang vận hành ổn định</h4>
-            <p className="text-gray-400 text-sm">Không có sự cố biến động bất thường trong 24 giờ qua.</p>
-          </div>
-        </div>
-        <div className="w-full md:w-auto flex justify-center">
-          <div className="flex items-center gap-2 text-xs font-mono bg-white/5 px-4 py-2 rounded-full border border-white/10">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            REAL-TIME WMS SYNC
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

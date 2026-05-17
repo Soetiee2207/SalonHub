@@ -83,6 +83,17 @@ export default function WarehouseInventoryDocs() {
     try {
       setSubmitting(true);
       if (type === 'import') {
+        if (formData.expiryDate) {
+          const selectedDate = new Date(formData.expiryDate);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (selectedDate <= today) {
+            toast.error('Hạn sử dụng phải lớn hơn ngày hiện tại');
+            setSubmitting(false);
+            return;
+          }
+        }
+
         await inventoryService.createImport({
           ...formData,
           purchasePrice: formData.price // Map Price field to purchasePrice

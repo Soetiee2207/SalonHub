@@ -302,19 +302,11 @@ const createAdjustment = async (req, res, next) => {
     const createdBy = req.user.id;
     const branchId = req.user.branchId;
 
-    if (productId === undefined || newStock === undefined) {
+    if (productId === undefined || (newStock === undefined && quantity === undefined)) {
       await t.rollback();
       return res.status(400).json({
         success: false,
-        message: 'productId và newStock là bắt buộc.',
-      });
-    }
-
-    if (parseInt(newStock) < 0) {
-      await t.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Tồn kho mới không được âm.',
+        message: 'productId và newStock (hoặc quantity) là bắt buộc.',
       });
     }
 
@@ -328,8 +320,8 @@ const createAdjustment = async (req, res, next) => {
     }
 
     const stockBefore = product.stock;
-    const stockAfter = parseInt(newStock);
-    const diff = Math.abs(stockAfter - stockBefore);
+    let stockAfter = newStock !== undefined ? parseInt(newStock) : stockBefore + parseInt(quantity);
+    const diff = stockAfter - stockBefore; // Âm là xuất/hủy, Dương là nhập thêm
 
     if (diff === 0) {
       await t.rollback();
@@ -339,13 +331,81 @@ const createAdjustment = async (req, res, next) => {
       });
     }
 
+    if (stockAfter < 0) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Tồn kho không đủ để xuất hủy.',
+      });
+    }
+
     await product.update({ stock: stockAfter }, { transaction: t });
+
+    let calculatedPrice = price || null;
+
+    // Nếu là xuất/hủy (diff < 0), cần trừ số lượng vào ProductBatch và tính giá vốn
+    if (diff < 0) {
+      let remainingToDeduct = Math.abs(diff);
+      let totalValueDeducted = 0;
+      let itemsDeductedWithPrice = 0;
+
+      // Ưu tiên trừ những lô hàng hết hạn trước, sau đó trừ theo thứ tự FIFO
+      const batches = await db.ProductBatch.findAll({
+        where: { productId, branchId: branchId || { [Op.or]: [null, branchId] }, quantity: { [Op.gt]: 0 } },
+        order: [
+          // Nếu có expiryDate nhỏ hơn hiện tại thì ưu tiên lên đầu
+          [sequelize.fn('ISNULL', sequelize.col('expiryDate')), 'ASC'],
+          ['expiryDate', 'ASC'],
+          ['createdAt', 'ASC']
+        ],
+        transaction: t,
+      });
+
+      for (const batch of batches) {
+        if (remainingToDeduct <= 0) break;
+        const deduct = Math.min(remainingToDeduct, batch.quantity);
+        await batch.update({ quantity: batch.quantity - deduct }, { transaction: t });
+        remainingToDeduct -= deduct;
+
+        if (batch.purchasePrice) {
+          totalValueDeducted += deduct * parseFloat(batch.purchasePrice);
+          itemsDeductedWithPrice += deduct;
+        }
+      }
+
+      // Tự động lấy giá vốn trung bình của các lô bị trừ
+      if (!price && itemsDeductedWithPrice > 0) {
+        calculatedPrice = totalValueDeducted / itemsDeductedWithPrice;
+      }
+    } else {
+      // Nếu là điều chỉnh tăng (diff > 0), tạo một lô hàng mới để chứa số lượng này
+      // Lấy giá vốn của lô gần nhất làm tham chiếu nếu không có price truyền vào
+      if (!price) {
+        const lastBatch = await db.ProductBatch.findOne({
+          where: { productId, branchId: branchId || { [Op.or]: [null, branchId] } },
+          order: [['createdAt', 'DESC']],
+          transaction: t
+        });
+        if (lastBatch && lastBatch.purchasePrice) {
+          calculatedPrice = lastBatch.purchasePrice;
+        }
+      }
+
+      await db.ProductBatch.create({
+        productId,
+        batchNumber: `ADJ-${Date.now()}`,
+        quantity: diff,
+        purchasePrice: calculatedPrice,
+        branchId: branchId || null,
+        note: 'Lô hàng được tạo từ điều chỉnh tăng'
+      }, { transaction: t });
+    }
 
     const transaction = await InventoryTransaction.create({
       productId,
       type: 'adjust',
-      quantity: diff || Math.abs(quantity),
-      price: price || null,
+      quantity: Math.abs(diff),
+      price: calculatedPrice,
       stockBefore,
       stockAfter,
       note: note || `Điều chỉnh kiểm kê: ${stockBefore} → ${stockAfter}`,

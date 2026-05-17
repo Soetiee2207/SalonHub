@@ -216,18 +216,20 @@ export default function WarehouseInventoryDocs() {
             </div>
 
             {/* Price (Purchase for import, Reference for others) */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">
-                {isImport ? 'Giá nhập thực tế (VNĐ)' : 'Giá vốn tham chiếu'}
-              </label>
-              <input 
-                type="number"
-                className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-indigo-500 focus:outline-none transition-all"
-                placeholder="VD: 150000"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              />
-            </div>
+            {!isDamage && (
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">
+                  {isImport ? 'Giá nhập thực tế (VNĐ)' : 'Giá vốn tham chiếu'}
+                </label>
+                <input 
+                  type="number"
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-100 focus:border-indigo-500 focus:outline-none transition-all"
+                  placeholder="VD: 150000"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+              </div>
+            )}
 
             {/* Batch Info (Import Only) */}
             {isImport && (

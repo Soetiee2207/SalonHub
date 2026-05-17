@@ -65,7 +65,7 @@ router.post(
 
 router.post(
   '/adjust',
-  authorize('admin'),
+  authorize('admin', 'warehouse_staff'),
   createAdjustment
 );
 

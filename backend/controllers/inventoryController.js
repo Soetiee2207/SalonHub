@@ -810,7 +810,7 @@ const createDamageBatch = async (req, res, next) => {
         stockBefore: branchStockBefore,
         stockAfter: branchStockAfter,
         note: note || `[XUẤT HỦY LÔ] Hủy lô #${batch.batchNumber} (${qtyToRemove} sản phẩm)`,
-        referenceType: 'damage',
+        referenceType: 'manual',
         referenceId: batch.id,
         createdBy,
         branchId: batch.branchId,

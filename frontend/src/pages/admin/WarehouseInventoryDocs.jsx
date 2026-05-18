@@ -225,6 +225,17 @@ export default function WarehouseInventoryDocs() {
         </div>
 
         <div className="p-6 space-y-6">
+          {(expiredBatches.length > 0 || expiringBatches.length > 0) && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-500">Tổng: <span className="font-bold">{expiredBatches.length + expiringBatches.length}</span> lô cần xử lý</p>
+              <button onClick={() => {
+                const allIds = [...expiredBatches, ...expiringBatches].map(b => b.id);
+                setSelectedBatchIds(prev => prev.length === allIds.length ? [] : allIds);
+              }} className="px-4 py-2 text-xs font-bold uppercase tracking-wider border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 transition-all bg-white cursor-pointer">
+                {selectedBatchIds.length === (expiredBatches.length + expiringBatches.length) ? '☑ Bỏ chọn tất cả' : '☐ Chọn tất cả'}
+              </button>
+            </div>
+          )}
           {expiredBatches.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">

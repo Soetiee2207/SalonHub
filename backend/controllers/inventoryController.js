@@ -351,7 +351,7 @@ const createAdjustment = async (req, res, next) => {
 
       // Ưu tiên trừ những lô hàng hết hạn trước, sau đó trừ theo thứ tự FIFO
       const batches = await db.ProductBatch.findAll({
-        where: { productId, branchId: branchId || { [Op.or]: [null, branchId] }, quantity: { [Op.gt]: 0 } },
+        where: { productId, branchId: { [Op.or]: [branchId || null, null] }, quantity: { [Op.gt]: 0 } },
         order: [
           // Nếu có expiryDate nhỏ hơn hiện tại thì ưu tiên lên đầu
           [sequelize.fn('ISNULL', sequelize.col('expiryDate')), 'ASC'],
@@ -382,7 +382,7 @@ const createAdjustment = async (req, res, next) => {
       // Lấy giá vốn của lô gần nhất làm tham chiếu nếu không có price truyền vào
       if (!price) {
         const lastBatch = await db.ProductBatch.findOne({
-          where: { productId, branchId: branchId || { [Op.or]: [null, branchId] } },
+          where: { productId, branchId: { [Op.or]: [branchId || null, null] } },
           order: [['createdAt', 'DESC']],
           transaction: t
         });
@@ -595,15 +595,15 @@ const getWarehouseStats = async (req, res, next) => {
         },
       });
     } else {
-      const [results] = await sequelize.query(`
-        SELECT COUNT(DISTINCT pb.productId) as cnt 
+      const results = await sequelize.query(`
+        SELECT pb.productId 
         FROM product_batches pb 
         JOIN products p ON pb.productId = p.id 
         WHERE pb.branchId = :branchId AND p.isActive = 1
-        GROUP BY pb.productId 
+        GROUP BY pb.productId, p.minStock
         HAVING SUM(pb.quantity) <= COALESCE(p.minStock, 5)
       `, { replacements: { branchId }, type: sequelize.QueryTypes.SELECT });
-      lowStockCount = results?.cnt || 0;
+      lowStockCount = results.length;
     }
 
     const thirtyDaysLater = new Date();

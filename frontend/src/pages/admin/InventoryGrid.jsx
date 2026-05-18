@@ -124,9 +124,20 @@ export default function InventoryGrid() {
                [1, 2, 3].map(i => <tr key={i} className="animate-pulse"><td colSpan="6" className="px-6 py-10 bg-gray-50/50"/></tr>)
             ) : filteredProducts.length === 0 ? (
               <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400">Không tìm thấy vật phẩm nào</td></tr>
-            ) : filteredProducts.map(p => (
+            ) : filteredProducts.map(p => {
+              const hasExpired = p.batches && p.batches.some(b => getExpiryStatus(b.expiryDate) === 'expired');
+              const hasExpiring = p.batches && p.batches.some(b => getExpiryStatus(b.expiryDate) === 'expiring');
+              return (
               <React.Fragment key={p.id}>
-                <tr className={`hover:bg-gray-50 transition-colors ${expandedId === p.id ? 'bg-gray-50' : ''}`}>
+                <tr className={`hover:bg-gray-50 transition-colors ${
+                  hasExpired 
+                    ? 'bg-rose-50/70 hover:bg-rose-100/50' 
+                    : hasExpiring 
+                      ? 'bg-amber-50/50 hover:bg-amber-100/40' 
+                      : expandedId === p.id 
+                        ? 'bg-gray-50' 
+                        : ''
+                }`}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       {p.image ? (
@@ -137,7 +148,19 @@ export default function InventoryGrid() {
                         </div>
                       )}
                       <div>
-                        <p className="font-bold text-gray-800">{p.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-gray-800">{p.name}</p>
+                          {hasExpired && (
+                            <span className="px-1.5 py-0.5 bg-rose-500 text-white text-[8px] font-black uppercase rounded animate-pulse">
+                              Có lô hết hạn
+                            </span>
+                          )}
+                          {!hasExpired && hasExpiring && (
+                            <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] font-black uppercase rounded">
+                              Sắp hết hạn
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-gray-400 uppercase font-mono">{p.sku || `SKU-${p.id}`}</p>
                       </div>
                     </div>
@@ -309,7 +332,8 @@ export default function InventoryGrid() {
                   </tr>
                 )}
               </React.Fragment>
-            ))}
+            );
+          })}
           </tbody>
         </table>
       </div>

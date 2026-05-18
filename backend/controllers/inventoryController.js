@@ -616,7 +616,9 @@ const getWarehouseStats = async (req, res, next) => {
       },
       quantity: { [Op.gt]: 0 },
     };
-    if (!isAdmin && branchId) batchWhere.branchId = branchId;
+    if (!isAdmin && branchId) {
+      batchWhere.branchId = { [Op.or]: [branchId, null] };
+    }
 
     const expiringSoonCount = await ProductBatch.count({ where: batchWhere });
 
@@ -641,7 +643,9 @@ const getWarehouseStats = async (req, res, next) => {
       });
     } else {
       const branchSum = await ProductBatch.findAll({
-        where: { branchId },
+        where: { 
+          branchId: { [Op.or]: [branchId, null] } 
+        },
         attributes: [
           [sequelize.fn('SUM', sequelize.col('quantity')), 'totalPhysical'],
         ],

@@ -22,6 +22,8 @@ export default function WarehouseInventoryDocs() {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedBatchIds, setSelectedBatchIds] = useState([]);
+  const [damageNote, setDamageNote] = useState('');
   
   const [formData, setFormData] = useState({
     productId: '',
@@ -104,7 +106,6 @@ export default function WarehouseInventoryDocs() {
       toast.error('Vui lòng nhập sản phẩm và số lượng');
       return;
     }
-
     try {
       setSubmitting(true);
       if (type === 'import') {
@@ -118,29 +119,15 @@ export default function WarehouseInventoryDocs() {
             return;
           }
         }
-
-        await inventoryService.createImport({
-          ...formData,
-          purchasePrice: formData.price // Map Price field to purchasePrice
-        });
+        await inventoryService.createImport({ ...formData, purchasePrice: formData.price });
         toast.success('Lập phiếu nhập kho thành công!');
       } else if (type === 'export_offline') {
         await inventoryService.createExport({
-          productId: formData.productId,
-          quantity: formData.quantity,
-          price: formData.price,
-          note: `[XUẤT OFFLINE] ${formData.note || 'Không có ghi chú'}`
+          productId: formData.productId, quantity: formData.quantity,
+          price: formData.price, note: `[XUẤT OFFLINE] ${formData.note || 'Không có ghi chú'}`
         });
         toast.success('Lập phiếu xuất kho offline thành công!');
-      } else if (type === 'damage') {
-        await inventoryService.createAdjustment({
-          productId: formData.productId,
-          quantity: -Math.abs(formData.quantity), // Adjustment is negative for damage
-          note: `[XUẤT HỦY/HỎNG] ${formData.note || 'Hàng hỏng/hết hạn'}`
-        });
-        toast.success('Báo cáo xuất hủy thành công!');
       }
-      
       setActiveTab('history');
       resetForm();
       fetchData();
@@ -149,6 +136,152 @@ export default function WarehouseInventoryDocs() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDamageBatch = async () => {
+    if (selectedBatchIds.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một lô hàng để xuất hủy');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const res = await inventoryService.damageBatch({ batchIds: selectedBatchIds, note: damageNote || 'Hàng hỏng/hết hạn' });
+      toast.success(res.data?.message || res.message || 'Xuất hủy lô hàng thành công!');
+      setSelectedBatchIds([]);
+      setDamageNote('');
+      setActiveTab('history');
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Xuất hủy thất bại');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getExpiryStatus = (date) => {
+    if (!date) return 'none';
+    const diffDays = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return 'expired';
+    if (diffDays <= 30) return 'expiring';
+    return 'safe';
+  };
+
+  const renderDamageTab = () => {
+    // Collect all batches from all products, filtered by branch
+    const allBatches = [];
+    products.forEach(p => {
+      (p.batches || []).forEach(b => {
+        const matchBranch = isAdmin || b.branchId === branchId;
+        if (matchBranch && b.quantity > 0) {
+          allBatches.push({ ...b, productName: p.name, productImage: p.image });
+        }
+      });
+    });
+
+    const expiredBatches = allBatches.filter(b => getExpiryStatus(b.expiryDate) === 'expired');
+    const expiringBatches = allBatches.filter(b => getExpiryStatus(b.expiryDate) === 'expiring');
+    const toggleBatch = (id) => {
+      setSelectedBatchIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const renderBatchCard = (b, isExpired) => (
+      <div key={b.id} onClick={() => toggleBatch(b.id)}
+        className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-4 ${
+          selectedBatchIds.includes(b.id) ? 'border-red-500 bg-red-50 shadow-md' : 'border-gray-100 bg-white hover:border-red-200 hover:shadow-sm'
+        }`}>
+        <input type="checkbox" checked={selectedBatchIds.includes(b.id)} readOnly
+          className="w-5 h-5 rounded accent-red-600 pointer-events-none" />
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-slate-800 text-sm truncate">{b.productName}</p>
+          <p className="text-[10px] text-slate-400 font-mono">Lô: #{b.batchNumber}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <FiAlertTriangle className={isExpired ? 'text-rose-500' : 'text-amber-500'} size={12} />
+            <span className={`text-xs font-bold ${isExpired ? 'text-rose-600' : 'text-amber-600'}`}>
+              {b.expiryDate ? `HSD: ${new Date(b.expiryDate).toLocaleDateString('vi-VN')}` : 'Không rõ'}
+            </span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
+              isExpired ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+            }`}>{isExpired ? 'ĐÃ HẾT HẠN' : 'SẮP HẾT HẠN'}</span>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-xl font-black text-slate-900 font-mono">{b.quantity}</p>
+          <p className="text-[8px] font-bold text-slate-400 uppercase">Số lượng</p>
+        </div>
+      </div>
+    );
+
+    const totalSelected = allBatches.filter(b => selectedBatchIds.includes(b.id)).reduce((s, b) => s + b.quantity, 0);
+
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden max-w-4xl mx-auto">
+        <div className="p-6 text-white bg-red-600 flex justify-between items-center">
+          <h2 className="text-xl font-bold flex items-center gap-2 uppercase tracking-tight">
+            <FiAlertTriangle /> Xuất Hủy Theo Lô Hàng
+          </h2>
+          <button onClick={() => setActiveTab('history')} className="text-white/80 hover:text-white border-0 bg-transparent cursor-pointer">
+            <FiX size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {expiredBatches.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
+                <h3 className="text-xs font-black text-rose-600 uppercase tracking-widest">Lô hàng đã hết hạn ({expiredBatches.length})</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {expiredBatches.map(b => renderBatchCard(b, true))}
+              </div>
+            </div>
+          )}
+
+          {expiringBatches.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest">Lô hàng sắp hết hạn ({expiringBatches.length})</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {expiringBatches.map(b => renderBatchCard(b, false))}
+              </div>
+            </div>
+          )}
+
+          {expiredBatches.length === 0 && expiringBatches.length === 0 && (
+            <div className="text-center py-16 text-slate-400">
+              <FiCheck size={48} className="mx-auto mb-4 text-green-400" />
+              <p className="font-bold text-lg text-slate-600">Không có lô hàng nào hết hạn hoặc sắp hết hạn</p>
+              <p className="text-sm mt-1">Kho hàng của bạn đang an toàn!</p>
+            </div>
+          )}
+
+          {(expiredBatches.length > 0 || expiringBatches.length > 0) && (
+            <div className="border-t pt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Lý do xuất hủy (tùy chọn)</label>
+                <textarea className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-red-500 focus:outline-none h-20 resize-none"
+                  placeholder="VD: Hàng hết hạn sử dụng, không đảm bảo chất lượng..."
+                  value={damageNote} onChange={e => setDamageNote(e.target.value)} />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-500">
+                  Đã chọn: <span className="font-black text-red-600">{selectedBatchIds.length} lô</span> — Tổng hủy: <span className="font-black text-red-600">{totalSelected} sản phẩm</span>
+                </p>
+                <button onClick={handleDamageBatch} disabled={submitting || selectedBatchIds.length === 0}
+                  className={`px-8 py-3.5 text-white rounded-2xl font-bold shadow-lg transition-all border-0 cursor-pointer flex items-center gap-2 bg-red-600 ${
+                    submitting || selectedBatchIds.length === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-red-700 active:scale-[0.98]'
+                  }`}>
+                  {submitting ? <FiRefreshCcw className="animate-spin" /> : <FiAlertTriangle />}
+                  XÁC NHẬN XUẤT HỦY
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const renderForm = (type) => {
@@ -352,7 +485,7 @@ export default function WarehouseInventoryDocs() {
             <FiArrowUp /> Xuất Offline
           </button>
           <button 
-            onClick={() => { setActiveTab('damage'); resetForm(); }}
+            onClick={() => { setActiveTab('damage'); resetForm(); setSelectedBatchIds([]); setDamageNote(''); }}
             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all border-0 cursor-pointer ${
               activeTab === 'damage' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-slate-500 hover:bg-white hover:shadow-sm'
             }`}
@@ -439,6 +572,8 @@ export default function WarehouseInventoryDocs() {
             </table>
           </div>
         </div>
+      ) : activeTab === 'damage' ? (
+        renderDamageTab()
       ) : (
         renderForm(activeTab)
       )}

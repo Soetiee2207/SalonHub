@@ -10,6 +10,7 @@ const {
   getWarehouseStats,
   updateBatchLocation,
   normalizeProductBatches,
+  createDamageBatch,
 } = require('../controllers/inventoryController');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -67,6 +68,12 @@ router.post(
   '/adjust',
   authorize('admin', 'warehouse_staff'),
   createAdjustment
+);
+
+router.post(
+  '/damage-batch',
+  authorize('admin', 'warehouse_staff'),
+  createDamageBatch
 );
 
 module.exports = router;

@@ -736,6 +736,130 @@ const normalizeProductBatches = async (req, res, next) => {
   }
 };
 
+// Xuất hủy theo lô hàng (batch-based damage write-off)
+const createDamageBatch = async (req, res, next) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const { batchIds, note } = req.body;
+    const createdBy = req.user.id;
+    const targetBranchId = req.user.role === 'admin' ? null : req.user.branchId;
+
+    if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn ít nhất một lô hàng để xuất hủy.',
+      });
+    }
+
+    const batches = await db.ProductBatch.findAll({
+      where: { id: batchIds },
+      include: [{ model: Product, as: 'product' }],
+      transaction: t,
+    });
+
+    if (batches.length === 0) {
+      await t.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy các lô hàng đã chọn.',
+      });
+    }
+
+    // Kiểm tra quyền chi nhánh: nhân viên kho chỉ được hủy lô của chi nhánh mình
+    if (req.user.role !== 'admin') {
+      const unauthorized = batches.find(b => b.branchId !== targetBranchId);
+      if (unauthorized) {
+        await t.rollback();
+        return res.status(403).json({
+          success: false,
+          message: `Bạn không có quyền xuất hủy lô hàng #${unauthorized.batchNumber} (thuộc chi nhánh khác).`,
+        });
+      }
+    }
+
+    const results = [];
+    let totalDamaged = 0;
+
+    for (const batch of batches) {
+      if (batch.quantity <= 0) continue; // Skip already empty batches
+
+      const qtyToRemove = batch.quantity;
+      const product = batch.product;
+
+      // Tính giá vốn lô
+      const costPrice = batch.purchasePrice ? parseFloat(batch.purchasePrice) : null;
+
+      // Tính tồn kho chi nhánh trước khi hủy
+      const branchStockBefore = await getBranchStock(batch.productId, batch.branchId, t);
+      const branchStockAfter = branchStockBefore - qtyToRemove;
+
+      // Trừ quantity của lô về 0
+      await batch.update({ quantity: 0 }, { transaction: t });
+
+      // Trừ product.stock tổng
+      await product.update({ stock: Math.max(0, product.stock - qtyToRemove) }, { transaction: t });
+
+      // Ghi nhận giao dịch kho
+      const txn = await InventoryTransaction.create({
+        productId: batch.productId,
+        type: 'adjust',
+        quantity: qtyToRemove,
+        price: costPrice,
+        stockBefore: branchStockBefore,
+        stockAfter: branchStockAfter,
+        note: note || `[XUẤT HỦY LÔ] Hủy lô #${batch.batchNumber} (${qtyToRemove} sản phẩm)`,
+        referenceType: 'damage',
+        referenceId: batch.id,
+        createdBy,
+        branchId: batch.branchId,
+      }, { transaction: t });
+
+      results.push({
+        batchId: batch.id,
+        batchNumber: batch.batchNumber,
+        productName: product.name,
+        quantityDestroyed: qtyToRemove,
+        costPrice,
+        transactionId: txn.id,
+      });
+
+      totalDamaged += qtyToRemove;
+
+      // Cảnh báo tồn kho thấp sau hủy
+      if (branchStockAfter <= (product.minStock || 5)) {
+        if (batch.branchId) {
+          await createBranchRoleNotification('warehouse_staff', batch.branchId, {
+            title: 'Cảnh báo: Tồn kho thấp sau xuất hủy!',
+            message: `Sản phẩm "${product.name}" tại chi nhánh chỉ còn ${branchStockAfter} sau khi hủy lô #${batch.batchNumber}.`,
+            type: 'inventory',
+          });
+        }
+      }
+    }
+
+    if (totalDamaged === 0) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Các lô hàng đã chọn đều đã hết hàng (quantity = 0).',
+      });
+    }
+
+    await t.commit();
+
+    return res.status(201).json({
+      success: true,
+      message: `Xuất hủy thành công ${results.length} lô hàng (Tổng: ${totalDamaged} sản phẩm).`,
+      data: results,
+    });
+  } catch (error) {
+    await t.rollback();
+    next(error);
+  }
+};
+
 module.exports = {
   getTransactions,
   createImport,
@@ -746,5 +870,6 @@ module.exports = {
   getWarehouseStats,
   updateBatchLocation,
   normalizeProductBatches,
-  getBranchStock
+  getBranchStock,
+  createDamageBatch
 };

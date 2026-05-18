@@ -9,8 +9,13 @@ import { productService } from '../../services/productService';
 import { branchService } from '../../services/branchService';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function WarehouseInventoryDocs() {
+  const { user } = useAuth();
+  const branchId = user?.branchId;
+  const isAdmin = user?.role === 'admin';
+
   const [activeTab, setActiveTab] = useState('history'); // 'history', 'import', 'export_offline', 'damage'
   const [transactions, setTransactions] = useState([]);
   const [products, setProducts] = useState([]);
@@ -188,9 +193,14 @@ export default function WarehouseInventoryDocs() {
                   onChange={handleProductChange}
                 >
                   <option value="">-- Chọn sản phẩm --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (Hiện có: {p.stock})</option>
-                  ))}
+                  {products.map(p => {
+                    const displayStock = isAdmin ? p.stock : (p.batches ? p.batches.filter(b => b.branchId === branchId).reduce((sum, b) => sum + b.quantity, 0) : 0);
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {p.name} (Hiện có: {displayStock})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>

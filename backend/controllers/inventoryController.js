@@ -319,7 +319,16 @@ const createAdjustment = async (req, res, next) => {
       });
     }
 
-    const stockBefore = product.stock;
+    // Nhân viên kho nào chỉ được điều chỉnh/xuất hủy kho đó. Admin quản lý Kho Tổng (branchId = null).
+    const targetBranchId = req.user.role === 'admin' ? null : req.user.branchId;
+
+    // Tính tồn kho hiện tại của chi nhánh từ ProductBatch
+    const branchStock = await db.ProductBatch.sum('quantity', {
+      where: { productId, branchId: targetBranchId },
+      transaction: t
+    }) || 0;
+
+    const stockBefore = branchStock;
     let stockAfter = newStock !== undefined ? parseInt(newStock) : stockBefore + parseInt(quantity);
     const diff = stockAfter - stockBefore; // Âm là xuất/hủy, Dương là nhập thêm
 
@@ -335,25 +344,25 @@ const createAdjustment = async (req, res, next) => {
       await t.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Tồn kho không đủ để xuất hủy.',
+        message: `Tồn kho chi nhánh không đủ để xuất hủy. Hiện có: ${branchStock}.`,
       });
     }
 
-    await product.update({ stock: stockAfter }, { transaction: t });
+    // Cập nhật tồn kho tổng của Product (cộng/trừ lượng biến động diff)
+    await product.update({ stock: product.stock + diff }, { transaction: t });
 
     let calculatedPrice = price || null;
 
-    // Nếu là xuất/hủy (diff < 0), cần trừ số lượng vào ProductBatch và tính giá vốn
+    // Nếu là xuất/hủy (diff < 0), cần trừ số lượng vào ProductBatch của chi nhánh và tính giá vốn
     if (diff < 0) {
       let remainingToDeduct = Math.abs(diff);
       let totalValueDeducted = 0;
       let itemsDeductedWithPrice = 0;
 
-      // Ưu tiên trừ những lô hàng hết hạn trước, sau đó trừ theo thứ tự FIFO
+      // Ưu tiên trừ những lô hàng hết hạn trước, sau đó trừ theo thứ tự FIFO của CHI NHÁNH
       const batches = await db.ProductBatch.findAll({
-        where: { productId, branchId: { [Op.or]: [branchId || null, null] }, quantity: { [Op.gt]: 0 } },
+        where: { productId, branchId: targetBranchId, quantity: { [Op.gt]: 0 } },
         order: [
-          // Nếu có expiryDate nhỏ hơn hiện tại thì ưu tiên lên đầu
           [sequelize.fn('ISNULL', sequelize.col('expiryDate')), 'ASC'],
           ['expiryDate', 'ASC'],
           ['createdAt', 'ASC']
@@ -378,11 +387,11 @@ const createAdjustment = async (req, res, next) => {
         calculatedPrice = totalValueDeducted / itemsDeductedWithPrice;
       }
     } else {
-      // Nếu là điều chỉnh tăng (diff > 0), tạo một lô hàng mới để chứa số lượng này
-      // Lấy giá vốn của lô gần nhất làm tham chiếu nếu không có price truyền vào
+      // Nếu là điều chỉnh tăng (diff > 0), tạo một lô hàng mới cho chi nhánh
+      // Lấy giá vốn của lô gần nhất của chi nhánh làm tham chiếu nếu không có price truyền vào
       if (!price) {
         const lastBatch = await db.ProductBatch.findOne({
-          where: { productId, branchId: { [Op.or]: [branchId || null, null] } },
+          where: { productId, branchId: targetBranchId },
           order: [['createdAt', 'DESC']],
           transaction: t
         });
@@ -396,7 +405,7 @@ const createAdjustment = async (req, res, next) => {
         batchNumber: `ADJ-${Date.now()}`,
         quantity: diff,
         purchasePrice: calculatedPrice,
-        branchId: branchId || null,
+        branchId: targetBranchId,
         note: 'Lô hàng được tạo từ điều chỉnh tăng'
       }, { transaction: t });
     }
@@ -408,24 +417,24 @@ const createAdjustment = async (req, res, next) => {
       price: calculatedPrice,
       stockBefore,
       stockAfter,
-      note: note || `Điều chỉnh kiểm kê: ${stockBefore} → ${stockAfter}`,
+      note: note || `Điều chỉnh kiểm kê chi nhánh: ${stockBefore} → ${stockAfter}`,
       referenceType: 'manual',
       referenceId: null,
       createdBy,
-      branchId,
+      branchId: targetBranchId,
     }, { transaction: t });
 
     if (stockAfter <= (product.minStock || 5)) {
-      if (branchId) {
-        await createBranchRoleNotification('warehouse_staff', branchId, {
-          title: 'Cảnh báo: Tồn kho thấp!',
-          message: `Sản phẩm "${product.name}" sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+      if (targetBranchId) {
+        await createBranchRoleNotification('warehouse_staff', targetBranchId, {
+          title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
+          message: `Sản phẩm "${product.name}" tại chi nhánh sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
           type: 'inventory',
         });
       } else {
         await createNotification({
-          title: 'Cảnh báo: Tồn kho thấp!',
-          message: `Sản phẩm "${product.name}" sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+          title: 'Cảnh báo: Tồn kho tổng thấp!',
+          message: `Sản phẩm "${product.name}" tại kho tổng sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
           type: 'inventory',
         });
       }
@@ -442,7 +451,7 @@ const createAdjustment = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: `Điều chỉnh tồn kho thành công. ${stockBefore} → ${stockAfter}`,
+      message: `Điều chỉnh tồn kho chi nhánh thành công. ${stockBefore} → ${stockAfter}`,
       data: result,
     });
   } catch (error) {
@@ -617,7 +626,7 @@ const getWarehouseStats = async (req, res, next) => {
       quantity: { [Op.gt]: 0 },
     };
     if (!isAdmin && branchId) {
-      batchWhere.branchId = { [Op.or]: [branchId, null] };
+      batchWhere.branchId = branchId;
     }
 
     const expiringSoonCount = await ProductBatch.count({ where: batchWhere });
@@ -643,9 +652,7 @@ const getWarehouseStats = async (req, res, next) => {
       });
     } else {
       const branchSum = await ProductBatch.findAll({
-        where: { 
-          branchId: { [Op.or]: [branchId, null] } 
-        },
+        where: { branchId },
         attributes: [
           [sequelize.fn('SUM', sequelize.col('quantity')), 'totalPhysical'],
         ],

@@ -9,8 +9,13 @@ import { inventoryService } from '../../services/inventoryService';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function InventoryGrid() {
+  const { user } = useAuth();
+  const branchId = user?.branchId;
+  const isAdmin = user?.role === 'admin';
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -125,8 +130,12 @@ export default function InventoryGrid() {
             ) : filteredProducts.length === 0 ? (
               <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400">Không tìm thấy vật phẩm nào</td></tr>
             ) : filteredProducts.map(p => {
-              const hasExpired = p.batches && p.batches.some(b => getExpiryStatus(b.expiryDate) === 'expired');
-              const hasExpiring = p.batches && p.batches.some(b => getExpiryStatus(b.expiryDate) === 'expiring');
+              const displayedBatches = isAdmin ? (p.batches || []) : (p.batches || []).filter(b => b.branchId === branchId);
+              const hasExpired = displayedBatches.some(b => getExpiryStatus(b.expiryDate) === 'expired');
+              const hasExpiring = displayedBatches.some(b => getExpiryStatus(b.expiryDate) === 'expiring');
+              const displayStock = isAdmin ? p.stock : displayedBatches.reduce((sum, b) => sum + b.quantity, 0);
+              const displayAvailable = displayStock - (p.reservedStock || 0);
+
               return (
               <React.Fragment key={p.id}>
                 <tr className={`hover:bg-gray-50 transition-colors ${
@@ -166,18 +175,18 @@ export default function InventoryGrid() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center font-bold text-gray-700">
-                    {p.stock}
+                    {displayStock}
                   </td>
                   <td className="px-6 py-4 text-center font-bold text-blue-600">
                     {p.reservedStock || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`px-3 py-1 rounded-full font-bold ${
-                      (p.stock - (p.reservedStock || 0)) <= (p.minStock || 5) 
+                      displayAvailable <= (p.minStock || 5) 
                         ? 'bg-red-100 text-red-600' 
                         : 'bg-green-100 text-green-600'
                     }`}>
-                      {p.stock - (p.reservedStock || 0)}
+                      {displayAvailable}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -208,7 +217,7 @@ export default function InventoryGrid() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {(() => {
                             const branchStock = {};
-                            p.batches?.forEach(b => {
+                            displayedBatches.forEach(b => {
                               const loc = b.warehouseLocation || 'Chưa định vị';
                               branchStock[loc] = (branchStock[loc] || 0) + b.quantity;
                             });
@@ -237,9 +246,9 @@ export default function InventoryGrid() {
                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Danh sách các lô hàng & Hạn sử dụng chi tiết</h4>
                       </div>
 
-                      {p.batches && p.batches.length > 0 ? (
+                      {displayedBatches.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {p.batches.map(batch => (
+                          {displayedBatches.map(batch => (
                             <div key={batch.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex justify-between items-start group">
                               <div className="space-y-3">
                                 <div>
@@ -314,11 +323,11 @@ export default function InventoryGrid() {
                            </div>
                            <h5 className="text-sm font-black text-slate-800 uppercase tracking-tight">Vật phẩm chưa có lô hàng chi tiết</h5>
                            <p className="text-xs text-slate-400 mt-1 max-w-xs text-center font-medium">
-                              {p.stock > 0 
-                                ? `CẢNH BÁO: Tồn kho thực tế đang ghi nhận ${p.stock} đơn vị nhưng chưa gán lô chi tiết. Vui lòng thực hiện kiểm kê hoặc tạo lô mặc định.` 
+                              {displayStock > 0 
+                                ? `CẢNH BÁO: Tồn kho thực tế đang ghi nhận ${displayStock} đơn vị nhưng chưa gán lô chi tiết. Vui lòng thực hiện kiểm kê hoặc tạo lô mặc định.` 
                                 : "Sản phẩm hiện đang hết hàng. Vui lòng thực hiện nhập hàng PO để khởi tạo lô mới."}
                            </p>
-                           {p.stock > 0 && (
+                           {isAdmin && displayStock > 0 && (
                              <button 
                                onClick={() => handleNormalize(p.id)}
                                className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all border-0 cursor-pointer shadow-lg shadow-slate-200"

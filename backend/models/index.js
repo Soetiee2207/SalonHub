@@ -12,11 +12,18 @@ if (process.env.DATABASE_URL) {
         require: true,
         rejectUnauthorized: true 
       },
-      charset: 'utf8mb4'
+      charset: 'utf8mb4',
+      connectTimeout: 10000,
     },
     define: {
       charset: 'utf8mb4',
       collate: 'utf8mb4_unicode_ci'
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
     },
     logging: false
   });

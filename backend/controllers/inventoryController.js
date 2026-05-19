@@ -805,6 +805,8 @@ const createDamageBatch = async (req, res, next) => {
       // Trừ quantity của lô về 0
       await batch.update({ quantity: 0 }, { transaction: t });
 
+      // Reload product để lấy stock mới nhất (trường hợp nhiều lô cùng 1 sản phẩm)
+      await product.reload({ transaction: t });
       // Trừ product.stock tổng
       await product.update({ stock: Math.max(0, product.stock - qtyToRemove) }, { transaction: t });
 

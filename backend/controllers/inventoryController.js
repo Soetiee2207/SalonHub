@@ -265,15 +265,19 @@ const createExport = async (req, res, next) => {
     }, { transaction: t });
 
     const newBranchStock = branchStock - parseInt(quantity);
-    if (newBranchStock <= (product.minStock || 5)) {
-      await createBranchRoleNotification('warehouse_staff', branchId, {
-        title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
-        message: `Sản phẩm "${product.name}" tại chi nhánh của bạn chỉ còn ${newBranchStock} đơn vị (Ngưỡng: ${product.minStock || 5}). Vui lòng nhập thêm hàng.`,
-        type: 'inventory',
-      });
-    }
 
     await t.commit();
+
+    // Notification SAU commit để tránh lock contention
+    if (newBranchStock <= (product.minStock || 5)) {
+      try {
+        await createBranchRoleNotification('warehouse_staff', branchId, {
+          title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
+          message: `Sản phẩm "${product.name}" tại chi nhánh của bạn chỉ còn ${newBranchStock} đơn vị (Ngưỡng: ${product.minStock || 5}). Vui lòng nhập thêm hàng.`,
+          type: 'inventory',
+        });
+      } catch (notifErr) { console.error('Notification error (export):', notifErr.message); }
+    }
 
     const result = await InventoryTransaction.findByPk(transaction.id, {
       include: [
@@ -424,23 +428,26 @@ const createAdjustment = async (req, res, next) => {
       branchId: targetBranchId,
     }, { transaction: t });
 
-    if (stockAfter <= (product.minStock || 5)) {
-      if (targetBranchId) {
-        await createBranchRoleNotification('warehouse_staff', targetBranchId, {
-          title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
-          message: `Sản phẩm "${product.name}" tại chi nhánh sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
-          type: 'inventory',
-        });
-      } else {
-        await createNotification({
-          title: 'Cảnh báo: Tồn kho tổng thấp!',
-          message: `Sản phẩm "${product.name}" tại kho tổng sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
-          type: 'inventory',
-        });
-      }
-    }
-
     await t.commit();
+
+    // Notification SAU commit để tránh lock contention
+    if (stockAfter <= (product.minStock || 5)) {
+      try {
+        if (targetBranchId) {
+          await createBranchRoleNotification('warehouse_staff', targetBranchId, {
+            title: 'Cảnh báo: Tồn kho chi nhánh thấp!',
+            message: `Sản phẩm "${product.name}" tại chi nhánh sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+            type: 'inventory',
+          });
+        } else {
+          await createNotification({
+            title: 'Cảnh báo: Tồn kho tổng thấp!',
+            message: `Sản phẩm "${product.name}" tại kho tổng sau điều chỉnh chỉ còn ${stockAfter} món (Ngưỡng: ${product.minStock || 5}).`,
+            type: 'inventory',
+          });
+        }
+      } catch (notifErr) { console.error('Notification error (adjust):', notifErr.message); }
+    }
 
     const result = await InventoryTransaction.findByPk(transaction.id, {
       include: [
@@ -827,16 +834,6 @@ const createDamageBatch = async (req, res, next) => {
 
       totalDamaged += qtyToRemove;
 
-      // Cảnh báo tồn kho thấp sau hủy
-      if (branchStockAfter <= (product.minStock || 5)) {
-        if (batch.branchId) {
-          await createBranchRoleNotification('warehouse_staff', batch.branchId, {
-            title: 'Cảnh báo: Tồn kho thấp sau xuất hủy!',
-            message: `Sản phẩm "${product.name}" tại chi nhánh chỉ còn ${branchStockAfter} sau khi hủy lô #${batch.batchNumber}.`,
-            type: 'inventory',
-          });
-        }
-      }
     }
 
     if (totalDamaged === 0) {
@@ -848,6 +845,23 @@ const createDamageBatch = async (req, res, next) => {
     }
 
     await t.commit();
+
+    // Notification SAU commit để tránh lock contention
+    for (const r of results) {
+      try {
+        const batch = batches.find(b => b.id === r.batchId);
+        if (batch && batch.branchId) {
+          const afterStock = await getBranchStock(batch.productId, batch.branchId);
+          if (afterStock <= (batch.product?.minStock || 5)) {
+            await createBranchRoleNotification('warehouse_staff', batch.branchId, {
+              title: 'Cảnh báo: Tồn kho thấp sau xuất hủy!',
+              message: `Sản phẩm "${r.productName}" chỉ còn ${afterStock} sau khi hủy lô #${r.batchNumber}.`,
+              type: 'inventory',
+            });
+          }
+        }
+      } catch (notifErr) { console.error('Notification error (damage):', notifErr.message); }
+    }
 
     return res.status(201).json({
       success: true,

@@ -8,6 +8,7 @@ import { productService } from '../../services/productService';
 import { orderService } from '../../services/orderService';
 import { inventoryService } from '../../services/inventoryService';
 import { formatPrice } from '../../utils/formatPrice';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* ========== 1. KPI CARDS: "NHÃN THUẬT" VIEW ========== */
 function WarehouseKPIs({ stats, loading }) {
@@ -251,6 +252,7 @@ function ExpiringAlerts({ items, loading }) {
 
 /* ========== MAIN DASHBOARD ========== */
 export default function WarehouseDashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     orders: { pending: 0, packing: 0, shipping: 0 },
     lowStockCount: 0,
@@ -287,7 +289,25 @@ export default function WarehouseDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 font-serif">Tổng đà thủ kho</h1>
-          <p className="text-sm text-gray-500 mt-1">Nghiệp vụ quan sát real-time tồn kho & vận tiêu</p>
+          <div className="flex flex-wrap items-center gap-3 mt-1">
+            <p className="text-sm text-gray-500">Nghiệp vụ quan sát real-time tồn kho & vận tiêu</p>
+            {user?.branch ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-[hsl(224,71%,95%)] text-[hsl(224,71%,45%)] border border-[hsl(224,71%,90%)] shadow-sm shadow-indigo-100/50 backdrop-blur-sm transition-all duration-300 hover:scale-105">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(224,71%,50%)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(224,71%,50%)]"></span>
+                </span>
+                KHO: {user.branch.name.toUpperCase()}
+              </span>
+            ) : user?.role === 'admin' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-slate-100 text-slate-700 border border-slate-200/60 shadow-sm transition-all duration-300 hover:scale-105">
+                <span className="relative flex h-2 w-2">
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                </span>
+                TOÀN HỆ THỐNG
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="flex">
           <button

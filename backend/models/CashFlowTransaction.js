@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    branchId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   }, {
     timestamps: true,
     tableName: 'cash_flow_transactions',

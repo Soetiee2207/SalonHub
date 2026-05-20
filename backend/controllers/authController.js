@@ -213,7 +213,7 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const includeOptions = [];
-    if (req.user.role === 'staff' || req.user.role === 'admin') {
+    if (req.user.role !== 'customer') {
       includeOptions.push({ model: db.Branch, as: 'branch' });
     }
     const user = await db.User.findByPk(req.user.id, {

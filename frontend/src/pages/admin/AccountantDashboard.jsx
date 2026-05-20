@@ -14,6 +14,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 /* ========== REUSABLE UI COMPONENTS ========== */
 const GlassCard = ({ children, className = "" }) => (
@@ -47,6 +48,7 @@ const MetricCard = ({ title, value, subValue, icon: Icon, color, trend }) => (
 
 export default function AccountantDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('month'); // 'month' | 'week'
@@ -112,7 +114,25 @@ export default function AccountantDashboard() {
             </div>
             Tổng đài Tài chính
           </h1>
-          <p className="text-slate-400 mt-2 font-medium">Theo dõi sức khỏe dòng tiền & Biên lợi nhuận thời gian thực</p>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <p className="text-slate-400 font-medium">Theo dõi sức khỏe dòng tiền & Biên lợi nhuận thời gian thực</p>
+            {user?.branch ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-[hsl(224,71%,95%)] text-[hsl(224,71%,45%)] border border-[hsl(224,71%,90%)] shadow-sm shadow-indigo-100/50 backdrop-blur-sm transition-all duration-300 hover:scale-105">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(224,71%,50%)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(224,71%,50%)]"></span>
+                </span>
+                CƠ SỞ: {user.branch.name.toUpperCase()}
+              </span>
+            ) : user?.role === 'admin' ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-slate-100 text-slate-700 border border-slate-200/60 shadow-sm transition-all duration-300 hover:scale-105">
+                <span className="relative flex h-2 w-2">
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+                </span>
+                TOÀN HỆ THỐNG
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 p-2 bg-white rounded-3xl border border-slate-100 shadow-sm">

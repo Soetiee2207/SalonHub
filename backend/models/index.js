@@ -160,6 +160,8 @@ Branch.hasMany(ProductBatch, { foreignKey: 'branchId', as: 'productBatches' });
 
 Payment.belongsTo(User, { as: 'reconciler', foreignKey: 'reconciledBy' });
 CashFlowTransaction.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
+CashFlowTransaction.belongsTo(Branch, { foreignKey: 'branchId', as: 'branch' });
+Branch.hasMany(CashFlowTransaction, { foreignKey: 'branchId', as: 'cashFlowTransactions' });
 RefundRequest.belongsTo(User, { as: 'processor', foreignKey: 'processedBy' });
 
 RefundRequest.belongsTo(Order, { foreignKey: 'targetId', constraints: false, as: 'order' });

@@ -21,7 +21,11 @@ const getFinancialStats = async (req, res, next) => {
     const { startDate, endDate } = req.query;
     const dateFilter = {};
     if (startDate && endDate) {
-      dateFilter.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.createdAt = { [Op.between]: [start, end] };
     }
 
     const isAdmin = req.user.role === 'admin';
@@ -66,16 +70,32 @@ const getFinancialStats = async (req, res, next) => {
       raw: true,
     });
 
+    const expenseWhere = { 
+      type: 'payment',
+      status: { [Op.in]: ['completed', 'pending'] },
+      ...dateFilter
+    };
+
+    if (!isAdmin && branchId) {
+      expenseWhere.branchId = branchId;
+    }
+
     const totalExpenses = await CashFlowTransaction.sum('amount', {
-      where: { 
-        type: 'payment',
-        status: { [Op.in]: ['completed', 'pending'] },
-        ...dateFilter
-      }
+      where: expenseWhere
     }) || 0;
 
+    const breakdownWhere = { 
+      type: 'payment', 
+      status: { [Op.in]: ['completed', 'pending'] }, 
+      ...dateFilter 
+    };
+
+    if (!isAdmin && branchId) {
+      breakdownWhere.branchId = branchId;
+    }
+
     const expensesBreakdownRaw = await CashFlowTransaction.findAll({
-      where: { type: 'payment', status: { [Op.in]: ['completed', 'pending'] }, ...dateFilter },
+      where: breakdownWhere,
       attributes: ['category', [sequelize.fn('SUM', sequelize.col('amount')), 'total']],
       group: ['category'],
       raw: true
@@ -95,12 +115,18 @@ const getFinancialStats = async (req, res, next) => {
     });
     const paidOrderIds = ordersWithPayments.map(p => p.orderId);
     
+    const cogsWhere = { 
+        type: 'export',
+        referenceType: 'order',
+        referenceId: { [Op.in]: paidOrderIds.length > 0 ? paidOrderIds : [0] }
+    };
+
+    if (!isAdmin && branchId) {
+      cogsWhere.branchId = branchId;
+    }
+
     const cogs = await db.InventoryTransaction.sum('price', {
-        where: { 
-            type: 'export',
-            referenceType: 'order',
-            referenceId: { [Op.in]: paidOrderIds.length > 0 ? paidOrderIds : [0] }
-        }
+        where: cogsWhere
     }) || 0;
 
     const totalDiscounts = await Order.sum('discountAmount', {
@@ -145,7 +171,7 @@ const getFinancialStats = async (req, res, next) => {
             breakdown: expensesBreakdown
         },
         netProfit: (serviceRevenue + retailRevenue) - totalExpenses - cogs,
-        chartData: await getChartData(startDate, endDate)
+        chartData: await getChartData(startDate, endDate, isAdmin, branchId)
       },
     });
   } catch (error) {
@@ -153,7 +179,7 @@ const getFinancialStats = async (req, res, next) => {
   }
 };
 
-const getChartData = async (startDate, endDate) => {
+const getChartData = async (startDate, endDate, isAdmin = true, branchId = null) => {
     const days = [];
     const now = new Date();
     let startRange, endRange, numDays;
@@ -168,6 +194,16 @@ const getChartData = async (startDate, endDate) => {
         startRange.setDate(now.getDate() - 6);
         endRange = now;
     }
+
+    let branchApptIds = [];
+    if (!isAdmin && branchId) {
+        const appts = await Appointment.findAll({
+            where: { branchId },
+            attributes: ['id'],
+            raw: true
+        });
+        branchApptIds = appts.map(a => a.id);
+    }
     
     for (let i = 0; i < numDays; i++) {
         const d = new Date(startRange);
@@ -178,17 +214,26 @@ const getChartData = async (startDate, endDate) => {
         const dayName = d.toLocaleDateString('vi-VN', { weekday: 'short' });
         const dayLabel = `${d.getDate()}/${d.getMonth() + 1}`;
 
-        const rev = await Payment.sum('amount', {
-            where: { status: 'success', createdAt: { [Op.between]: [start, end] } }
-        }) || 0;
+        const revWhere = {
+            status: 'success',
+            createdAt: { [Op.between]: [start, end] }
+        };
+        if (!isAdmin && branchId) {
+            revWhere.appointmentId = { [Op.in]: branchApptIds.length > 0 ? branchApptIds : [0] };
+        }
 
-        const exp = await CashFlowTransaction.sum('amount', {
-            where: { 
-                type: 'payment', 
-                status: { [Op.in]: ['completed', 'pending'] },
-                createdAt: { [Op.between]: [start, end] } 
-            }
-        }) || 0;
+        const rev = await Payment.sum('amount', { where: revWhere }) || 0;
+
+        const expWhere = { 
+            type: 'payment', 
+            status: { [Op.in]: ['completed', 'pending'] },
+            createdAt: { [Op.between]: [start, end] } 
+        };
+        if (!isAdmin && branchId) {
+            expWhere.branchId = branchId;
+        }
+
+        const exp = await CashFlowTransaction.sum('amount', { where: expWhere }) || 0;
 
         days.push({ 
           name: numDays > 7 ? dayLabel : dayName, 
@@ -206,7 +251,17 @@ const getCashFlow = async (req, res, next) => {
     if (type) where.type = type;
     if (category) where.category = category;
     if (startDate && endDate) {
-      where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt = { [Op.between]: [start, end] };
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const branchId = req.user.branchId;
+    if (!isAdmin && branchId) {
+      where.branchId = branchId;
     }
 
     const { count, rows } = await CashFlowTransaction.findAndCountAll({
@@ -231,7 +286,8 @@ const createCashFlow = async (req, res, next) => {
   try {
     const transaction = await CashFlowTransaction.create({
       ...req.body,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      branchId: req.user.role === 'admin' ? req.body.branchId : req.user.branchId
     });
     res.status(201).json({ success: true, data: transaction });
   } catch (error) {
@@ -293,7 +349,9 @@ const getReconciliation = async (req, res, next) => {
 const reconcilePayment = async (req, res, next) => {
   const t = await sequelize.transaction();
   try {
-    const payment = await Payment.findByPk(req.params.id);
+    const payment = await Payment.findByPk(req.params.id, {
+      include: [{ model: Appointment, as: 'appointment' }]
+    });
     if (!payment) {
         await t.rollback();
         return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch' });
@@ -329,7 +387,8 @@ const reconcilePayment = async (req, res, next) => {
       referenceType: payment.orderId ? 'order' : 'appointment',
       referenceId: payment.orderId || payment.appointmentId,
       note: `Ghi nhận doanh thu từ ${payment.method.toUpperCase()} cho ${payment.orderId ? 'đơn hàng' : 'lịch hẹn'} #${payment.orderId || payment.appointmentId}`,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      branchId: payment.appointment ? payment.appointment.branchId : req.user.branchId
     }, { transaction: t });
 
     await t.commit();
@@ -397,6 +456,10 @@ const processRefund = async (req, res, next) => {
       }, { transaction: t });
   
       if (status === 'approved' || status === 'completed') {
+          const target = refund.type === 'order' 
+            ? await Order.findByPk(refund.targetId) 
+            : await Appointment.findByPk(refund.targetId);
+
           await CashFlowTransaction.create({
               type: 'payment',
               amount: refund.amount,
@@ -405,7 +468,8 @@ const processRefund = async (req, res, next) => {
               referenceType: refund.type,
               referenceId: refund.targetId,
               note: `Hoàn tiền cho ${refund.type === 'order' ? 'Đơn hàng' : 'Lịch hẹn'} #${refund.targetId}. Lý do: ${refund.reason}`,
-              createdBy: req.user.id
+              createdBy: req.user.id,
+              branchId: (target && refund.type === 'appointment') ? target.branchId : req.user.branchId
           }, { transaction: t });
 
           if (refund.type === 'order') {
@@ -414,10 +478,6 @@ const processRefund = async (req, res, next) => {
               await Payment.update({ status: 'refunded' }, { where: { appointmentId: refund.targetId }, transaction: t });
           }
 
-          const target = refund.type === 'order' 
-            ? await Order.findByPk(refund.targetId) 
-            : await Appointment.findByPk(refund.targetId);
-            
           if (target && target.userId) {
             await createNotification({
               userId: target.userId,

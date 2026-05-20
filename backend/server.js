@@ -80,6 +80,14 @@ async function runMigrations() {
       console.log('🔧 Migration: Added column payload to otp_codes');
     }
   } catch (e) { /* Table may not exist yet */ }
+
+  try {
+    const cashDesc = await qi.describeTable('cash_flow_transactions');
+    if (!cashDesc.branchId) {
+      await db.sequelize.query('ALTER TABLE `cash_flow_transactions` ADD COLUMN `branchId` INT DEFAULT NULL;');
+      console.log('🔧 Migration: Added column branchId to cash_flow_transactions');
+    }
+  } catch (e) { /* Table may not exist yet */ }
 }
 
 db.sequelize

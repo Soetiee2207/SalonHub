@@ -177,6 +177,7 @@ const createImport = async (req, res, next) => {
         referenceId: transaction.id,
         note: `Chi tiền nhập hàng: ${product.name} (SL: ${quantity}) - Lô: ${batchNumber || 'Mới'}`,
         createdBy,
+        branchId,
       }, { transaction: t });
     }
 

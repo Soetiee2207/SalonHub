@@ -90,9 +90,55 @@ async function runMigrations() {
   } catch (e) { /* Table may not exist yet */ }
 }
 
+async function healDatabase() {
+  console.log('🩺 Starting database self-healing and synchronisation...');
+  try {
+    // 1. Sync cash_flow_transactions to inventory_transactions branchId
+    await db.sequelize.query(`
+      UPDATE cash_flow_transactions cft
+      INNER JOIN inventory_transactions it ON cft.referenceId = it.id AND cft.referenceType = 'inventory_import'
+      SET cft.branchId = it.branchId
+      WHERE cft.branchId IS NULL AND it.branchId IS NOT NULL;
+    `);
+    console.log('🩺 Self-healing: Synced cash_flow_transactions branchId from inventory_transactions');
+
+    // 2. Sync cash_flow_transactions branchId from creator's user branchId
+    await db.sequelize.query(`
+      UPDATE cash_flow_transactions cft
+      INNER JOIN users u ON cft.createdBy = u.id
+      SET cft.branchId = u.branchId
+      WHERE cft.branchId IS NULL AND u.branchId IS NOT NULL;
+    `);
+    console.log("🩺 Self-healing: Restored cash_flow_transactions branchId from creator's branchId");
+
+    // 3. Sync inventory_transactions branchId from creator's user branchId
+    await db.sequelize.query(`
+      UPDATE inventory_transactions it
+      INNER JOIN users u ON it.createdBy = u.id
+      SET it.branchId = u.branchId
+      WHERE it.branchId IS NULL AND u.branchId IS NOT NULL;
+    `);
+    console.log("🩺 Self-healing: Restored inventory_transactions branchId from creator's branchId");
+
+    // 4. Sync product_batches branchId from creator's user branchId
+    await db.sequelize.query(`
+      UPDATE product_batches pb
+      INNER JOIN users u ON pb.createdBy = u.id
+      SET pb.branchId = u.branchId
+      WHERE pb.branchId IS NULL AND u.branchId IS NOT NULL;
+    `);
+    console.log("🩺 Self-healing: Restored product_batches branchId from creator's branchId");
+    
+    console.log('🩺 Database self-healing and synchronisation completed successfully!');
+  } catch (error) {
+    console.warn('⚠️ Warning: Self-healing failed or partially failed:', error.message);
+  }
+}
+
 db.sequelize
   .sync()
   .then(() => runMigrations())
+  .then(() => healDatabase())
   .then(() => {
     console.log('✅ Success: Database synced successfully.');
     console.log(`📡 Connecting to: ${process.env.DB_HOST || 'local TiDB/MySQL'}`);

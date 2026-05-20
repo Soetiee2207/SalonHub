@@ -130,7 +130,8 @@ export default function InventoryGrid() {
             ) : filteredProducts.length === 0 ? (
               <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400">Không tìm thấy vật phẩm nào</td></tr>
             ) : filteredProducts.map(p => {
-              const displayedBatches = isAdmin ? (p.batches || []) : (p.batches || []).filter(b => b.branchId === branchId);
+              const displayedBatches = (isAdmin ? (p.batches || []) : (p.batches || []).filter(b => b.branchId === branchId))
+                .filter(b => b.quantity > 0);
               const hasExpired = displayedBatches.some(b => getExpiryStatus(b.expiryDate) === 'expired');
               const hasExpiring = displayedBatches.some(b => getExpiryStatus(b.expiryDate) === 'expiring');
               const displayStock = isAdmin ? p.stock : displayedBatches.reduce((sum, b) => sum + b.quantity, 0);

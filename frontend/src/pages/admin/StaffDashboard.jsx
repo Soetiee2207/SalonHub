@@ -194,10 +194,10 @@ export default function StaffDashboard() {
                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
                    <FiCalendar />
                  </div>
-                 Linh Hồn Tiệm Tóc
-              </h3>
-              <div className="flex gap-2">
-                 <button className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all border-0 cursor-pointer"><FiSearch /></button>
+                  Danh sách lịch hẹn
+               </h3>
+               <div className="flex gap-2">
+                  <button className="p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all border-0 cursor-pointer"><FiSearch /></button>
                  <button onClick={() => setShowQuickBook(true)} className="px-5 py-3 bg-orange-500 text-white rounded-xl text-xs font-black shadow-lg shadow-orange-100 border-0 cursor-pointer">KHÁCH TẠT VÀO +</button>
               </div>
             </div>
@@ -205,9 +205,9 @@ export default function StaffDashboard() {
             <div className="space-y-4">
                {todayAppts.length === 0 ? (
                  <div className="text-center py-20 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                    <FiLayers className="mx-auto text-slate-300 mb-4" size={48} />
-                    <p className="text-slate-400 font-serif italic">Chiến trận hôm nay hiện chưa có quân bài nào...</p>
-                 </div>
+                     <FiLayers className="mx-auto text-slate-300 mb-4" size={48} />
+                     <p className="text-slate-400 font-serif italic">Hôm nay hiện chưa có lịch hẹn nào...</p>
+                  </div>
                ) : (
                  todayAppts
                   .filter(a => a && a.startTime)
@@ -237,7 +237,7 @@ export default function StaffDashboard() {
                                    onClick={() => handleCheckIn(appt.id)}
                                    className="px-6 py-3 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-lg shadow-emerald-100 border-0 cursor-pointer"
                                  >
-                                   BẮT ĐẦU CHIẾN
+                                   BẮT ĐẦU PHỤC VỤ
                                  </button>
                                ) : appt.status === 'in_progress' ? (
                                  <button 
@@ -267,10 +267,10 @@ export default function StaffDashboard() {
               <div className="absolute -top-6 -right-6 text-orange-50/50 rotate-12">
                  <FiLayout size={180} />
               </div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-6 relative z-10">Tàng Thư Khách Hàng</h3>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed mb-8 relative z-10">
-                Lưu giữ bí kíp, công thức nhuộm màu và sở thích "độc bản" của từng vị thượng khách.
-              </p>
+               <h3 className="text-2xl font-black text-slate-800 tracking-tight mb-6 relative z-10">Hồ sơ Khách hàng</h3>
+               <p className="text-sm text-slate-400 font-medium leading-relaxed mb-8 relative z-10">
+                 Lưu giữ lịch sử dịch vụ, công thức nhuộm màu và sở thích cá nhân của từng khách hàng.
+               </p>
               
               <div className="space-y-4 relative z-10">
                  <div className="relative group">
@@ -307,10 +307,10 @@ export default function StaffDashboard() {
                          </div>
                          <div>
                             <p className="font-black text-slate-700 uppercase tracking-tighter">{a.customer?.fullName}</p>
-                            <button 
-                              onClick={() => setShowHistory(a.userId)}
-                              className="text-[10px] font-bold text-slate-400 underline p-0 bg-transparent border-0 cursor-pointer"
-                            >Xem bí kíp cắt tóc</button>
+                             <button 
+                               onClick={() => setShowHistory(a.userId)}
+                               className="text-[10px] font-bold text-slate-400 underline p-0 bg-transparent border-0 cursor-pointer"
+                             >Xem lịch sử dịch vụ</button>
                          </div>
                       </div>
                     ))}

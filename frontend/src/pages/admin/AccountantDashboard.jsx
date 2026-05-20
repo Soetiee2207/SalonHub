@@ -138,7 +138,7 @@ export default function AccountantDashboard() {
         <div className="flex items-center gap-3 p-2 bg-white rounded-3xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-2 px-4 py-2 text-slate-500 font-bold text-xs uppercase tracking-widest border-r">
             <FiCalendar />
-            Tầm nhìn
+            Kỳ báo cáo
           </div>
           <button 
             onClick={() => handlePeriodChange('month')}

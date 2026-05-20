@@ -10,7 +10,7 @@ import { inventoryService } from '../../services/inventoryService';
 import { formatPrice } from '../../utils/formatPrice';
 import { useAuth } from '../../contexts/AuthContext';
 
-/* ========== 1. KPI CARDS: "NHÃN THUẬT" VIEW ========== */
+/* ========== 1. KPI CARDS: OVERVIEW ========== */
 function WarehouseKPIs({ stats, loading }) {
   if (loading) {
     return (
@@ -44,7 +44,7 @@ function WarehouseKPIs({ stats, loading }) {
       urgent: stats.lowStockCount > 0,
     },
     {
-      label: 'Hàng sắp tẩu hỏa (Hết hạn)',
+      label: 'Sản phẩm sắp hết hạn',
       value: stats.expiringSoonCount || 0,
       icon: FiClock,
       color: '#F59E0B',
@@ -83,7 +83,7 @@ function WarehouseKPIs({ stats, loading }) {
   );
 }
 
-/* ========== 2. ORDER METRICS: "CHỈ SỐ VẬN TIÊU" ========== */
+/* ========== 2. ORDER METRICS: FULFILLMENT ========== */
 function OrderMetrics({ orders, loading }) {
   if (loading) return <div className="h-64 bg-white rounded-xl animate-pulse border" />;
 
@@ -98,7 +98,7 @@ function OrderMetrics({ orders, loading }) {
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm h-full">
       <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
         <FiTrendingUp className="text-[var(--primary)]" />
-        Chỉ số vận tiêu (Fulfillment)
+        Chỉ số hoàn thiện đơn hàng (Fulfillment)
       </h3>
       <div className="space-y-6">
         {metrics.map((m, i) => (
@@ -194,7 +194,7 @@ function StockLedger({ transactions, loading }) {
   );
 }
 
-/* ========== 4. EXPIRING ALERTS: "DANH SÁCH TẨU HỎA" ========== */
+/* ========== 4. EXPIRING ALERTS: EXPIRING PRODUCTS ========== */
 function ExpiringAlerts({ items, loading }) {
   if (loading) return <div className="h-64 bg-white rounded-xl animate-pulse border" />;
 
@@ -202,7 +202,7 @@ function ExpiringAlerts({ items, loading }) {
     <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
       <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
         <FiClock className="text-amber-500" />
-        Hàng sắp tẩu hỏa / Đã quá hạn
+        Sản phẩm sắp hết hạn / Đã quá hạn
       </h3>
 
       {items && items.length > 0 ? (
@@ -243,7 +243,7 @@ function ExpiringAlerts({ items, loading }) {
           <div className="p-3 bg-emerald-50 text-emerald-500 rounded-full mb-3">
             <FiCheckCircle size={24} />
           </div>
-          <p className="text-sm text-gray-500 font-medium tracking-tight">An tâm vận tiêu, không có hàng sắp hết hạn.</p>
+          <p className="text-sm text-gray-500 font-medium tracking-tight">Hiện tại không có sản phẩm nào sắp hết hạn.</p>
         </div>
       )}
     </div>
@@ -288,9 +288,9 @@ export default function WarehouseDashboard() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 font-serif">Tổng đà thủ kho</h1>
+          <h1 className="text-2xl font-bold text-gray-800 font-serif">Trạm quản trị kho</h1>
           <div className="flex flex-wrap items-center gap-3 mt-1">
-            <p className="text-sm text-gray-500">Nghiệp vụ quan sát real-time tồn kho & vận tiêu</p>
+            <p className="text-sm text-gray-500">Theo dõi thời gian thực tình trạng tồn kho & đơn hàng</p>
             {user?.branch ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-[hsl(224,71%,95%)] text-[hsl(224,71%,45%)] border border-[hsl(224,71%,90%)] shadow-sm shadow-indigo-100/50 backdrop-blur-sm transition-all duration-300 hover:scale-105">
                 <span className="relative flex h-2 w-2">
@@ -315,7 +315,7 @@ export default function WarehouseDashboard() {
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 rounded-xl hover:shadow-sm transition-all"
           >
             <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-            Làm mới nhãn thuật
+            Làm mới dữ liệu
           </button>
         </div>
       </div>

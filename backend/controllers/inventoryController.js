@@ -2,6 +2,20 @@ const { Op } = require('sequelize');
 const db = require('../models');
 const { InventoryTransaction, Product, User, CashFlowTransaction, Branch, sequelize } = db;
 const { createNotification, createBranchRoleNotification } = require('./notificationController');
+const redis = require('../config/redis');
+
+const clearProductsCache = async () => {
+  if (!redis) return;
+  try {
+    const keys = await redis.keys('products:*');
+    if (keys.length > 0) {
+      await redis.del(keys);
+      console.log('🧹 [Redis] Products cache cleared from inventoryController.');
+    }
+  } catch (err) {
+    console.error('❌ Redis Clear Error (Inventory):', err.message);
+  }
+};
 
 const getBranchStock = async (productId, branchId, transaction = null) => {
   const result = await db.ProductBatch.sum('quantity', {
@@ -177,6 +191,8 @@ const createImport = async (req, res, next) => {
       ],
     });
 
+    await clearProductsCache();
+
     return res.status(201).json({
       success: true,
       message: `Nhập kho thành công. Lô hàng đã được ghi nhận.`,
@@ -286,6 +302,8 @@ const createExport = async (req, res, next) => {
         { model: Branch, as: 'branch', attributes: ['id', 'name'] },
       ],
     });
+
+    await clearProductsCache();
 
     return res.status(201).json({
       success: true,
@@ -455,6 +473,8 @@ const createAdjustment = async (req, res, next) => {
         { model: User, as: 'creator', attributes: ['id', 'fullName', 'role'] },
       ],
     });
+
+    await clearProductsCache();
 
     return res.status(201).json({
       success: true,
@@ -737,6 +757,8 @@ const normalizeProductBatches = async (req, res, next) => {
       note: 'Lô hàng mặc định được tạo tự động để chuẩn hóa dữ liệu tồn kho cũ'
     });
 
+    await clearProductsCache();
+
     res.json({ success: true, message: 'Đã chuẩn hóa dữ liệu lô hàng thành công' });
   } catch (error) {
     next(error);
@@ -864,6 +886,8 @@ const createDamageBatch = async (req, res, next) => {
         }
       } catch (notifErr) { console.error('Notification error (damage):', notifErr.message); }
     }
+
+    await clearProductsCache();
 
     return res.status(201).json({
       success: true,

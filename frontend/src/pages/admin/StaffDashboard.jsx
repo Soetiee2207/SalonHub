@@ -103,12 +103,18 @@ export default function StaffDashboard() {
                  {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <FiUser size={24} />}
                </div>
              </div>
-             <div>
-               <h1 className="text-xl font-black text-[#5C4033] tracking-tight">Xin chào, {user?.fullName?.split(' ').pop()}!</h1>
-               <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest flex items-center gap-1">
-                 <FiLayers size={10} /> Trạm làm việc: {user?.branch?.name || 'SalonHub HQ'}
-               </p>
-             </div>
+              <div>
+                <h1 className="text-xl font-black text-[#5C4033] tracking-tight">Xin chào, {user?.fullName?.split(' ').pop()}!</h1>
+                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] font-extrabold tracking-wider bg-[hsl(24,53%,96%)] text-[hsl(24,71%,40%)] border border-[hsl(24,71%,90%)] shadow-sm shadow-orange-100/50 backdrop-blur-sm transition-all duration-300 hover:scale-105">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(24,71%,50%)] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(24,71%,50%)]"></span>
+                    </span>
+                    TRẠM LÀM VIỆC: {user?.branch?.name ? user.branch.name.toUpperCase() : 'SALONHUB HQ'}
+                  </span>
+                </div>
+              </div>
            </div>
 
         </div>

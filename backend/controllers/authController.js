@@ -187,7 +187,8 @@ const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password.' });
     }
     const user = await db.User.findOne({
-      where: { [db.Sequelize.Op.or]: [{ email: email }, { phone: email }] }
+      where: { [db.Sequelize.Op.or]: [{ email: email }, { phone: email }] },
+      include: [{ model: db.Branch, as: 'branch' }]
     });
     if (!user || user.isActive === false) {
       return res.status(401).json({
@@ -275,7 +276,10 @@ const googleLogin = async (req, res) => {
       const payload = ticket.getPayload();
       googleId = payload.sub; email = payload.email; fullName = payload.name; avatar = payload.picture;
     }
-    let user = await db.User.findOne({ where: { [db.Sequelize.Op.or]: [{ googleId }, { email }] } });
+    let user = await db.User.findOne({
+      where: { [db.Sequelize.Op.or]: [{ googleId }, { email }] },
+      include: [{ model: db.Branch, as: 'branch' }]
+    });
     if (!user) {
       user = await db.User.create({ fullName, email, googleId, avatar, role: 'customer', password: null, isEmailVerified: true });
     } else {

@@ -211,14 +211,27 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        {/* Role Badge */}
-        <div className="px-5 py-3 border-b border-[var(--border)]">
-          <span
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: 'rgba(139,94,60,0.1)', color: 'var(--primary)' }}
-          >
-            {roleLabel}
-          </span>
+        {/* Role & Branch Badge */}
+        <div className="px-5 py-3 border-b border-[var(--border)] flex flex-col gap-2">
+          <div>
+            <span
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ backgroundColor: 'rgba(139,94,60,0.1)', color: 'var(--primary)' }}
+            >
+              {roleLabel}
+            </span>
+          </div>
+          {user?.branch && (
+            <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100/80">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="truncate animate-pulse" title={user.branch.name}>
+                CS: {user.branch.name.toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -400,6 +413,16 @@ export default function AdminLayout() {
                 )}
               </AnimatePresence>
             </div>
+
+            {user?.branch && (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider bg-[hsl(224,71%,95%)] text-[hsl(224,71%,45%)] border border-[hsl(224,71%,90%)] shadow-sm shadow-indigo-100/50 mr-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[hsl(224,71%,50%)] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[hsl(224,71%,50%)]"></span>
+                </span>
+                CHI NHÁNH: {user.branch.name.toUpperCase()}
+              </div>
+            )}
 
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-[var(--text-dark)]">

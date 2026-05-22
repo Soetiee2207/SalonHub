@@ -332,7 +332,11 @@ export default function Header() {
                     onClick={() => setDropdownOpen(!dropdownOpen)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <FiUser size={18} />
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Avatar" className="w-7 h-7 rounded-full object-cover border border-gray-200" />
+                    ) : (
+                      <FiUser size={18} />
+                    )}
                     <span className="text-sm font-medium text-[var(--text-dark)]">{user.fullName || user.name}</span>
                   </button>
 

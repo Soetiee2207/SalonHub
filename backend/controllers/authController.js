@@ -4,6 +4,7 @@ const db = require('../models');
 const { OAuth2Client } = require('google-auth-library');
 const emailService = require('../services/emailService');
 const crypto = require('crypto');
+const redis = require('../config/redis');
 
 const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -62,7 +63,6 @@ const register = async (req, res) => {
 
     // Generate OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
     // Store registration data in payload
     const payload = JSON.stringify({
@@ -70,16 +70,16 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       phone: phone || null,
-      role: 'customer'
+      role: 'customer',
+      code: otpCode
     });
 
-    await db.OtpCode.create({
-      email,
-      code: otpCode,
-      type: 'registration',
-      expiresAt,
-      payload
-    });
+    if (!redis) {
+      throw new Error('Lỗi máy chủ: Redis chưa được cấu hình.');
+    }
+
+    // 600s = 10 minutes expiry
+    await redis.setex(`otp:registration:${email}`, 600, payload);
 
     // Send verification email
     try {
@@ -119,19 +119,14 @@ const verifyRegistrationOtp = async (req, res) => {
       });
     }
 
-    // Find valid OTP
-    const otpRecord = await db.OtpCode.findOne({
-      where: {
-        email,
-        code: otp,
-        type: 'registration',
-        isUsed: false,
-        expiresAt: { [db.Sequelize.Op.gt]: new Date() },
-      },
-      order: [['createdAt', 'DESC']],
-    });
+    if (!redis) {
+      return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    }
 
-    if (!otpRecord || !otpRecord.payload) {
+    const redisKey = `otp:registration:${email}`;
+    const otpDataStr = await redis.get(redisKey);
+
+    if (!otpDataStr) {
       return res.status(400).json({
         success: false,
         message: 'Mã xác thực không đúng hoặc đã hết hạn.',
@@ -139,7 +134,17 @@ const verifyRegistrationOtp = async (req, res) => {
     }
 
     // Extract registration data from payload
-    const userDataToCreate = JSON.parse(otpRecord.payload);
+    const userDataToCreate = JSON.parse(otpDataStr);
+
+    if (userDataToCreate.code !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã xác thực không đúng.',
+      });
+    }
+
+    // Remove code from user data before creating user
+    delete userDataToCreate.code;
 
     // Double check if user created by someone else in the meantime
     const existingUser = await db.User.findOne({ where: { email: userDataToCreate.email } });
@@ -153,8 +158,8 @@ const verifyRegistrationOtp = async (req, res) => {
       isEmailVerified: true
     });
 
-    // 2. Mark OTP as used
-    await otpRecord.update({ isUsed: true });
+    // 2. Remove OTP from Redis to prevent reuse
+    await redis.del(redisKey);
 
     // 3. Generate token for auto-login
     const token = generateToken(user);
@@ -298,12 +303,14 @@ const googleLogin = async (req, res) => {
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const otpRecord = await db.OtpCode.findOne({
-      where: { email, code: otp, type: 'registration', isUsed: false, expiresAt: { [db.Sequelize.Op.gt]: new Date() } },
-      order: [['createdAt', 'DESC']]
-    });
-    if (!otpRecord) return res.status(400).json({ success: false, message: 'Mã xác thực không đúng hoặc đã hết hạn.' });
-    await otpRecord.update({ isUsed: true });
+    if (!redis) return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    const redisKey = `otp:verification:${email}`;
+    const otpDataStr = await redis.get(redisKey);
+    if (!otpDataStr) return res.status(400).json({ success: false, message: 'Mã xác thực không đúng hoặc đã hết hạn.' });
+    const otpData = JSON.parse(otpDataStr);
+    if (otpData.code !== otp) return res.status(400).json({ success: false, message: 'Mã xác thực không đúng.' });
+    
+    await redis.del(redisKey);
     await db.User.update({ isEmailVerified: true }, { where: { id: req.user.id } });
     return res.status(200).json({ success: true, message: 'Xác thực email thành công.' });
   } catch (error) {
@@ -316,13 +323,25 @@ const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp email.' });
-    const lastOtp = await db.OtpCode.findOne({ where: { email, type: 'registration' }, order: [['createdAt', 'DESC']] });
-    if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
+    if (!redis) return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    const redisKey = `otp:registration:${email}`;
+    
+    const ttl = await redis.ttl(redisKey);
+    // If TTL > 540s (meaning it was generated less than 60s ago)
+    if (ttl > 540) {
       return res.status(429).json({ success: false, message: 'Vui lòng đợi 60 giây.' });
     }
+
+    const otpDataStr = await redis.get(redisKey);
+    if (!otpDataStr) {
+      return res.status(400).json({ success: false, message: 'Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại từ đầu.' });
+    }
+
+    const payload = JSON.parse(otpDataStr);
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await db.OtpCode.create({ email, code: otpCode, type: 'registration', expiresAt });
+    payload.code = otpCode;
+    
+    await redis.setex(redisKey, 600, JSON.stringify(payload));
     await emailService.sendOtpEmail(email, otpCode);
     return res.status(200).json({ success: true, message: 'Mã xác thực mới đã được gửi.' });
   } catch (error) {
@@ -335,9 +354,11 @@ const sendVerifyEmail = async (req, res) => {
   try {
     const user = await db.User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    if (!redis) return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await db.OtpCode.create({ email: user.email, code: otpCode, type: 'registration', expiresAt });
+    await redis.setex(`otp:verification:${user.email}`, 300, JSON.stringify({ code: otpCode }));
+    
     await emailService.sendOtpEmail(user.email, otpCode);
     return res.status(200).json({ success: true, message: 'Mã xác thực đã được gửi.' });
   } catch (error) {
@@ -359,24 +380,15 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Email không tồn tại trong hệ thống.' });
     }
 
-    // Check if there is already an unexpired OTP to prevent spam
-    const lastOtp = await db.OtpCode.findOne({
-      where: { email, type: 'password_reset' },
-      order: [['createdAt', 'DESC']]
-    });
-    if (lastOtp && (Date.now() - new Date(lastOtp.createdAt).getTime() < 60000)) {
+    if (!redis) return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    const redisKey = `otp:password_reset:${email}`;
+    const ttl = await redis.ttl(redisKey);
+    if (ttl > 240) { // 300s - 60s
       return res.status(429).json({ success: false, message: 'Vui lòng đợi 60 giây trước khi yêu cầu mã mới.' });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
-
-    await db.OtpCode.create({
-      email,
-      code: otpCode,
-      type: 'password_reset',
-      expiresAt
-    });
+    await redis.setex(redisKey, 300, JSON.stringify({ code: otpCode }));
 
     try {
       await emailService.sendOtpEmail(email, otpCode);
@@ -404,20 +416,18 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đầy đủ thông tin.' });
     }
 
-    // Find valid OTP
-    const otpRecord = await db.OtpCode.findOne({
-      where: {
-        email,
-        code: otp,
-        type: 'password_reset',
-        isUsed: false,
-        expiresAt: { [db.Sequelize.Op.gt]: new Date() },
-      },
-      order: [['createdAt', 'DESC']],
-    });
+    if (!redis) return res.status(500).json({ success: false, message: 'Lỗi máy chủ: Redis chưa được cấu hình.' });
+    
+    const redisKey = `otp:password_reset:${email}`;
+    const otpDataStr = await redis.get(redisKey);
 
-    if (!otpRecord) {
+    if (!otpDataStr) {
       return res.status(400).json({ success: false, message: 'Mã xác thực không đúng hoặc đã hết hạn.' });
+    }
+
+    const otpData = JSON.parse(otpDataStr);
+    if (otpData.code !== otp) {
+      return res.status(400).json({ success: false, message: 'Mã xác thực không đúng.' });
     }
 
     const user = await db.User.findOne({ where: { email } });
@@ -432,8 +442,8 @@ const resetPassword = async (req, res) => {
     // Update password
     await user.update({ password: hashedPassword });
 
-    // Mark OTP as used
-    await otpRecord.update({ isUsed: true });
+    // Remove OTP from Redis
+    await redis.del(redisKey);
 
     return res.status(200).json({ success: true, message: 'Đổi mật khẩu thành công!' });
   } catch (error) {

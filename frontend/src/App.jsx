@@ -52,6 +52,7 @@ const PaymentReconciliation = lazy(() => import('./pages/admin/PaymentReconcilia
 const RefundHub = lazy(() => import('./pages/admin/RefundHub'));
 const WarehouseReturns = lazy(() => import('./pages/admin/WarehouseReturns'));
 const FinancialReports = lazy(() => import('./pages/admin/FinancialReports'));
+const StaffProfile = lazy(() => import('./pages/admin/StaffProfile'));
 
 function RoleDashboard() {
   const { user } = useAuth();
@@ -123,6 +124,7 @@ function App() {
                       <Route path="refunds" element={<RefundHub />} />
                       <Route path="returns" element={<WarehouseReturns />} />
                       <Route path="reports" element={<FinancialReports />} />
+                      <Route path="profile" element={<StaffProfile />} />
                     </Route>
                   </Routes>
                 </Suspense>

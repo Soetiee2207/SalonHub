@@ -5,7 +5,8 @@ import {
   FiShoppingBag, FiCalendar, FiTag, FiCreditCard,
   FiMenu, FiX, FiLogOut, FiArrowLeft, FiPackage, FiDollarSign, FiStar,
   FiTruck, FiClipboard, FiRefreshCw, FiFileText, FiBell,
-  FiCheckCircle, FiTrash2, FiInfo, FiAlertCircle, FiGift
+  FiCheckCircle, FiTrash2, FiInfo, FiAlertCircle, FiGift,
+  FiUser, FiMoon, FiSun, FiChevronDown
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocket } from '../../contexts/SocketContext';
@@ -109,6 +110,13 @@ export default function AdminLayout() {
   const [notifLoading, setNotifLoading] = useState(false);
   const notifRef = useRef(null);
 
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userRef = useRef(null);
+  
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
   const role = user?.role || 'staff';
 
   const fetchNotifications = async () => {
@@ -172,6 +180,27 @@ export default function AdminLayout() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutsideUser = (e) => {
+      if (userRef.current && !userRef.current.contains(e.target)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideUser);
+    return () => document.removeEventListener('mousedown', handleClickOutsideUser);
+  }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
   const sidebarLinks = useMemo(() => linksByRole[role] || linksByRole.staff, [role]);
   const roleLabel = roleLabels[role] || 'Nhân viên';
 
@@ -424,19 +453,80 @@ export default function AdminLayout() {
               </div>
             )}
 
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-[var(--text-dark)]">
-                {user?.fullName || user?.name || roleLabel}
-              </p>
-              <p className="text-xs text-[var(--text-gray)]">{roleLabel}</p>
+            {/* User Dropdown */}
+            <div className="relative" ref={userRef}>
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2.5 p-1.5 pr-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors border border-slate-100 cursor-pointer focus:outline-none"
+              >
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--primary)]/10 flex items-center justify-center shrink-0 border border-[var(--primary)]/20">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiUser className="text-[var(--primary)]" size={16} />
+                  )}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-xs font-bold text-slate-700 leading-tight">
+                    {user?.fullName || user?.name || roleLabel}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium leading-tight">{roleLabel}</p>
+                </div>
+                <FiChevronDown className="text-slate-400 ml-1" size={14} />
+              </button>
+
+              <AnimatePresence>
+                {userDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 z-50 overflow-hidden"
+                  >
+                    <div className="px-4 py-2 mb-1 border-b border-slate-50">
+                      <p className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-0.5">Tài khoản</p>
+                      <p className="text-sm font-semibold text-slate-700 truncate">{user?.email || 'N/A'}</p>
+                    </div>
+
+                    <Link
+                      to="/admin/profile"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:text-[var(--primary)] hover:bg-slate-50 transition-colors no-underline"
+                    >
+                      <FiUser size={16} />
+                      <span className="font-medium">Thông tin cá nhân</span>
+                    </Link>
+
+                    <button
+                      onClick={() => setDarkMode(!darkMode)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-slate-600 hover:text-[var(--primary)] hover:bg-slate-50 transition-colors bg-transparent border-0 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
+                        <span className="font-medium">Giao diện {darkMode ? 'Sáng' : 'Tối'}</span>
+                      </div>
+                      <div className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${darkMode ? 'bg-[var(--primary)]' : 'bg-slate-300'}`}>
+                        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${darkMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-slate-50 my-1"></div>
+
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors bg-transparent border-0 cursor-pointer"
+                    >
+                      <FiLogOut size={16} />
+                      <span className="font-bold">Đăng xuất</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-[var(--error)] hover:bg-red-50 rounded-lg transition-colors bg-transparent border-0 cursor-pointer"
-            >
-              <FiLogOut size={16} />
-              <span className="hidden sm:inline">Đăng xuất</span>
-            </button>
           </div>
         </header>
 

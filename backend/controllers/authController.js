@@ -221,6 +221,8 @@ const getProfile = async (req, res) => {
     const includeOptions = [];
     if (req.user.role !== 'customer') {
       includeOptions.push({ model: db.Branch, as: 'branch' });
+      includeOptions.push({ model: db.StaffSchedule, as: 'schedules' });
+      includeOptions.push({ model: db.Service, as: 'skilledServices', through: { attributes: [] } });
     }
     const user = await db.User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] },

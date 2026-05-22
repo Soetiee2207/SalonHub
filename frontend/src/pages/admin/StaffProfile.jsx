@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { authService } from '../../../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
+import { authService } from '../../services/authService';
 import { toast } from 'react-hot-toast';
 import {
   FiUser, FiPhone, FiLock, FiCamera,
   FiCalendar, FiStar, FiClock, FiMapPin
 } from 'react-icons/fi';
-import LoadingSpinner from '../../common/LoadingSpinner';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export default function StaffProfile() {
   const { user, updateUser } = useAuth();

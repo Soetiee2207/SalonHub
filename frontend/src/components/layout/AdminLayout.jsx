@@ -112,10 +112,6 @@ export default function AdminLayout() {
 
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userRef = useRef(null);
-  
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
 
   const role = user?.role || 'staff';
 
@@ -190,16 +186,6 @@ export default function AdminLayout() {
     document.addEventListener('mousedown', handleClickOutsideUser);
     return () => document.removeEventListener('mousedown', handleClickOutsideUser);
   }, []);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
 
   const sidebarLinks = useMemo(() => linksByRole[role] || linksByRole.staff, [role]);
   const roleLabel = roleLabels[role] || 'Nhân viên';
@@ -497,19 +483,6 @@ export default function AdminLayout() {
                       <FiUser size={16} />
                       <span className="font-medium">Thông tin cá nhân</span>
                     </Link>
-
-                    <button
-                      onClick={() => setDarkMode(!darkMode)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-slate-600 hover:text-[var(--primary)] hover:bg-slate-50 transition-colors bg-transparent border-0 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
-                        <span className="font-medium">Giao diện {darkMode ? 'Sáng' : 'Tối'}</span>
-                      </div>
-                      <div className={`w-8 h-4 rounded-full flex items-center p-0.5 transition-colors ${darkMode ? 'bg-[var(--primary)]' : 'bg-slate-300'}`}>
-                        <div className={`w-3 h-3 bg-white rounded-full shadow-sm transform transition-transform ${darkMode ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </div>
-                    </button>
 
                     <div className="h-px bg-slate-50 my-1"></div>
 

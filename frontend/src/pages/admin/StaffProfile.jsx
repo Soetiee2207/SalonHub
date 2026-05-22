@@ -74,7 +74,7 @@ export default function StaffProfile() {
 
     try {
       const formDataUpload = new FormData();
-      formDataUpload.append('avatar', file);
+      formDataUpload.append('image', file);
 
       toast.loading('Đang cập nhật ảnh đại diện...', { id: 'avatarUpload' });
       await authService.updateProfile(formDataUpload);
@@ -325,37 +325,32 @@ export default function StaffProfile() {
                 <table className="w-full text-left text-sm text-slate-600">
                   <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500">
                     <tr>
-                      <th className="px-4 py-3">Ngày</th>
-                      <th className="px-4 py-3">Ca làm việc</th>
-                      <th className="px-4 py-3 text-center">Trạng thái</th>
+                      <th className="px-4 py-3">Ngày trong tuần</th>
+                      <th className="px-4 py-3">Khung giờ làm việc</th>
+                      <th className="px-4 py-3 text-center">Tình trạng</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {profileData.schedules.map((schedule) => (
+                    {profileData.schedules.map((schedule) => {
+                      const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                      return (
                       <tr key={schedule.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3 font-medium text-slate-800">
-                          {new Date(schedule.date).toLocaleDateString('vi-VN')}
+                          {days[schedule.dayOfWeek] || 'Không xác định'}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5 text-slate-600">
                             <FiClock size={14} className="text-slate-400" />
-                            {schedule.shiftType === 'morning' ? 'Ca Sáng (08:00 - 12:00)' : 
-                             schedule.shiftType === 'afternoon' ? 'Ca Chiều (13:00 - 17:00)' : 
-                             schedule.shiftType === 'evening' ? 'Ca Tối (17:30 - 21:30)' : 'Cả ngày'}
+                            {schedule.startTime} - {schedule.endTime}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold ${
-                            schedule.status === 'working' ? 'bg-emerald-50 text-emerald-600' :
-                            schedule.status === 'off' ? 'bg-red-50 text-red-600' :
-                            'bg-slate-100 text-slate-600'
-                          }`}>
-                            {schedule.status === 'working' ? 'Đi làm' : 
-                             schedule.status === 'off' ? 'Nghỉ' : 'Không xác định'}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-600">
+                            Cố định hàng tuần
                           </span>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>

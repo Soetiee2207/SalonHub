@@ -16,22 +16,8 @@
   --error: #EF4444;
   --warning: #F59E0B;
   --font-display: 'Playfair Display', Georgia, serif;
+  --font-display: 'Playfair Display', Georgia, serif;
   --font-body: 'DM Sans', 'Segoe UI', sans-serif;
-}
-
-/* Dark Mode Variables */
-.dark {
-  --primary: #C4956A;
-  --primary-light: #D4A574;
-  --primary-dark: #8B5E3C;
-  --accent: #E2B687;
-  --accent-gold: #D2B48C;
-  --bg-light: #121212;
-  --bg-warm: #1E1E1E;
-  --bg-white: #1A1A1A;
-  --text-dark: #F5F5F5;
-  --text-gray: #A1A1AA;
-  --border: #333333;
 }
 
 body {

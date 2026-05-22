@@ -83,8 +83,8 @@ const STATUS_LABELS = {
 const notifyAppointmentCreated = async (appointment) => {
   await createNotification({
     userId: appointment.userId,
-    title: 'Đặt tiền/lịch thành công',
-    message: `Lịch hẹn #${appointment.id} của Quý khách vào ngày ${appointment.date}, khung giờ ${appointment.startTime} đã được tiếp nhận.`,
+    title: 'Khởi tạo lịch hẹn thành công',
+    message: `Lịch hẹn #${appointment.id} của Quý khách vào ngày ${appointment.date}, khung giờ ${appointment.startTime} đã được hệ thống ghi nhận. Vui lòng thanh toán/đặt cọc để hoàn tất.`,
     type: 'appointment',
   });
 

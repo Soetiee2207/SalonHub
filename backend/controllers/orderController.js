@@ -183,8 +183,8 @@ const createOrder = async (req, res, next) => {
 
     await createNotification({
       userId,
-      title: 'Đặt hàng thành công',
-      message: `Đơn hàng #${order.id} của bạn đã được tiếp nhận và đang chờ xác nhận.`,
+      title: 'Khởi tạo đơn hàng thành công',
+      message: `Đơn hàng #${order.id} của bạn đã được ghi nhận trên hệ thống. Vui lòng thanh toán để hoàn tất đơn hàng.`,
       type: 'order'
     });
 

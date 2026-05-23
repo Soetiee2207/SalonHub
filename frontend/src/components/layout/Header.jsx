@@ -185,7 +185,7 @@ export default function Header() {
           </nav>
 
           {/* Right Actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user ? (
               <>
                 {/* Cart */}
@@ -330,14 +330,14 @@ export default function Header() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     {user?.avatar ? (
                       <img src={user.avatar} alt="Avatar" className="w-7 h-7 rounded-full object-cover border border-gray-200" />
                     ) : (
                       <FiUser size={18} />
                     )}
-                    <span className="text-sm font-medium text-[var(--text-dark)]">{user.fullName || user.name}</span>
+                    <span className="text-sm font-medium text-[var(--text-dark)] hidden sm:block">{user.fullName || user.name}</span>
                   </button>
 
                   {dropdownOpen && (
@@ -397,7 +397,7 @@ export default function Header() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <Link
                   to="/login"
                   className="px-4 py-2 text-sm font-medium text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg no-underline transition-colors"
@@ -443,46 +443,8 @@ export default function Header() {
               ))}
             </nav>
             <div className="border-t border-[var(--border)] mt-3 pt-3">
-              {user ? (
-                <div className="flex flex-col gap-1">
-                  <Link to="/cart" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiShoppingCart size={16} /> Giỏ hàng {cartCount > 0 && `(${cartCount})`}
-                  </Link>
-                  <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center justify-between px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <div className="flex items-center gap-3">
-                      <FiBell size={16} /> Thông báo
-                    </div>
-                    {unreadCount > 0 && (
-                      <span className="flex h-2 w-2 bg-red-500 rounded-full animate-pulse mr-1"></span>
-                    )}
-                    {unreadCount > 0 && (
-                      <span className="flex h-5 w-5 bg-red-500 text-white text-[10px] font-black items-center justify-center rounded-full border border-white shadow-sm">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                  <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiUser size={16} /> Hồ sơ
-                  </Link>
-                  <Link to="/my-orders" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiPackage size={16} /> Đơn hàng
-                  </Link>
-                  <Link to="/my-appointments" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiCalendar size={16} /> Lịch hẹn
-                  </Link>
-                  <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] no-underline">
-                    <FiMapPin size={16} /> Địa chỉ
-                  </Link>
-                  {user.role !== 'customer' && (
-                    <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--primary)] no-underline">
-                      <FiSettings size={16} /> Quản trị
-                    </Link>
-                  )}
-                  <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--error)] w-full">
-                    <FiLogOut size={16} /> Đăng xuất
-                  </button>
-                </div>
-              ) : (
+              {/* User menus are now accessible via Avatar dropdown on mobile as well */}
+              {!user && (
                 <div className="flex flex-col gap-2 px-4">
                   <Link to="/login" onClick={() => setMobileOpen(false)} className="text-center py-2.5 text-sm font-medium text-[var(--primary)] border border-[var(--primary)] rounded-lg no-underline">
                     Đăng nhập

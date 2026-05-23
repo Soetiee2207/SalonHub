@@ -282,8 +282,14 @@ const createAppointment = async (req, res, next) => {
       }
     }
 
-    const initialStatus = isWalkIn ? 'in_progress' : 'awaiting_deposit';
+    let initialStatus = isWalkIn ? 'in_progress' : 'awaiting_deposit';
     const depositAmount = isWalkIn ? null : parseFloat(totalPrice) * DEPOSIT_RATE;
+    let depositStatus = isWalkIn ? null : 'pending';
+
+    if (!isWalkIn && depositAmount === 0) {
+      initialStatus = 'pending';
+      depositStatus = 'paid';
+    }
 
     const appointment = await Appointment.create({
       userId,
@@ -297,10 +303,13 @@ const createAppointment = async (req, res, next) => {
       totalPrice,
       status: initialStatus,
       depositAmount,
-      depositStatus: isWalkIn ? null : 'pending',
+      depositStatus,
+      voucherCode: appliedVoucherCode,
+      discountAmount: appliedDiscountAmount,
+      commissionAmount: 0
     }, { transaction });
 
-    if (!isWalkIn) {
+    if (!isWalkIn && depositAmount > 0) {
       await Payment.create({
         appointmentId: appointment.id,
         amount: depositAmount,

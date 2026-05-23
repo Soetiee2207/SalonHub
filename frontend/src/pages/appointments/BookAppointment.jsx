@@ -187,10 +187,15 @@ export default function BookAppointment() {
 
       const data = res.data || res;
       setCreatedAppointment(data);
-      setDepositInfo(data.depositInfo);
-
-      setShowBankModal(true);
-      toast.success('Lịch hẹn đã được tạo! Vui lòng đặt cọc để xác nhận.');
+      
+      if (data.depositInfo && data.depositInfo.amount > 0) {
+        setDepositInfo(data.depositInfo);
+        setShowBankModal(true);
+        toast.success('Lịch hẹn đã được tạo! Vui lòng đặt cọc để xác nhận.');
+      } else {
+        toast.success('Lịch hẹn đã được tạo thành công!');
+        navigate('/my-appointments');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Đặt lịch thất bại. Vui lòng thử lại.');
     } finally {
@@ -640,7 +645,7 @@ export default function BookAppointment() {
       <BankTransferModal
         isOpen={showBankModal}
         onClose={handleDepositModalClose}
-        amount={depositInfo?.amount || selectedService?.price || 0}
+        amount={depositInfo?.amount || 0}
         apptId={createdAppointment?.id}
       />
     </div>

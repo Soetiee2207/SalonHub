@@ -123,7 +123,7 @@ export default function Checkout() {
       const res = await orderService.create(orderData);
       const data = res.data || res;
 
-      if (paymentMethod === 'sepay') {
+      if (paymentMethod === 'sepay' && data.order && data.order.totalAmount > 0) {
         setCreatedOrder(data.order);
         setShowBankModal(true);
       } else {

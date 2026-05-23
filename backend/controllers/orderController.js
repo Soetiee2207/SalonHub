@@ -119,6 +119,7 @@ const createOrder = async (req, res, next) => {
         userId,
         totalAmount: totalAmount.toFixed(2),
         paymentMethod,
+        paymentStatus: totalAmount === 0 ? 'paid' : 'pending',
         address,
         phone,
         voucherId,
@@ -153,14 +154,16 @@ const createOrder = async (req, res, next) => {
       transaction: t 
     });
 
-    await Payment.create({
-      userId,
-      orderId: order.id,
-      amount: totalAmount.toFixed(2),
-      method: paymentMethod,
-      status: 'pending',
-      isReconciled: false
-    }, { transaction: t });
+    if (totalAmount > 0) {
+      await Payment.create({
+        userId,
+        orderId: order.id,
+        amount: totalAmount.toFixed(2),
+        method: paymentMethod,
+        status: 'pending',
+        isReconciled: false
+      }, { transaction: t });
+    }
 
     await t.commit();
 

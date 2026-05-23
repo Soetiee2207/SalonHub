@@ -3,7 +3,7 @@ const db = require('../models');
 const { 
   Appointment, Service, User, Branch, StaffSchedule, 
   Order, OrderItem, Product, Payment, RefundRequest,
-  InventoryTransaction, CashFlowTransaction, Review 
+  InventoryTransaction, CashFlowTransaction, Review, Voucher
 } = db;
 const { createNotification } = require('./notificationController');
 const { updateCustomerLoyalty } = require('../utils/loyaltyHelper');

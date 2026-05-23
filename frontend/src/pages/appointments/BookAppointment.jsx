@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FiCheck, FiChevronLeft, FiChevronRight, FiImage,
-  FiClock, FiMapPin, FiUser, FiCalendar, FiFileText, FiDollarSign
+  FiClock, FiMapPin, FiUser, FiCalendar, FiFileText, FiDollarSign, FiTag
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { serviceService } from '../../services/serviceService';
@@ -11,6 +11,7 @@ import { staffService } from '../../services/staffService';
 import { appointmentService } from '../../services/appointmentService';
 import BankTransferModal from '../../components/common/BankTransferModal';
 import { useSocket } from '../../contexts/SocketContext';
+import { voucherService } from '../../services/voucherService';
 
 import { formatPrice } from '../../utils/formatPrice';
 
@@ -63,6 +64,11 @@ export default function BookAppointment() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [note, setNote] = useState('');
+
+  const [voucherCode, setVoucherCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [voucherApplied, setVoucherApplied] = useState(false);
+  const [applyingVoucher, setApplyingVoucher] = useState(false);
 
   const [showBankModal, setShowBankModal] = useState(false);
   const [createdAppointment, setCreatedAppointment] = useState(null);
@@ -176,6 +182,7 @@ export default function BookAppointment() {
         date: formatDate(selectedDate),
         startTime: selectedTime,
         note,
+        voucherCode: voucherApplied ? voucherCode : undefined,
       });
 
       const data = res.data || res;
@@ -499,9 +506,75 @@ export default function BookAppointment() {
         </div>
         <hr className="border-gray-100" />
         <div className="flex justify-between items-center">
-          <span className="text-gray-500">Tiền đặt cọc (100%)</span>
-          <span className="font-bold text-[var(--primary)] text-xl">
+          <span className="text-gray-500">Giá dịch vụ</span>
+          <span className="font-semibold text-gray-800">
             {formatPrice(selectedService?.price)}
+          </span>
+        </div>
+
+        {/* Voucher Input */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <FiTag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Nhập mã giảm giá"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              disabled={voucherApplied || applyingVoucher}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-[var(--primary)] focus:border-[var(--primary)] text-sm disabled:bg-gray-100 uppercase"
+            />
+          </div>
+          {voucherApplied ? (
+            <button
+              onClick={() => {
+                setVoucherApplied(false);
+                setVoucherCode('');
+                setDiscount(0);
+              }}
+              className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium transition-colors"
+            >
+              Hủy
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                if (!voucherCode.trim()) return toast.error('Vui lòng nhập mã giảm giá');
+                setApplyingVoucher(true);
+                try {
+                  const res = await voucherService.validate({ code: voucherCode, orderAmount: selectedService?.price });
+                  setDiscount(res.data?.discountAmount || res.discountAmount || 0);
+                  setVoucherApplied(true);
+                  toast.success('Áp dụng mã giảm giá thành công!');
+                } catch (err) {
+                  toast.error(err.response?.data?.message || 'Mã giảm giá không hợp lệ');
+                  setVoucherCode('');
+                } finally {
+                  setApplyingVoucher(false);
+                }
+              }}
+              disabled={!voucherCode.trim() || applyingVoucher}
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              {applyingVoucher ? 'Đang áp dụng...' : 'Áp dụng'}
+            </button>
+          )}
+        </div>
+
+        {discount > 0 && (
+          <div className="flex justify-between items-center text-green-600 bg-green-50 p-2 rounded-lg">
+            <span className="text-sm font-medium flex items-center gap-1">
+              <FiTag /> Giảm giá
+            </span>
+            <span className="font-bold">-{formatPrice(discount)}</span>
+          </div>
+        )}
+
+        <hr className="border-gray-100" />
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 text-lg">Tiền đặt cọc (100%)</span>
+          <span className="font-bold text-[var(--primary)] text-2xl">
+            {formatPrice(Math.max(0, (selectedService?.price || 0) - discount))}
           </span>
         </div>
       </div>
@@ -524,7 +597,7 @@ export default function BookAppointment() {
         className="mt-6 w-full max-w-lg py-3.5 bg-[#8B5E3C] text-white font-bold rounded-xl hover:bg-[#6D492E] transition-colors text-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#8B5E3C]/20"
       >
         <FiDollarSign />
-        {submitting ? 'Đang xử lý...' : `Đặt cọc ${formatPrice(selectedService?.price)}`}
+        {submitting ? 'Đang xử lý...' : `Đặt cọc ${formatPrice(Math.max(0, (selectedService?.price || 0) - discount))}`}
       </button>
     </div>
   );

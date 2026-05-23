@@ -82,6 +82,18 @@ async function runMigrations() {
   } catch (e) { /* Table may not exist yet */ }
 
   try {
+    const apptDesc = await qi.describeTable('appointments');
+    if (!apptDesc.voucherCode) {
+      await db.sequelize.query('ALTER TABLE `appointments` ADD COLUMN `voucherCode` VARCHAR(255) DEFAULT NULL;');
+      console.log('🔧 Migration: Added column voucherCode to appointments');
+    }
+    if (!apptDesc.discountAmount) {
+      await db.sequelize.query('ALTER TABLE `appointments` ADD COLUMN `discountAmount` DECIMAL(10,2) DEFAULT 0;');
+      console.log('🔧 Migration: Added column discountAmount to appointments');
+    }
+  } catch (e) { /* Table may not exist yet */ }
+
+  try {
     const cashDesc = await qi.describeTable('cash_flow_transactions');
     if (!cashDesc.branchId) {
       await db.sequelize.query('ALTER TABLE `cash_flow_transactions` ADD COLUMN `branchId` INT DEFAULT NULL;');

@@ -133,7 +133,7 @@ const notifyStatusChanged = async (appointment, newStatus, cancelReason) => {
 const createAppointment = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
-    const { branchId, staffId, serviceId, date, startTime, note, phone, fullName: walkInName } = req.body;
+    const { branchId, staffId, serviceId, date, startTime, note, phone, fullName: walkInName, voucherCode } = req.body;
     let userId = req.user.id;
     let isWalkIn = false;
 
@@ -204,7 +204,44 @@ const createAppointment = async (req, res, next) => {
     }
 
     const endTime = addMinutes(normalizedStartTime, service.duration);
-    const totalPrice = service.price;
+    let totalPrice = parseFloat(service.price);
+    let appliedVoucherCode = null;
+    let appliedDiscountAmount = 0;
+
+    if (voucherCode && !isWalkIn) {
+      const voucher = await Voucher.findOne({
+        where: { code: voucherCode.toUpperCase(), isActive: true },
+        lock: transaction.LOCK.UPDATE,
+        transaction,
+      });
+
+      if (voucher) {
+        const todayStr = now.toISOString().split('T')[0];
+        if (voucher.startDate <= todayStr && voucher.endDate >= todayStr) {
+          if (voucher.usageLimit === null || voucher.usedCount < voucher.usageLimit) {
+            if (totalPrice >= parseFloat(voucher.minOrderValue)) {
+              if (voucher.discountType === 'percent') {
+                appliedDiscountAmount = (totalPrice * parseFloat(voucher.discount)) / 100;
+                if (voucher.maxDiscount && appliedDiscountAmount > parseFloat(voucher.maxDiscount)) {
+                  appliedDiscountAmount = parseFloat(voucher.maxDiscount);
+                }
+              } else {
+                appliedDiscountAmount = parseFloat(voucher.discount);
+              }
+              
+              if (appliedDiscountAmount > totalPrice) {
+                appliedDiscountAmount = totalPrice;
+              }
+
+              totalPrice -= appliedDiscountAmount;
+              appliedVoucherCode = voucher.code;
+
+              await voucher.increment('usedCount', { by: 1, transaction });
+            }
+          }
+        }
+      }
+    }
 
     if (staffId && !phone) {
       const dayOfWeek = appointmentDate.getDay();

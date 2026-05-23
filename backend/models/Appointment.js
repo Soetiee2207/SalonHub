@@ -65,6 +65,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
+    voucherCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    discountAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
   }, {
     timestamps: true,
     tableName: 'appointments',

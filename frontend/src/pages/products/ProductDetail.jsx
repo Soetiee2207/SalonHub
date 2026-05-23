@@ -274,9 +274,13 @@ export default function ProductDetail() {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[var(--bg-warm)] rounded-full flex items-center justify-center text-[var(--primary)] font-semibold">
-                        {(review.user?.fullName || 'U').charAt(0).toUpperCase()}
-                      </div>
+                      {review.user?.avatar ? (
+                        <img src={review.user.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-[var(--bg-warm)]" />
+                      ) : (
+                        <div className="w-10 h-10 bg-[var(--bg-warm)] rounded-full flex items-center justify-center text-[var(--primary)] font-semibold">
+                          {(review.user?.fullName || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <p
                           style={{ fontFamily: 'var(--font-body)' }}

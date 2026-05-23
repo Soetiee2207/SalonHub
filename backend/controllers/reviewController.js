@@ -61,8 +61,8 @@ const createReview = async (req, res, next) => {
 
     const fullReview = await Review.findByPk(review.id, {
       include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email'] },
-        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email'] },
+        { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'avatar'] },
+        { model: User, as: 'staff', attributes: ['id', 'fullName', 'email', 'avatar'] },
         { model: Appointment, as: 'appointment' },
       ],
     });
@@ -83,7 +83,7 @@ const getStaffReviews = async (req, res, next) => {
     const reviews = await Review.findAll({
       where: { staffId, isHidden: false },
       include: [
-        { model: User, as: 'customer', attributes: ['id', 'fullName'] },
+        { model: User, as: 'customer', attributes: ['id', 'fullName', 'avatar'] },
         {
           model: Appointment,
           as: 'appointment',
@@ -119,7 +119,7 @@ const getServiceReviews = async (req, res, next) => {
     const reviews = await Review.findAll({
         where: { isHidden: false },
         include: [
-            { model: User, as: 'customer', attributes: ['id', 'fullName'] },
+            { model: User, as: 'customer', attributes: ['id', 'fullName', 'avatar'] },
             {
               model: Appointment,
               as: 'appointment',
@@ -156,7 +156,7 @@ const getProductReviews = async (req, res, next) => {
     const reviews = await ProductReview.findAll({
       where: { productId, isHidden: false },
       include: [
-        { model: User, as: 'user', attributes: ['id', 'fullName'] },
+        { model: User, as: 'user', attributes: ['id', 'fullName', 'avatar'] },
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -237,7 +237,7 @@ const createProductReview = async (req, res, next) => {
 
     const fullReview = await ProductReview.findByPk(review.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'fullName', 'email'] },
+        { model: User, as: 'user', attributes: ['id', 'fullName', 'email', 'avatar'] },
         { model: Product, as: 'product' },
       ],
     });
@@ -256,8 +256,8 @@ const getAllReviewsAdmin = async (req, res, next) => {
     const [serviceReviews, productReviews] = await Promise.all([
       Review.findAll({
         include: [
-          { model: User, as: 'customer', attributes: ['id', 'fullName', 'phone'] },
-          { model: User, as: 'staff', attributes: ['id', 'fullName'] },
+          { model: User, as: 'customer', attributes: ['id', 'fullName', 'phone', 'avatar'] },
+          { model: User, as: 'staff', attributes: ['id', 'fullName', 'avatar'] },
           { 
             model: Appointment, 
             as: 'appointment',
@@ -268,7 +268,7 @@ const getAllReviewsAdmin = async (req, res, next) => {
       }),
       ProductReview.findAll({
         include: [
-          { model: User, as: 'user', attributes: ['id', 'fullName', 'phone'] },
+          { model: User, as: 'user', attributes: ['id', 'fullName', 'phone', 'avatar'] },
           { model: Product, as: 'product', attributes: ['id', 'name'] },
         ],
         order: [['createdAt', 'DESC']],

@@ -252,9 +252,13 @@ export default function ServiceDetail() {
                 <div key={review.id} className="p-6 rounded-2xl bg-[var(--bg-light)]">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--primary)] font-bold text-lg shadow-sm">
-                        {(review.customer?.fullName || 'A').charAt(0).toUpperCase()}
-                      </div>
+                      {review.customer?.avatar ? (
+                        <img src={review.customer.avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm" />
+                      ) : (
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--primary)] font-bold text-lg shadow-sm">
+                          {(review.customer?.fullName || 'A').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <p style={{ fontFamily: 'var(--font-body)' }} className="font-bold text-gray-800">
                           {review.customer?.fullName || 'Khách hàng'}

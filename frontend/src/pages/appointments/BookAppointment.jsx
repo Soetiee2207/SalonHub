@@ -448,7 +448,7 @@ export default function BookAppointment() {
                         ? 'bg-[var(--primary)] text-white border-2 border-[var(--primary)]'
                         : isAvailable
                         ? 'bg-green-50 text-green-700 border-2 border-green-200 hover:border-green-400'
-                        : 'bg-gray-100 text-gray-300 border-2 border-gray-100 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-400 border-2 border-gray-300 opacity-60 cursor-not-allowed'
                     }`}
                   >
                     {label}

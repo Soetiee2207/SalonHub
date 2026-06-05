@@ -687,9 +687,11 @@ const getAvailableSlots = async (req, res, next) => {
         (appt) => timesOverlap(slotStart, slotEnd, appt.startTime, appt.endTime),
       );
 
-      if (!hasConflict) {
-        slots.push({ startTime: slotStart, endTime: slotEnd });
-      }
+      slots.push({
+        startTime: slotStart,
+        endTime: slotEnd,
+        available: !hasConflict
+      });
     }
 
     return res.status(200).json({ success: true, data: slots });

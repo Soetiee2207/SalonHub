@@ -27,6 +27,7 @@ npm-debug.log*
 # Ignore specific file types
 *.txt
 *.md
+!README.md
 *.sh
 baocao
 

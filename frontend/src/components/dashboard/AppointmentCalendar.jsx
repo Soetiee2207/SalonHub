@@ -17,7 +17,14 @@ const AppointmentCalendar = ({ appointments = [], currentDate, onDateChange, onA
     });
   }, [currentDate]);
 
-  const formatDateKey = (date) => date.toISOString().split('T')[0];
+  const formatDateKey = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const getPosition = (timeStr) => {
     const [h, m] = timeStr.split(':').map(Number);

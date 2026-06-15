@@ -16,14 +16,29 @@ const getCart = async (req, res, next) => {
       ],
     });
 
-    const total = cartItems.reduce((sum, item) => {
+    const validCartItems = [];
+    const itemsToDelete = [];
+
+    for (const item of cartItems) {
+      if (!item.product || !item.product.isActive) {
+        itemsToDelete.push(item.id);
+      } else {
+        validCartItems.push(item);
+      }
+    }
+
+    if (itemsToDelete.length > 0) {
+      await Cart.destroy({ where: { id: itemsToDelete } });
+    }
+
+    const total = validCartItems.reduce((sum, item) => {
       return sum + (parseFloat(item.product.price) * item.quantity);
     }, 0);
 
     res.json({
       success: true,
       data: {
-        items: cartItems,
+        items: validCartItems,
         total: parseFloat(total.toFixed(2)),
       },
     });
@@ -101,6 +116,12 @@ const updateCartItem = async (req, res, next) => {
     }
 
     const product = await Product.findByPk(cartItem.productId);
+    if (!product || !product.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found or inactive.',
+      });
+    }
     if (quantity > product.stock) {
       return res.status(400).json({
         success: false,

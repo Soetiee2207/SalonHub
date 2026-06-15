@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPackage, FiChevronRight, FiXCircle, FiStar } from 'react-icons/fi';
+import { FiPackage, FiChevronRight, FiXCircle, FiStar, FiCreditCard } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
 import { reviewService } from '../../services/reviewService';
 import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
+import CountdownTimer from '../../components/common/CountdownTimer';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 const statusConfig = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-700' },
@@ -53,6 +55,7 @@ export default function MyOrders() {
   const [confirming, setConfirming] = useState(null);
   const [reviewProduct, setReviewProduct] = useState(null);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [payingOrder, setPayingOrder] = useState(null);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -242,6 +245,7 @@ export default function MyOrders() {
                 const status = statusConfig[order.status] || statusConfig.pending;
                 const paymentStatus = paymentStatusConfig[order.paymentStatus] || paymentStatusConfig.pending;
                 const itemCount = order.items?.length || 0;
+                const canPayOrder = order.paymentMethod === 'sepay' && order.paymentStatus === 'pending' && order.status === 'pending';
 
                 return (
                   <div
@@ -264,7 +268,14 @@ export default function MyOrders() {
                             })}
                           </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {canPayOrder && (
+                            <CountdownTimer
+                              createdAt={order.createdAt}
+                              timeoutMinutes={2}
+                              onExpired={fetchOrders}
+                            />
+                          )}
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${status.color}`}>
                             {status.label}
                           </span>
@@ -294,6 +305,15 @@ export default function MyOrders() {
                       </div>
 
                       <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
+                        {canPayOrder && (
+                          <button
+                            onClick={() => setPayingOrder(order)}
+                            className="flex items-center gap-1.5 text-sm bg-[#8B5E3C] text-white px-3 py-1.5 rounded-lg hover:bg-[#6D492E] transition-colors font-bold cursor-pointer border-0"
+                          >
+                            <FiCreditCard size={16} />
+                            Thanh toán
+                          </button>
+                        )}
                         {order.status === 'pending' && (
                           <button
                             onClick={() => handleCancelOrder(order.id)}
@@ -338,6 +358,13 @@ export default function MyOrders() {
         onClose={() => setReviewProduct(null)}
         onSubmit={handleReviewSubmit}
         submitting={submittingReview}
+      />
+
+      <BankTransferModal
+        isOpen={!!payingOrder}
+        onClose={() => setPayingOrder(null)}
+        amount={payingOrder?.totalAmount || 0}
+        orderId={payingOrder?.id}
       />
     </div>
   );

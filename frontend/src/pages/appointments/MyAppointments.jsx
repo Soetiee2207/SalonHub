@@ -7,6 +7,7 @@ import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
 import BankTransferModal from '../../components/common/BankTransferModal';
 import AppointmentDetailModal from '../../components/common/AppointmentDetailModal';
+import CountdownTimer from '../../components/common/CountdownTimer';
 
 const STATUS_MAP = {
   awaiting_deposit: { label: 'Chờ đặt cọc', color: 'bg-purple-100 text-purple-700 border-purple-200' },
@@ -162,6 +163,13 @@ export default function MyAppointments() {
                         >
                           {statusInfo.label}
                         </span>
+                        {canPayDeposit && (
+                          <CountdownTimer
+                            createdAt={appt.createdAt}
+                            timeoutMinutes={2}
+                            onExpired={fetchAppointments}
+                          />
+                        )}
                       </div>
                       <span className="text-[var(--primary)] font-black text-lg">
                         {formatPrice(getPrice(appt))}

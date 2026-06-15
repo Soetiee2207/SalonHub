@@ -21,7 +21,7 @@ const STATUS_TRANSITIONS = {
 };
 
 const DEPOSIT_RATE = 1.0;
-const DEPOSIT_TIMEOUT_MINUTES = 30;
+const DEPOSIT_TIMEOUT_MINUTES = 2;
 
 const APPOINTMENT_INCLUDES = [
   { model: User, as: 'customer', attributes: ['id', 'fullName', 'email', 'phone'] },

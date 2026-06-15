@@ -1,18 +1,21 @@
 /**
- * Deposit Timeout Job
- * Auto-cancels appointments that have been in 'awaiting_deposit' status
- * for longer than the configured timeout (30 minutes).
- * Runs every 5 minutes.
+ * Deposit & Payment Timeout Job
+ * 
+ * 1. Auto-cancels appointments in 'awaiting_deposit' for > 2 minutes.
+ * 2. Auto-cancels orders with SePay payment still 'pending' for > 2 minutes.
+ * 
+ * Runs every 30 seconds to ensure timely cancellation.
  */
 const { Op } = require('sequelize');
 const db = require('../models');
 
-const DEPOSIT_TIMEOUT_MINUTES = 30;
-const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
+const PAYMENT_TIMEOUT_MINUTES = 2;
+const CHECK_INTERVAL_MS = 30 * 1000; // Check every 30 seconds
 
+// ---- 1. Cancel expired appointment deposits ----
 const cancelExpiredDeposits = async () => {
   try {
-    const cutoff = new Date(Date.now() - DEPOSIT_TIMEOUT_MINUTES * 60 * 1000);
+    const cutoff = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
 
     const expiredAppointments = await db.Appointment.findAll({
       where: {
@@ -24,12 +27,12 @@ const cancelExpiredDeposits = async () => {
 
     if (expiredAppointments.length === 0) return;
 
-    console.log(`[Deposit Timeout] Found ${expiredAppointments.length} expired deposit(s). Cancelling...`);
+    console.log(`[Payment Timeout] Found ${expiredAppointments.length} expired appointment deposit(s). Cancelling...`);
 
     for (const appointment of expiredAppointments) {
       await appointment.update({
         status: 'cancelled',
-        cancelReason: 'Tự động hủy: Quá thời hạn đặt cọc (30 phút)',
+        cancelReason: `Tự động hủy: Quá thời hạn đặt cọc (${PAYMENT_TIMEOUT_MINUTES} phút)`,
       });
 
       await db.Payment.update(
@@ -41,21 +44,88 @@ const cancelExpiredDeposits = async () => {
       await createNotification({
         userId: appointment.userId,
         title: 'Lịch hẹn đã bị hủy',
-        message: `Lịch hẹn #${appointment.id} ngày ${appointment.date} đã bị hủy do quá thời hạn đặt cọc (${DEPOSIT_TIMEOUT_MINUTES} phút).`,
+        message: `Lịch hẹn #${appointment.id} ngày ${appointment.date} đã bị hủy do quá thời hạn đặt cọc (${PAYMENT_TIMEOUT_MINUTES} phút).`,
         type: 'appointment',
       });
 
-      console.log(`[Deposit Timeout] Cancelled appointment #${appointment.id}`);
+      console.log(`[Payment Timeout] Cancelled appointment #${appointment.id}`);
     }
   } catch (error) {
-    console.error('[Deposit Timeout] Error:', error.message);
+    console.error('[Payment Timeout] Error cancelling expired deposits:', error.message);
   }
 };
 
-const startDepositTimeoutJob = () => {
-  console.log(`⏰ Deposit timeout job started (check every ${CHECK_INTERVAL_MS / 60000} min, timeout: ${DEPOSIT_TIMEOUT_MINUTES} min)`);
-  setInterval(cancelExpiredDeposits, CHECK_INTERVAL_MS);
-  cancelExpiredDeposits();
+// ---- 2. Cancel expired SePay orders ----
+const cancelExpiredOrders = async () => {
+  try {
+    const cutoff = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
+
+    const expiredOrders = await db.Order.findAll({
+      where: {
+        paymentMethod: 'sepay',
+        paymentStatus: 'pending',
+        status: 'pending',
+        createdAt: { [Op.lt]: cutoff },
+      },
+      include: [{ model: db.OrderItem, as: 'items' }],
+    });
+
+    if (expiredOrders.length === 0) return;
+
+    console.log(`[Payment Timeout] Found ${expiredOrders.length} expired SePay order(s). Cancelling...`);
+
+    for (const order of expiredOrders) {
+      const t = await db.sequelize.transaction();
+      try {
+        // Restore reserved stock for each product
+        for (const item of order.items) {
+          const product = await db.Product.findByPk(item.productId, { transaction: t });
+          if (product) {
+            await product.update({
+              reservedStock: Math.max(0, product.reservedStock - item.quantity),
+            }, { transaction: t });
+          }
+        }
+
+        await order.update({ status: 'cancelled' }, { transaction: t });
+
+        await db.Payment.update(
+          { status: 'failed' },
+          { where: { orderId: order.id, status: 'pending' }, transaction: t },
+        );
+
+        await t.commit();
+
+        const { createNotification } = require('../controllers/notificationController');
+        await createNotification({
+          userId: order.userId,
+          title: 'Đơn hàng đã bị hủy',
+          message: `Đơn hàng #${order.id} đã bị hủy do quá thời hạn thanh toán (${PAYMENT_TIMEOUT_MINUTES} phút).`,
+          type: 'order',
+        });
+
+        console.log(`[Payment Timeout] Cancelled order #${order.id}`);
+      } catch (err) {
+        await t.rollback();
+        console.error(`[Payment Timeout] Error cancelling order #${order.id}:`, err.message);
+      }
+    }
+  } catch (error) {
+    console.error('[Payment Timeout] Error cancelling expired orders:', error.message);
+  }
 };
 
-module.exports = { startDepositTimeoutJob, cancelExpiredDeposits };
+// ---- Combined runner ----
+const runTimeoutChecks = async () => {
+  await cancelExpiredDeposits();
+  await cancelExpiredOrders();
+};
+
+const startDepositTimeoutJob = () => {
+  console.log(`⏰ Payment timeout job started (check every ${CHECK_INTERVAL_MS / 1000}s, timeout: ${PAYMENT_TIMEOUT_MINUTES} min)`);
+  setInterval(runTimeoutChecks, CHECK_INTERVAL_MS);
+  // Run immediately on startup
+  runTimeoutChecks();
+};
+
+module.exports = { startDepositTimeoutJob, cancelExpiredDeposits, cancelExpiredOrders };

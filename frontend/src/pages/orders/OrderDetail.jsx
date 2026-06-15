@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiArrowLeft, FiXCircle, FiMapPin, FiPhone, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiXCircle, FiMapPin, FiPhone, FiCheckCircle, FiCreditCard } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { orderService } from '../../services/orderService';
 import { reviewService } from '../../services/reviewService';
@@ -8,6 +8,8 @@ import { formatPrice } from '../../utils/formatPrice';
 import ReviewModal from '../../components/common/ReviewModal';
 import ReturnModal from '../../components/common/ReturnModal';
 import { returnService } from '../../services/returnService';
+import CountdownTimer from '../../components/common/CountdownTimer';
+import BankTransferModal from '../../components/common/BankTransferModal';
 
 const PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1597854710218-d2f1064e3b3e?w=400&q=80';
 
@@ -34,6 +36,7 @@ export default function OrderDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -126,6 +129,7 @@ export default function OrderDetail() {
   const items = order.items || [];
   const subtotal = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
   const discountAmount = order.discount || (subtotal - (order.totalAmount || 0));
+  const canPayOrder = order.paymentMethod === 'sepay' && order.paymentStatus === 'pending' && order.status === 'pending';
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -299,7 +303,16 @@ export default function OrderDetail() {
         {/* Right - Summary */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm sticky top-24">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Tổng kết</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex justify-between items-center flex-wrap gap-2">
+              <span>Tổng kết</span>
+              {canPayOrder && (
+                <CountdownTimer
+                  createdAt={order.createdAt}
+                  timeoutMinutes={2}
+                  onExpired={fetchOrder}
+                />
+              )}
+            </h2>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Tạm tính</span>
@@ -316,6 +329,16 @@ export default function OrderDetail() {
                 <span className="text-[var(--primary)]">{formatPrice(order.totalAmount || 0)}</span>
               </div>
             </div>
+
+            {canPayOrder && (
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 bg-[#8B5E3C] text-white rounded-lg hover:bg-[#6D492E] transition-colors font-bold cursor-pointer border-0"
+              >
+                <FiCreditCard size={18} />
+                Thanh toán ngay
+              </button>
+            )}
 
             {order.status === 'pending' && (
               <button
@@ -355,6 +378,13 @@ export default function OrderDetail() {
         onClose={() => setShowReturnModal(false)}
         onSubmit={handleReturnSubmit}
         submitting={submittingReturn}
+      />
+
+      <BankTransferModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        amount={order.totalAmount || 0}
+        orderId={order.id}
       />
     </div>
   );

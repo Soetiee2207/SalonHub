@@ -190,6 +190,7 @@ export default function Checkout() {
                   {addresses.map((addr) => (
                     <label
                       key={addr.id}
+                      data-testid={`checkout-address-${addr.id}`}
                       className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
                         selectedAddressId === addr.id
                           ? 'border-[var(--primary)] bg-[var(--bg-light)]'
@@ -200,6 +201,7 @@ export default function Checkout() {
                         type="radio"
                         name="selectedAddress"
                         value={addr.id}
+                        data-testid={`checkout-address-radio-${addr.id}`}
                         checked={selectedAddressId === addr.id}
                         onChange={() => setSelectedAddressId(addr.id)}
                         className="accent-[var(--primary)] mt-1"
@@ -233,6 +235,7 @@ export default function Checkout() {
                   <input
                     type="text"
                     value={voucherCode}
+                    data-testid="checkout-voucher-input"
                     onChange={(e) => {
                       setVoucherCode(e.target.value.toUpperCase());
                       if (voucherApplied) {
@@ -248,6 +251,7 @@ export default function Checkout() {
                   type="button"
                   onClick={handleApplyVoucher}
                   disabled={applyingVoucher}
+                  data-testid="checkout-apply-voucher-btn"
                   className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 font-medium"
                 >
                   {applyingVoucher ? 'Đang kiểm tra...' : 'Áp dụng'}
@@ -269,6 +273,7 @@ export default function Checkout() {
                     type="radio"
                     name="paymentMethod"
                     value="cod"
+                    data-testid="checkout-payment-cod"
                     checked={paymentMethod === 'cod'}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="accent-[var(--primary)]"
@@ -285,6 +290,7 @@ export default function Checkout() {
                     type="radio"
                     name="paymentMethod"
                     value="sepay"
+                    data-testid="checkout-payment-sepay"
                     checked={paymentMethod === 'sepay'}
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="accent-[var(--primary)]"
@@ -334,6 +340,7 @@ export default function Checkout() {
               <button
                 type="submit"
                 disabled={submitting}
+                data-testid="checkout-submit-btn"
                 className="w-full mt-6 px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-light)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Đang xử lý...' : 'Đặt hàng'}

@@ -127,6 +127,7 @@ export default function Notifications() {
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllRead}
+            data-testid="notif-mark-all-btn"
             className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--primary)] bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 rounded-lg transition-colors"
           >
             <FiCheckCircle size={16} />
@@ -159,6 +160,7 @@ export default function Notifications() {
             return (
               <div
                 key={id}
+                data-testid={`notif-card-${id}`}
                 onClick={() => unread && handleMarkAsRead(id)}
                 className={`flex items-start gap-4 p-4 cursor-pointer transition-colors ${
                   unread
@@ -195,6 +197,7 @@ export default function Notifications() {
                     e.stopPropagation();
                     handleDelete(id);
                   }}
+                  data-testid={`notif-item-delete-${id}`}
                   className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
                   title="Xóa thông báo"
                 >

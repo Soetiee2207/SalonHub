@@ -255,10 +255,12 @@ export default function AdminLayout() {
             {sidebarLinks.map(link => {
               const Icon = link.icon;
               const active = isActive(link);
+              const testId = `admin-nav-${link.to.replace(/^\/admin\/?/, '') || 'dashboard'}`;
               return (
                 <Link
                   key={link.to}
                   to={link.to}
+                  data-testid={testId}
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium no-underline transition-colors ${
                     active
@@ -304,6 +306,7 @@ export default function AdminLayout() {
             <div className="relative mr-2" ref={notifRef}>
               <button
                 onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                data-testid="admin-notifications"
                 className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors bg-transparent border-0 cursor-pointer flex items-center justify-center focus:outline-none"
               >
                 <FiBell size={20} />
@@ -491,6 +494,7 @@ export default function AdminLayout() {
                         setUserDropdownOpen(false);
                         handleLogout();
                       }}
+                      data-testid="admin-logout-btn"
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors bg-transparent border-0 cursor-pointer"
                     >
                       <FiLogOut size={16} />

@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
 
-
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const branchRoutes = require('./routes/branchRoutes');

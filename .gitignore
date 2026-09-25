@@ -38,3 +38,5 @@ baocao
 *.gif
 node_modules
 .env
+
+document_testing

@@ -170,6 +170,7 @@ export default function MyOrders() {
         {TABS.map(tab => (
           <button
             key={tab.id}
+            data-testid={`order-tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 rounded-t-lg ${
               activeTab === tab.id
@@ -250,6 +251,7 @@ export default function MyOrders() {
                 return (
                   <div
                     key={order.id}
+                    data-testid={`order-card-${order.id}`}
                     className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
                   >
                     <div className="p-5">
@@ -308,6 +310,7 @@ export default function MyOrders() {
                         {canPayOrder && (
                           <button
                             onClick={() => setPayingOrder(order)}
+                            data-testid={`order-pay-btn-${order.id}`}
                             className="flex items-center gap-1.5 text-sm bg-[#8B5E3C] text-white px-3 py-1.5 rounded-lg hover:bg-[#6D492E] transition-colors font-bold cursor-pointer border-0"
                           >
                             <FiCreditCard size={16} />
@@ -318,6 +321,7 @@ export default function MyOrders() {
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             disabled={cancelling === order.id}
+                            data-testid={`order-cancel-btn-${order.id}`}
                             className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                           >
                             <FiXCircle size={16} />
@@ -328,6 +332,7 @@ export default function MyOrders() {
                           <button
                             onClick={() => handleConfirmReceipt(order.id)}
                             disabled={confirming === order.id}
+                            data-testid={`order-confirm-received-btn-${order.id}`}
                             className="flex items-center gap-1.5 text-sm bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 font-bold"
                           >
                             {confirming === order.id ? 'Đang xác nhận...' : 'Đã nhận hàng'}
@@ -336,6 +341,7 @@ export default function MyOrders() {
                         <div className="flex-1" />
                         <Link
                           to={`/my-orders/${order.id}`}
+                          data-testid={`order-detail-btn-${order.id}`}
                           className="flex items-center gap-1 text-sm text-[var(--primary)] hover:underline font-medium"
                         >
                           Xem chi tiết

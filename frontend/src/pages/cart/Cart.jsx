@@ -134,12 +134,14 @@ export default function Cart() {
         <div className="flex items-center gap-6">
           <button
             onClick={toggleSelectAll}
+            data-testid="cart-select-all-btn"
             className="text-sm font-medium text-[var(--primary)] hover:underline flex items-center gap-2"
           >
             {selectedIds.length === items.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
           </button>
           <button
             onClick={handleClearCart}
+            data-testid="cart-clear-btn"
             className="flex items-center gap-2 text-red-500 hover:text-red-700 text-sm font-medium transition-colors"
           >
             <FiTrash2 size={16} />
@@ -154,6 +156,7 @@ export default function Cart() {
           {items.map((item) => (
             <div
               key={item.id}
+              data-testid={`cart-item-${item.id}`}
               className={`flex gap-4 bg-white rounded-xl border p-4 shadow-sm transition-all ${
                 selectedIds.includes(item.id) ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]/20' : 'border-gray-100'
               }`}
@@ -161,6 +164,7 @@ export default function Cart() {
               <div className="flex items-center">
                 <input
                   type="checkbox"
+                  data-testid={`cart-item-checkbox-${item.id}`}
                   checked={selectedIds.includes(item.id)}
                   onChange={() => toggleSelect(item.id)}
                   className="w-5 h-5 rounded border-gray-300 text-[var(--primary)] focus:ring-[var(--primary)] cursor-pointer"
@@ -188,6 +192,7 @@ export default function Cart() {
                     <button
                       onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                       disabled={updating === item.id || item.quantity <= 1}
+                      data-testid={`cart-qty-minus-${item.id}`}
                       className="px-2 py-1 hover:bg-gray-100 transition-colors disabled:opacity-50"
                     >
                       <FiMinus size={14} />
@@ -196,6 +201,7 @@ export default function Cart() {
                     <button
                       onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
                       disabled={updating === item.id}
+                      data-testid={`cart-qty-plus-${item.id}`}
                       className="px-2 py-1 hover:bg-gray-100 transition-colors disabled:opacity-50"
                     >
                       <FiPlus size={14} />
@@ -208,6 +214,7 @@ export default function Cart() {
               </div>
               <button
                 onClick={() => handleRemoveItem(item.id)}
+                data-testid={`cart-remove-item-${item.id}`}
                 className="text-gray-400 hover:text-red-500 transition-colors self-start p-1"
               >
                 <FiTrash2 size={18} />
@@ -233,6 +240,7 @@ export default function Cart() {
             <button
               onClick={handleCheckout}
               disabled={selectedIds.length === 0}
+              data-testid="cart-checkout-btn"
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-light)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Tiến hành thanh toán

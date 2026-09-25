@@ -147,6 +147,7 @@ export default function Contact() {
                         type="text"
                         name="name"
                         value={form.name}
+                        data-testid="contact-name-input"
                         onChange={handleChange}
                         placeholder="Nhập họ và tên"
                         className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:border-[var(--primary)]"
@@ -166,6 +167,7 @@ export default function Contact() {
                         type="email"
                         name="email"
                         value={form.email}
+                        data-testid="contact-email-input"
                         onChange={handleChange}
                         placeholder="Nhập email"
                         className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:border-[var(--primary)]"
@@ -185,6 +187,7 @@ export default function Contact() {
                         type="tel"
                         name="phone"
                         value={form.phone}
+                        data-testid="contact-phone-input"
                         onChange={handleChange}
                         placeholder="Nhập số điện thoại"
                         className="w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm outline-none transition-colors focus:border-[var(--primary)]"
@@ -201,6 +204,7 @@ export default function Contact() {
                     <textarea
                       name="message"
                       value={form.message}
+                      data-testid="contact-message-input"
                       onChange={handleChange}
                       placeholder="Nhập nội dung tin nhắn..."
                       rows={5}
@@ -211,6 +215,7 @@ export default function Contact() {
 
                   <button
                     type="submit"
+                    data-testid="contact-submit-btn"
                     disabled={submitting}
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm text-white transition-colors disabled:opacity-60"
                     style={{ backgroundColor: 'var(--primary)' }}

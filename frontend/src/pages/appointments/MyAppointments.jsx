@@ -120,6 +120,7 @@ export default function MyAppointments() {
             <button
               key={tab.key ?? 'all'}
               onClick={() => setStatusFilter(tab.key)}
+              data-testid={`appointment-tab-${tab.key ?? 'all'}`}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 statusFilter === tab.key
                   ? 'bg-[var(--primary)] text-white'
@@ -147,6 +148,7 @@ export default function MyAppointments() {
               return (
                 <div
                   key={appt.id}
+                  data-testid={`appointment-card-${appt.id}`}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow relative overflow-hidden group"
                 >
                   {/* Glass indicator */}
@@ -198,6 +200,7 @@ export default function MyAppointments() {
                     <div className="mt-auto flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setDetailAppt(appt)}
+                        data-testid={`appointment-detail-btn-${appt.id}`}
                         className="flex-1 min-w-[120px] px-3 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
                       >
                         <FiInfo size={14} /> Xem chi tiết
@@ -206,6 +209,7 @@ export default function MyAppointments() {
                       {canPayDeposit && (
                         <button
                           onClick={() => setDepositPayAppt(appt)}
+                          data-testid={`appointment-deposit-btn-${appt.id}`}
                           className="px-4 py-2 text-xs font-black text-white bg-[#8B5E3C] rounded-xl hover:bg-[#6D492E] transition-all flex items-center gap-1.5 shadow-md"
                         >
                           <FiDollarSign className="text-sm" /> Đặt cọc
@@ -215,6 +219,7 @@ export default function MyAppointments() {
                       {canReview && (
                         <button
                           onClick={() => setReviewModal(appt)}
+                          data-testid={`appointment-review-btn-${appt.id}`}
                           className="px-4 py-2 text-xs font-bold text-[var(--primary)] border border-[var(--primary)] rounded-xl hover:bg-[var(--bg-light)] transition-all flex items-center gap-1"
                         >
                           <FiStar size={14} /> Đánh giá

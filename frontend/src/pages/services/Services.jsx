@@ -100,6 +100,7 @@ export default function Services() {
             type="text"
             placeholder="Tìm kiếm dịch vụ..."
             value={search}
+            data-testid="services-search-input"
             onChange={(e) => setSearch(e.target.value)}
             style={{ fontFamily: 'var(--font-body)' }}
             className="w-full pl-12 pr-4 py-3 rounded-full border border-[var(--bg-warm)] bg-white focus:outline-none focus:border-[var(--primary-light)] text-gray-700 placeholder-gray-400"
@@ -110,6 +111,7 @@ export default function Services() {
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           <button
             onClick={() => setSelectedCategory(null)}
+            data-testid="services-cat-all"
             style={{ fontFamily: 'var(--font-body)' }}
             className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
               !selectedCategory
@@ -123,6 +125,7 @@ export default function Services() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
+              data-testid={`services-cat-${cat.id}`}
               style={{ fontFamily: 'var(--font-body)' }}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 selectedCategory === cat.id
@@ -147,6 +150,7 @@ export default function Services() {
             {filtered.map((service) => (
               <div
                 key={service.id}
+                data-testid={`services-card-${service.id}`}
                 onClick={() => navigate(`/services/${service.id}`)}
                 className="group bg-white rounded-2xl overflow-hidden cursor-pointer border border-[var(--bg-warm)] hover:-translate-y-1 transition-all duration-300"
               >

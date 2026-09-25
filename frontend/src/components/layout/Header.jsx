@@ -173,6 +173,7 @@ export default function Header() {
               <Link
                 key={link.to}
                 to={link.to}
+                data-testid={`nav-${link.to === '/' ? 'home' : link.to.replace(/^\//, '').replace(/\//g, '-')}`}
                 className={`px-4 py-2 rounded-lg text-sm font-medium no-underline transition-colors ${
                   isActive(link.to)
                     ? 'text-[var(--primary)] bg-[var(--primary)]/5'
@@ -189,7 +190,7 @@ export default function Header() {
             {user ? (
               <>
                 {/* Cart */}
-                <Link to="/cart" className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors">
+                <Link to="/cart" data-testid="nav-cart" aria-label="Giỏ hàng" className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors">
                   <FiShoppingCart size={20} />
                   {cartCount > 0 && (
                     <span className={`absolute -top-0.5 -right-0.5 bg-[var(--error)] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full ${isCartPopping ? 'animate-cart-pop shadow-lg' : ''} transition-all duration-300`}>
@@ -202,6 +203,8 @@ export default function Header() {
                 <div className="relative mr-1 flex items-center" ref={notifRef}>
                   <button
                     onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                    data-testid="nav-notifications"
+                    aria-label="Thông báo"
                     className="relative p-2 text-[var(--text-gray)] hover:text-[var(--text-dark)] transition-colors bg-transparent border-0 cursor-pointer flex items-center justify-center focus:outline-none"
                   >
                     <FiBell size={20} />
@@ -330,6 +333,7 @@ export default function Header() {
                 <div className="relative" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
+                    data-testid="nav-user-dropdown"
                     className="flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     {user?.avatar ? (
@@ -344,6 +348,7 @@ export default function Header() {
                     <div className="absolute right-0 mt-1 w-64 bg-white border border-[var(--border)] rounded-xl py-1 z-50 shadow-2xl">
                       <Link
                         to="/profile"
+                        data-testid="user-menu-profile"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
@@ -352,6 +357,7 @@ export default function Header() {
                       </Link>
                       <Link
                         to="/my-orders"
+                        data-testid="user-menu-orders"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
@@ -360,6 +366,7 @@ export default function Header() {
                       </Link>
                       <Link
                         to="/my-appointments"
+                        data-testid="user-menu-appointments"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
@@ -368,6 +375,7 @@ export default function Header() {
                       </Link>
                       <Link
                         to="/my-addresses"
+                        data-testid="user-menu-addresses"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--text-dark)] hover:bg-gray-50 no-underline"
                       >
@@ -377,6 +385,7 @@ export default function Header() {
                       {user.role !== 'customer' && (
                         <Link
                           to="/admin"
+                          data-testid="user-menu-admin"
                           onClick={() => setDropdownOpen(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--primary)] hover:bg-gray-50 no-underline"
                         >
@@ -387,6 +396,7 @@ export default function Header() {
                       <div className="border-t border-[var(--border)] my-1"></div>
                       <button
                         onClick={handleLogout}
+                        data-testid="user-menu-logout"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[var(--error)] hover:bg-gray-50 w-full"
                       >
                         <FiLogOut size={16} />
@@ -400,12 +410,14 @@ export default function Header() {
               <div className="hidden md:flex items-center gap-2">
                 <Link
                   to="/login"
+                  data-testid="nav-login-btn"
                   className="px-4 py-2 text-sm font-medium text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg no-underline transition-colors"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
+                  data-testid="nav-register-btn"
                   className="px-4 py-2 text-sm font-medium text-white bg-[var(--primary)] hover:bg-[var(--primary-dark)] rounded-lg no-underline transition-colors"
                 >
                   Đăng ký
@@ -417,6 +429,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Menu điều hướng"
             className="md:hidden p-2 text-[var(--text-gray)]"
           >
             {mobileOpen ? <FiX size={24} /> : <FiMenu size={24} />}

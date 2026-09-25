@@ -214,22 +214,22 @@ export default function AdminAppointments() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="Tìm tên khách, mã..." value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" data-testid="admin-appt-search-input" placeholder="Tìm tên khách, mã..." value={search} onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-3 py-3 bg-slate-50 border-0 rounded-2xl text-sm focus:ring-2 focus:ring-[#8B5E3C] outline-none" />
           </div>
-          <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+          <input type="date" data-testid="admin-appt-date-filter" value={filterDate} onChange={e => setFilterDate(e.target.value)}
             className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none" />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <select value={filterStatus} data-testid="admin-appt-status-filter" onChange={e => setFilterStatus(e.target.value)}
             className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
             <option value="">Tất cả trạng thái</option>
             {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <select value={filterStaff} onChange={e => setFilterStaff(e.target.value)}
+          <select value={filterStaff} data-testid="admin-appt-staff-filter" onChange={e => setFilterStaff(e.target.value)}
             className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
             <option value="">Tất cả thợ</option>
             {staffList.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}
           </select>
-          <select value={filterBranch} onChange={e => setFilterBranch(e.target.value)}
+          <select value={filterBranch} data-testid="admin-appt-branch-filter" onChange={e => setFilterBranch(e.target.value)}
             className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm outline-none">
             <option value="">Tất cả chi nhánh</option>
             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}

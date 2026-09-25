@@ -224,6 +224,7 @@ export default function Profile() {
         <input
           type={showState ? 'text' : 'password'}
           name={name}
+          data-testid={`profile-${name}-input`}
           value={passwordForm[name]}
           onChange={handlePasswordChange}
           placeholder={placeholder}
@@ -374,6 +375,7 @@ export default function Profile() {
                   <input
                     type="text"
                     name="fullName"
+                    data-testid="profile-fullname-input"
                     value={form.fullName}
                     onChange={handleChange}
                     placeholder="Nguyễn Văn A"
@@ -404,6 +406,7 @@ export default function Profile() {
                   <input
                     type="tel"
                     name="phone"
+                    data-testid="profile-phone-input"
                     value={form.phone}
                     onChange={handleChange}
                     placeholder="0912 345 678"
@@ -422,6 +425,7 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={saving}
+                data-testid="profile-save-btn"
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer"
                 style={{
                   backgroundColor: 'var(--primary)',
@@ -483,6 +487,7 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={changingPassword}
+                data-testid="profile-pwd-submit-btn"
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer"
                 style={{
                   backgroundColor: 'var(--primary)',

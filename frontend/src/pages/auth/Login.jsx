@@ -159,6 +159,7 @@ export default function Login() {
                   <input
                     type="text"
                     name="email"
+                    data-testid="login-email-input"
                     value={form.email}
                     onChange={handleChange}
                     placeholder="Email hoặc Số điện thoại"
@@ -185,6 +186,7 @@ export default function Login() {
                   </label>
                   <button
                     type="button"
+                    data-testid="login-forgot-btn"
                     onClick={() => setIsForgotOpen(true)}
                     className="text-sm font-medium hover:underline border-0 bg-transparent cursor-pointer"
                     style={{ color: 'var(--primary)', fontFamily: 'var(--font-body)' }}
@@ -199,6 +201,7 @@ export default function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
+                    data-testid="login-password-input"
                     value={form.password}
                     onChange={handleChange}
                     placeholder="Nhập mật khẩu"
@@ -226,6 +229,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
+                data-testid="login-submit-btn"
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer"
                 style={{
                   backgroundColor: 'var(--primary)',
@@ -250,6 +254,7 @@ export default function Login() {
               <div className="flex justify-center">
                 <button
                   type="button"
+                  data-testid="login-google-btn"
                   onClick={() => googleLoginRedirect()}
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-3 py-3 rounded-full border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-sm text-gray-700"
@@ -268,6 +273,7 @@ export default function Login() {
               Chưa có tài khoản?{' '}
               <Link
                 to="/register"
+                data-testid="login-register-link"
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--primary)' }}
               >

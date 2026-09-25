@@ -59,6 +59,7 @@ export default function ChatbotWidget() {
       {/* Chat Panel */}
       {isOpen && (
         <div
+          data-testid="chatbot-window"
           className="fixed bottom-20 right-4 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border flex flex-col overflow-hidden animate-fade-in-up"
           style={{
             borderColor: 'var(--border)',
@@ -81,6 +82,8 @@ export default function ChatbotWidget() {
             </div>
             <button
               onClick={() => setIsOpen(false)}
+              data-testid="chatbot-close-btn"
+              aria-label="Đóng chat"
               className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer border-0 bg-transparent text-white"
             >
               <FiX size={18} />
@@ -139,6 +142,7 @@ export default function ChatbotWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Nhập câu hỏi..."
+              data-testid="chatbot-input"
               className="flex-1 px-3 py-2 rounded-xl border text-sm outline-none"
               style={{
                 borderColor: 'var(--border)',
@@ -148,6 +152,8 @@ export default function ChatbotWidget() {
             <button
               onClick={handleSend}
               disabled={!input.trim()}
+              data-testid="chatbot-send-btn"
+              aria-label="Gửi tin nhắn"
               className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-opacity cursor-pointer border-0 disabled:opacity-40"
               style={{ backgroundColor: 'var(--primary)' }}
             >
@@ -160,6 +166,7 @@ export default function ChatbotWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
+        data-testid="chatbot-toggle-btn"
         className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-transform hover:scale-110 cursor-pointer border-0"
         style={{
           backgroundColor: 'var(--primary)',

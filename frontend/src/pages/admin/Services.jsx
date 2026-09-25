@@ -200,6 +200,7 @@ export default function AdminServices() {
         </div>
         <button 
           onClick={openCreate} 
+          data-testid="admin-add-service-btn"
           className="flex items-center gap-2 px-6 py-3 rounded-2xl text-white font-bold shadow-lg shadow-brown-100 transition-all hover:scale-105 active:scale-95 border-0 cursor-pointer"
           style={{ backgroundColor: 'var(--primary)' }}
         >
@@ -218,12 +219,14 @@ export default function AdminServices() {
            </div>
            <div className="flex gap-2 shrink-0">
              <button onClick={() => setFilterCat('')}
+                data-testid="admin-service-cat-all"
                 className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer ${!filterCat ? 'bg-[#8B5E3C] text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                 TẤT CẢ
              </button>
              {categories.map(cat => (
                 <div key={cat.id} className="group relative flex items-center">
                   <button onClick={() => setFilterCat(cat.id)}
+                    data-testid={`admin-service-cat-${cat.id}`}
                     className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border-0 cursor-pointer ${filterCat === cat.id ? 'bg-[#8B5E3C] text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
                     {cat.name.toUpperCase()}
                   </button>
@@ -241,6 +244,7 @@ export default function AdminServices() {
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input 
                 type="text" 
+                data-testid="admin-service-search-input"
                 placeholder="Tìm tên dịch vụ..." 
                 value={search} 
                 onChange={e => setSearch(e.target.value)}

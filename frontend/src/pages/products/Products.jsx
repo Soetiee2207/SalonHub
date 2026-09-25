@@ -105,6 +105,7 @@ export default function Products() {
               <input
                 type="text"
                 value={search}
+                data-testid="products-search-input"
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm kiếm sản phẩm..."
                 style={{ fontFamily: 'var(--font-body)' }}
@@ -113,6 +114,7 @@ export default function Products() {
             </div>
             <button
               type="submit"
+              data-testid="products-search-btn"
               style={{ fontFamily: 'var(--font-body)' }}
               className="px-6 py-3 bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-light)] transition-colors font-medium"
             >
@@ -125,6 +127,7 @@ export default function Products() {
             <FiFilter className="text-[var(--primary-light)]" />
             <select
               value={sort}
+              data-testid="products-sort-select"
               onChange={(e) => setSort(e.target.value)}
               style={{ fontFamily: 'var(--font-body)' }}
               className="border border-[var(--bg-warm)] rounded-full px-5 py-3 bg-white focus:outline-none focus:border-[var(--primary-light)] text-gray-700 text-sm"
@@ -140,6 +143,7 @@ export default function Products() {
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           <button
             onClick={() => setSelectedCategory('')}
+            data-testid="products-cat-all"
             style={{ fontFamily: 'var(--font-body)' }}
             className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
               selectedCategory === ''
@@ -153,6 +157,7 @@ export default function Products() {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
+              data-testid={`products-cat-${cat.id}`}
               style={{ fontFamily: 'var(--font-body)' }}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 selectedCategory === cat.id
@@ -191,6 +196,7 @@ export default function Products() {
               <Link
                 to={`/products/${product.id}`}
                 key={product.id}
+                data-testid={`product-card-${product.id}`}
                 className="group bg-white rounded-2xl overflow-hidden border border-[var(--bg-warm)] hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="relative aspect-square overflow-hidden">
@@ -204,6 +210,7 @@ export default function Products() {
                     <button
                       onClick={(e) => handleAddToCart(e, product)}
                       disabled={addingToCart === product.id || product.stock === 0}
+                      data-testid={`product-add-cart-btn-${product.id}`}
                       style={{ fontFamily: 'var(--font-body)' }}
                       className="flex items-center gap-2 px-5 py-2.5 bg-white text-[var(--primary)] rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-[var(--primary)] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                     >

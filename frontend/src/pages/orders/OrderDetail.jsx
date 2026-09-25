@@ -333,6 +333,7 @@ export default function OrderDetail() {
             {canPayOrder && (
               <button
                 onClick={() => setShowPaymentModal(true)}
+                data-testid="order-detail-pay-btn"
                 className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 bg-[#8B5E3C] text-white rounded-lg hover:bg-[#6D492E] transition-colors font-bold cursor-pointer border-0"
               >
                 <FiCreditCard size={18} />
@@ -344,6 +345,7 @@ export default function OrderDetail() {
               <button
                 onClick={handleCancel}
                 disabled={cancelling}
+                data-testid="order-detail-cancel-btn"
                 className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 border-2 border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50"
               >
                 <FiXCircle size={18} />
@@ -354,6 +356,7 @@ export default function OrderDetail() {
             {['delivered', 'completed'].includes(order.status) && !order.returnRequest && (
               <button
                 onClick={() => setShowReturnModal(true)}
+                data-testid="order-detail-return-btn"
                 className="w-full mt-6 flex items-center justify-center gap-2 px-6 py-3 border-2 border-orange-500 text-orange-500 rounded-lg hover:bg-orange-50 transition-colors font-bold uppercase tracking-widest text-xs"
               >
                 Yêu cầu trả hàng

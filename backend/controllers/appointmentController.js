@@ -648,7 +648,7 @@ const getAvailableSlots = async (req, res, next) => {
     const { branchId, staffId, serviceId, date } = req.query;
 
     if (!branchId || !staffId || !serviceId || !date) {
-      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp đủ thông tin.' });
+      return res.status(200).json({ success: true, data: [] });
     }
 
     const service = await Service.findByPk(serviceId);

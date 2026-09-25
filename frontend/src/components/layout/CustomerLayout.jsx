@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import ChatbotWidget from '../common/ChatbotWidget';
@@ -6,10 +6,11 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function CustomerLayout() {
   const { user } = useAuth();
+  const location = useLocation();
 
-  // Nếu người dùng đã đăng nhập và có role KHÔNG phải là admin hoặc customer, 
-  // thì chuyển hướng trực tiếp họ về màn hình làm việc /admin
-  if (user && user.role !== 'admin' && user.role !== 'customer') {
+  // Chỉ chuyển hướng nhân viên nội bộ về /admin nếu họ truy cập vào trang quản lý đơn/giỏ riêng của khách
+  const customerOnlyRoutes = ['/profile', '/my-appointments', '/my-orders', '/my-addresses', '/cart', '/checkout'];
+  if (user && user.role !== 'admin' && user.role !== 'customer' && customerOnlyRoutes.some(r => location.pathname.startsWith(r))) {
     return <Navigate to="/admin" replace />;
   }
 

@@ -261,6 +261,7 @@ export default function BookAppointment() {
         {services.map((s) => (
           <div
             key={s.id}
+            data-testid={`appointment-service-item-${s.id}`}
             onClick={() => setSelectedService(s)}
             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
               selectedService?.id === s.id
@@ -307,6 +308,7 @@ export default function BookAppointment() {
           {branches.map((b) => (
             <div
               key={b.id}
+              data-testid={`appointment-branch-item-${b.id}`}
               onClick={() => setSelectedBranch(b)}
               className={`p-5 rounded-xl border-2 cursor-pointer transition-all ${
                 selectedBranch?.id === b.id
@@ -354,6 +356,7 @@ export default function BookAppointment() {
           {staffList.map((s) => (
             <div
               key={s.id}
+              data-testid={`appointment-staff-item-${s.id}`}
               onClick={() => setSelectedStaff(s)}
               className={`p-5 rounded-xl border-2 cursor-pointer transition-all ${
                 selectedStaff?.id === s.id
@@ -411,6 +414,7 @@ export default function BookAppointment() {
             return (
               <button
                 key={formatDate(d)}
+                data-testid={`appointment-date-${formatDate(d)}`}
                 onClick={() => { setSelectedDate(d); setSelectedTime(null); }}
                 className={`flex flex-col items-center px-4 py-2 rounded-xl border-2 transition-all min-w-[72px] ${
                   isSelected
@@ -446,6 +450,7 @@ export default function BookAppointment() {
                 return (
                   <button
                     key={time}
+                    data-testid={`appointment-time-${time}`}
                     onClick={() => isAvailable && setSelectedTime(time)}
                     disabled={!isAvailable}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -528,6 +533,7 @@ export default function BookAppointment() {
             <FiTag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
+              data-testid="appointment-voucher-input"
               placeholder="Nhập mã giảm giá"
               value={voucherCode}
               onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
@@ -542,6 +548,7 @@ export default function BookAppointment() {
                 setVoucherCode('');
                 setDiscount(0);
               }}
+              data-testid="appointment-remove-voucher-btn"
               className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium transition-colors"
             >
               Hủy
@@ -564,6 +571,7 @@ export default function BookAppointment() {
                 }
               }}
               disabled={!voucherCode.trim() || applyingVoucher}
+              data-testid="appointment-apply-voucher-btn"
               className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
             >
               {applyingVoucher ? 'Đang áp dụng...' : 'Áp dụng'}
@@ -594,6 +602,7 @@ export default function BookAppointment() {
         <label className="block text-sm text-gray-500 mb-2">Ghi chú (tùy chọn)</label>
         <textarea
           value={note}
+          data-testid="appointment-note-input"
           onChange={(e) => setNote(e.target.value)}
           rows={3}
           className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)]"
@@ -604,6 +613,7 @@ export default function BookAppointment() {
       <button
         onClick={handleSubmitDeposit}
         disabled={submitting}
+        data-testid="appointment-submit-btn"
         className="mt-6 w-full max-w-lg py-3.5 bg-[#8B5E3C] text-white font-bold rounded-xl hover:bg-[#6D492E] transition-colors text-lg disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[#8B5E3C]/20"
       >
         <FiDollarSign />
@@ -629,6 +639,7 @@ export default function BookAppointment() {
             <button
               onClick={handleBack}
               disabled={currentStep === 0 || (currentStep === 1 && preselectedServiceId)}
+              data-testid="appointment-back-btn"
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <FiChevronLeft />
@@ -637,6 +648,8 @@ export default function BookAppointment() {
             <button
               onClick={handleNext}
               disabled={!canGoNext()}
+              data-testid="book-appointment-btn"
+              data-test="appointment-next-btn"
               className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--primary)] text-white font-semibold hover:bg-[var(--primary-light)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Tiếp theo

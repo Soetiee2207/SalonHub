@@ -175,6 +175,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
               <input
                 type="text"
                 value={form.fullName}
+                data-testid="address-form-fullname-input"
                 onChange={(e) => setForm(prev => ({ ...prev, fullName: e.target.value }))}
                 placeholder="Nhập tên người nhận"
                 className={inputClass}
@@ -188,6 +189,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
               <input
                 type="tel"
                 value={form.phone}
+                data-testid="address-form-phone-input"
                 onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="Nhập số điện thoại"
                 className={inputClass}
@@ -202,6 +204,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
             </label>
             <select
               value={form.provinceCode}
+              data-testid="address-form-province-select"
               onChange={handleProvinceChange}
               className={selectClass}
               required
@@ -219,6 +222,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Quận / Huyện</label>
               <select
                 value={form.districtCode}
+                data-testid="address-form-district-select"
                 onChange={handleDistrictChange}
                 className={selectClass}
                 required
@@ -234,6 +238,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Phường / Xã</label>
               <select
                 value={form.wardCode}
+                data-testid="address-form-ward-select"
                 onChange={handleWardChange}
                 className={selectClass}
                 required
@@ -254,6 +259,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
             <input
               type="text"
               value={form.street}
+              data-testid="address-form-street-input"
               onChange={(e) => setForm(prev => ({ ...prev, street: e.target.value }))}
               placeholder="VD: 123 Nguyễn Văn A"
               className={inputClass}
@@ -265,6 +271,7 @@ export default function AddressForm({ address, onClose, onSaved }) {
             <input
               type="checkbox"
               checked={form.isDefault}
+              data-testid="address-form-default-checkbox"
               onChange={(e) => setForm(prev => ({ ...prev, isDefault: e.target.checked }))}
               className="accent-[var(--primary)] w-4 h-4"
             />
@@ -275,12 +282,14 @@ export default function AddressForm({ address, onClose, onSaved }) {
             <button
               type="button"
               onClick={onClose}
+              data-testid="address-form-cancel-btn"
               className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
+              data-testid="address-form-submit-btn"
               disabled={loading}
               className="flex-1 px-4 py-2.5 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] font-medium transition-colors disabled:opacity-50"
             >

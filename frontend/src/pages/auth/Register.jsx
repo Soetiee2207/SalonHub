@@ -109,6 +109,7 @@ export default function Register() {
         <input
           type={isPassword ? (showState ? 'text' : 'password') : type}
           name={name}
+          data-testid={`register-${name}-input`}
           value={form[name]}
           onChange={handleChange}
           placeholder={placeholder}
@@ -234,6 +235,7 @@ export default function Register() {
               <button
                 type="submit"
                 disabled={loading}
+                data-testid="register-submit-btn"
                 className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 cursor-pointer mt-2"
                 style={{
                   backgroundColor: 'var(--primary)',
@@ -254,6 +256,7 @@ export default function Register() {
               Đã có tài khoản?{' '}
               <Link
                 to="/login"
+                data-testid="register-login-link"
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--primary)' }}
               >

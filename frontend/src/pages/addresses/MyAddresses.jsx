@@ -80,6 +80,7 @@ export default function MyAddresses() {
         </div>
         <button
           onClick={handleAdd}
+          data-testid="address-add-btn"
           className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors font-medium"
         >
           <FiPlus size={18} />
@@ -93,6 +94,7 @@ export default function MyAddresses() {
           <p className="text-gray-500 mb-4">Bạn chưa có địa chỉ nào</p>
           <button
             onClick={handleAdd}
+            data-testid="address-add-empty-btn"
             className="px-6 py-2.5 bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary-dark)] transition-colors font-medium"
           >
             Thêm địa chỉ đầu tiên
@@ -103,6 +105,7 @@ export default function MyAddresses() {
           {addresses.map((addr) => (
             <div
               key={addr.id}
+              data-testid={`address-card-${addr.id}`}
               className={`bg-white rounded-xl border p-5 relative ${
                 addr.isDefault ? 'border-[var(--primary)]' : 'border-gray-100'
               }`}
@@ -131,12 +134,14 @@ export default function MyAddresses() {
               <div className="flex items-center gap-2 pt-3 border-t border-gray-50">
                 <button
                   onClick={() => handleEdit(addr)}
+                  data-testid={`address-edit-btn-${addr.id}`}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-colors"
                 >
                   <FiEdit2 size={14} /> Sửa
                 </button>
                 <button
                   onClick={() => handleDelete(addr.id)}
+                  data-testid={`address-delete-btn-${addr.id}`}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[var(--error)] hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <FiTrash2 size={14} /> Xóa
@@ -144,6 +149,7 @@ export default function MyAddresses() {
                 {!addr.isDefault && (
                   <button
                     onClick={() => handleSetDefault(addr.id)}
+                    data-testid={`address-set-default-btn-${addr.id}`}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors ml-auto"
                   >
                     <FiCheck size={14} /> Đặt mặc định

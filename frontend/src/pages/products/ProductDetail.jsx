@@ -209,6 +209,7 @@ export default function ProductDetail() {
               <div className="flex items-center border border-[var(--bg-warm)] rounded-xl bg-white">
                 <button
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  data-testid="product-qty-minus"
                   className="px-4 py-3 hover:bg-[var(--bg-warm)] transition-colors rounded-l-xl"
                 >
                   <FiMinus className="text-[var(--primary)]" />
@@ -221,6 +222,7 @@ export default function ProductDetail() {
                 </span>
                 <button
                   onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
+                  data-testid="product-qty-plus"
                   className="px-4 py-3 hover:bg-[var(--bg-warm)] transition-colors rounded-r-xl"
                 >
                   <FiPlus className="text-[var(--primary)]" />
@@ -230,6 +232,7 @@ export default function ProductDetail() {
               <button
                 onClick={handleAddToCart}
                 disabled={addingToCart || product.stock === 0}
+                data-testid="product-add-to-cart-btn"
                 style={{ fontFamily: 'var(--font-body)' }}
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-[var(--primary)] text-white rounded-xl hover:bg-[var(--primary-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base"
               >

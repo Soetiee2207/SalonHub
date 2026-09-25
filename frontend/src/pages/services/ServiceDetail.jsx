@@ -201,6 +201,7 @@ export default function ServiceDetail() {
 
               <button
                 onClick={() => navigate(`/book-appointment?serviceId=${service.id}`)}
+                data-testid="service-detail-book-btn"
                 style={{ fontFamily: 'var(--font-body)' }}
                 className="w-full py-4 bg-[var(--primary)] text-white font-semibold rounded-xl hover:bg-[var(--primary-light)] transition-colors text-lg tracking-wide"
               >

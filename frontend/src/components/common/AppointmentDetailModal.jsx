@@ -32,7 +32,13 @@ const AppointmentDetailModal = ({ isOpen, appointment, onClose, onCancel, onPayD
   const canReview = appointment.status === 'completed' && !appointment.reviewed;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Chi tiết lịch hẹn"
+      data-testid="appointment-detail-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div 
         className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -41,6 +47,8 @@ const AppointmentDetailModal = ({ isOpen, appointment, onClose, onCancel, onPayD
         <div className="relative h-32 bg-gradient-to-r from-[#8B5E3C] to-[#A67C52] p-6 flex items-end">
           <button 
             onClick={onClose}
+            data-testid="appointment-detail-close-btn"
+            aria-label="Đóng chi tiết lịch hẹn"
             className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors"
           >
             <FiX size={20} />
@@ -51,7 +59,7 @@ const AppointmentDetailModal = ({ isOpen, appointment, onClose, onCancel, onPayD
             </div>
             <div>
               <h2 className="text-white font-black text-xl leading-tight">Chi tiết lịch hẹn</h2>
-              <p className="text-white/80 text-sm font-medium flex items-center gap-1.5 mt-0.5">
+              <p data-testid="appointment-detail-code" className="text-white/80 text-sm font-medium flex items-center gap-1.5 mt-0.5">
                 <FiHash className="text-xs" /> Mã lịch: AP{appointment.id}
               </p>
             </div>
@@ -61,7 +69,7 @@ const AppointmentDetailModal = ({ isOpen, appointment, onClose, onCancel, onPayD
         {/* Content */}
         <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
           {/* Status Badge */}
-          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold uppercase tracking-wider mb-6 ${status.color}`}>
+          <div data-testid="appointment-detail-status" className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-bold uppercase tracking-wider mb-6 ${status.color}`}>
             <StatusIcon size={14} />
             {status.label}
           </div>
@@ -71,7 +79,7 @@ const AppointmentDetailModal = ({ isOpen, appointment, onClose, onCancel, onPayD
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dịch vụ</p>
-                <p className="font-bold text-gray-800">{appointment.service?.name}</p>
+                <p data-testid="appointment-detail-service" className="font-bold text-gray-800">{appointment.service?.name}</p>
                 <p className="text-xs text-gray-500 font-medium">{appointment.service?.duration} phút</p>
               </div>
               <div className="space-y-1 text-right">

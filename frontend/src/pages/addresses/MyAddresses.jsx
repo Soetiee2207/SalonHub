@@ -89,7 +89,7 @@ export default function MyAddresses() {
       </div>
 
       {addresses.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-100">
+        <div data-testid="address-list" className="text-center py-16 bg-white rounded-xl border border-gray-100">
           <FiMapPin size={48} className="mx-auto text-gray-300 mb-4" />
           <p className="text-gray-500 mb-4">Bạn chưa có địa chỉ nào</p>
           <button
@@ -101,7 +101,7 @@ export default function MyAddresses() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-testid="address-list" className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {addresses.map((addr) => (
             <div
               key={addr.id}

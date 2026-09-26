@@ -90,7 +90,7 @@ function HeroBanner() {
   const slide = HERO_SLIDES[current];
 
   return (
-    <section className="relative flex items-center justify-center px-4 overflow-hidden" style={{ minHeight: '80vh' }}>
+    <section data-testid="home-hero-carousel" className="relative flex items-center justify-center px-4 overflow-hidden" style={{ minHeight: '80vh' }}>
       {/* Background images with crossfade */}
       {HERO_SLIDES.map((s, idx) => (
         <div
@@ -108,6 +108,7 @@ function HeroBanner() {
       <div className="relative z-10 max-w-3xl mx-auto text-center text-white">
         <h1
           key={`title-${current}`}
+          data-testid="home-hero-title"
           className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in-up"
           style={{ fontFamily: 'var(--font-display)' }}
         >
@@ -141,6 +142,7 @@ function HeroBanner() {
       {/* Carousel arrows */}
       <button
         onClick={prevSlide}
+        data-testid="home-hero-prev-btn"
         className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/40 text-white transition-colors backdrop-blur-sm cursor-pointer border-0"
         aria-label="Previous slide"
       >
@@ -148,6 +150,7 @@ function HeroBanner() {
       </button>
       <button
         onClick={nextSlide}
+        data-testid="home-hero-next-btn"
         className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/40 text-white transition-colors backdrop-blur-sm cursor-pointer border-0"
         aria-label="Next slide"
       >
@@ -160,6 +163,7 @@ function HeroBanner() {
           <button
             key={idx}
             onClick={() => goToSlide(idx)}
+            data-testid={`home-hero-dot-${idx + 1}`}
             className="w-3 h-3 rounded-full transition-all border-0 cursor-pointer"
             style={{
               backgroundColor: idx === current ? 'var(--primary)' : 'rgba(255,255,255,0.5)',

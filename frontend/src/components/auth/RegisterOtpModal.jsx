@@ -112,6 +112,10 @@ export default function RegisterOtpModal({ isOpen, onClose, email, onVerify }) {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Xác thực tài khoản"
+            data-testid="register-otp-modal"
             className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
           >
             <button

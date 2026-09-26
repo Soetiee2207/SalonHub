@@ -14,6 +14,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
   const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   useEffect(() => {
@@ -58,15 +59,18 @@ export default function Login() {
   });
 
   const handleChange = (e) => {
+    setValidationMessage('');
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
+      setValidationMessage('Vui lòng điền đầy đủ thông tin');
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
+    setValidationMessage('');
     setLoading(true);
     try {
       await login(form);
@@ -144,6 +148,11 @@ export default function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {validationMessage && (
+                <p role="alert" data-testid="login-validation-message" className="text-sm text-red-600">
+                  {validationMessage}
+                </p>
+              )}
               {/* Email */}
               <div>
                 <label

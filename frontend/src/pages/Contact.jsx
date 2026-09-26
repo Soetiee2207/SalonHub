@@ -8,6 +8,7 @@ export default function Contact() {
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
 
   useEffect(() => {
     branchService.getAll()
@@ -20,6 +21,7 @@ export default function Contact() {
   }, []);
 
   const handleChange = (e) => {
+    setSubmitMessage('');
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -31,6 +33,7 @@ export default function Contact() {
     }
     setSubmitting(true);
     setTimeout(() => {
+      setSubmitMessage('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất.');
       toast.success('Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất.');
       setForm({ name: '', email: '', phone: '', message: '' });
       setSubmitting(false);
@@ -136,6 +139,14 @@ export default function Contact() {
                 style={{ borderColor: 'var(--border)' }}
               >
                 <div className="flex flex-col gap-4">
+                  <p
+                    role="status"
+                    aria-live="polite"
+                    data-testid="contact-submit-success"
+                    className={submitMessage ? 'text-sm text-green-700' : 'sr-only'}
+                  >
+                    {submitMessage}
+                  </p>
                   {/* Name */}
                   <div>
                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-dark)' }}>

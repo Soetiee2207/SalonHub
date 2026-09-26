@@ -155,7 +155,13 @@ export default function AddressForm({ address, onClose, onSaved }) {
   const inputClass = 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-light)] focus:border-transparent';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={isEdit ? 'Sửa địa chỉ' : 'Thêm địa chỉ mới'}
+      data-testid="address-form-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    >
       <div className="bg-white rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-800">

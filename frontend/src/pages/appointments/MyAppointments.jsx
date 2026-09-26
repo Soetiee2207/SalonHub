@@ -139,7 +139,7 @@ export default function MyAppointments() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map((appt) => {
+            {filtered.map((appt, index) => {
               const statusInfo = STATUS_MAP[appt.status] || STATUS_MAP.pending;
               const canCancel = ['awaiting_deposit', 'pending', 'confirmed'].includes(appt.status);
               const canPayDeposit = appt.status === 'awaiting_deposit' && appt.depositStatus === 'pending';
@@ -203,7 +203,10 @@ export default function MyAppointments() {
                         data-testid={`appointment-detail-btn-${appt.id}`}
                         className="flex-1 min-w-[120px] px-3 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-1.5"
                       >
-                        <FiInfo size={14} /> Xem chi tiết
+                        <FiInfo size={14} />
+                        {index === 0 ? (
+                          <span data-testid="appointment-detail-open-trigger">Xem chi tiết</span>
+                        ) : ' Xem chi tiết'}
                       </button>
 
                       {canPayDeposit && (
@@ -212,7 +215,10 @@ export default function MyAppointments() {
                           data-testid={`appointment-deposit-btn-${appt.id}`}
                           className="px-4 py-2 text-xs font-black text-white bg-[#8B5E3C] rounded-xl hover:bg-[#6D492E] transition-all flex items-center gap-1.5 shadow-md"
                         >
-                          <FiDollarSign className="text-sm" /> Đặt cọc
+                          <FiDollarSign className="text-sm" />
+                          {appointments.find((item) => item.status === 'awaiting_deposit' && item.depositStatus === 'pending')?.id === appt.id ? (
+                            <span data-testid="appointment-deposit-open-trigger">Đặt cọc</span>
+                          ) : ' Đặt cọc'}
                         </button>
                       )}
                       

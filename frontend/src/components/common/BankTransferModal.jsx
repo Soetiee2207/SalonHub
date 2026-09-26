@@ -51,12 +51,18 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Thanh toán chuyển khoản"
+      data-testid="bank-transfer-modal"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+    >
       <div className="bg-white rounded-[2rem] w-full max-w-[400px] shadow-2xl overflow-hidden animate-scale-up">
         {/* Header */}
         <div className="p-6 bg-[#8B5E3C] text-white flex items-center justify-between">
-          <h2 className="text-xl font-bold font-display">Thanh toán chuyển khoản</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors border-0 bg-transparent text-white cursor-pointer">
+          <h2 data-testid="bank-transfer-modal-title" className="text-xl font-bold font-display">Thanh toán chuyển khoản</h2>
+          <button onClick={onClose} data-testid="bank-transfer-modal-close-btn" aria-label="Đóng thanh toán" className="p-2 hover:bg-white/10 rounded-full transition-colors border-0 bg-transparent text-white cursor-pointer">
             <FiX size={20} />
           </button>
         </div>
@@ -76,7 +82,7 @@ export default function BankTransferModal({ isOpen, onClose, amount, orderId, ap
               <div className="flex justify-between items-center group">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Ngân hàng</p>
-                  <p className="text-sm font-bold text-slate-700">{bankInfo.bankName}</p>
+                  <p data-testid="bank-transfer-method" className="text-sm font-bold text-slate-700">{bankInfo.bankName}</p>
                 </div>
               </div>
 

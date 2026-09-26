@@ -89,7 +89,13 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Quên mật khẩu"
+      data-testid="forgot-password-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in"
+    >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-up">
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-bold text-gray-800">
@@ -112,6 +118,7 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
                   <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
+                    data-testid="forgot-password-email-input"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Nhập email của bạn"
@@ -121,6 +128,7 @@ export default function ForgotPasswordFlow({ isOpen, onClose, initialEmail = '' 
               </div>
               <button
                 onClick={() => handleSendOtp(email)}
+                data-testid="forgot-password-send-otp-btn"
                 disabled={loading || !email}
                 className="w-full mt-4 text-white py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
                 style={{ backgroundColor: 'var(--primary)' }}

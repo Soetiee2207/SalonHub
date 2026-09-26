@@ -237,7 +237,7 @@ export default function ProductDetail() {
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-[var(--primary)] text-white rounded-xl hover:bg-[var(--primary-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-base"
               >
                 <FiShoppingCart />
-                Thêm vào giỏ hàng
+                <span data-testid={`product-add-to-cart-btn-${product.id}`}>Thêm vào giỏ hàng</span>
               </button>
             </div>
           </div>
